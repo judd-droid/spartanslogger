@@ -123,24 +123,24 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(record),
         });
+        const text = await res.text();                   // log server response for debugging
+        console.log("POST /exec →", res.status, text);
     
-        const text = await res.text();          // try to read body for debugging
-        let bodyOk = true;
+        // Treat non-2xx as failure
+        if (!res.ok) return { ok: false, reason: "server", status: res.status, text };
+    
+        // If Apps Script returned JSON {ok:false}, treat as failure too
         try {
           const j = JSON.parse(text);
-          if (typeof j.ok !== "undefined") bodyOk = !!j.ok;
-        } catch { /* non-JSON body is fine */ }
-    
-        if (!res.ok || !bodyOk) {
-          console.warn("Endpoint error", { status: res.status, text });
-          return { ok: false, reason: "server", status: res.status, text };
-        }
+          if (typeof j.ok !== "undefined" && !j.ok) return { ok: false, reason: "server", status: res.status, text };
+        } catch (_) {}
         return { ok: true };
       } catch (err) {
-        console.warn("Network/Fetch error", err);
+        console.warn("Network/Fetch error:", err);
         return { ok: false, reason: "offline", error: String(err) };
       }
     }
+
 
     function App(){
       const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
@@ -201,35 +201,25 @@
       },[form,settings]);
 
       const handleSubmit = async () => {
-        if (!settings.advisorName) {
-          setToast({ t: "Set your name in Settings first", type: "warn" });
-          setOpenSettings(true);
-          return;
-        }
-        if (!form.prospectName) {
-          setToast({ t: "Prospect name is required", type: "warn" });
-          return;
-        }
+        if (!settings.advisorName) { setToast({ t: "Set your name in Settings first", type: "warn" }); setOpenSettings(true); return; }
+        if (!form.prospectName)    { setToast({ t: "Prospect name is required", type: "warn" }); return; }
       
         const record = { id: (crypto.randomUUID?.() || String(Date.now())), ...payload };
-        setHistory((h) => [record, ...h].slice(0, 200));
+        setHistory(h => [record, ...h].slice(0, 200));
       
-        const result = await sendToEndpoint(settings.endpointUrl, record);
-      
-        if (result.ok) {
+        const r = await sendToEndpoint(settings.endpointUrl, record);
+        if (r.ok) {
           setToast({ t: "Submitted ✅", type: "ok" });
-        } else if (result.reason === "offline" || result.reason === "no-endpoint") {
-          setOutbox((o) => [record, ...o]);
+        } else if (r.reason === "offline" || r.reason === "no-endpoint") {
+          setOutbox(o => [record, ...o]);
           setToast({ t: "Saved offline — will sync when online", type: "warn" });
         } else {
-          // server/permission error — still keep it so you can re-send later
-          setOutbox((o) => [record, ...o]);
-          setToast({ t: `Send failed (${result.status ?? "server error"})`, type: "err" });
+          setOutbox(o => [record, ...o]);            // keep it so you can re-send later
+          setToast({ t: `Send failed (${r.status ?? "server"})`, type: "err" });
         }
-      
         resetForm();
       };
-
+      
       const pendingCount = outbox.length;
 
       return (
@@ -253,15 +243,15 @@
                   <button
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
                     onClick={async () => {
-                      if (!settings.endpointUrl) { setToast({ t: "Add endpoint URL first", type: "warn" }); return; }
+                      const url = (settings.endpointUrl || "").trim();
+                      if (!url) { setToast({ t: "Add endpoint URL first", type: "warn" }); return; }
                       try {
-                        const r = await fetch(settings.endpointUrl, { method: "GET" });
-                        const text = await r.text();
-                        setToast({ t: r.ok ? "Endpoint reachable ✅" : `Endpoint error ${r.status}`, type: r.ok ? "ok" : "err" });
-                        console.log("GET /exec →", r.status, text);
-                      } catch (e) {
+                        const res = await fetch(url, { method: "GET" });
+                        const text = await res.text();
+                        console.log("GET /exec →", res.status, text);
+                        setToast({ t: res.ok ? "Endpoint reachable ✅" : `Endpoint error ${res.status}`, type: res.ok ? "ok" : "err" });
+                      } catch {
                         setToast({ t: "Cannot reach endpoint", type: "err" });
-                        console.warn(e);
                       }
                     }}
                   >
