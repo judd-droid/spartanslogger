@@ -239,11 +239,11 @@
       const [toast,setToast]=useState(null);
 
       const yesNoItems = useMemo(()=>[
-        {key:"firstMeeting",label:"First Meeting"},
-        {key:"factFinding",label:"Fact Finding (KYC)"},
-        {key:"appSubmitted",label:"App Submitted"},
-        {key:"casePaid",label:"Case Paid"},
-        {key:"caseApproved",label:"Case Approved"},
+        {key:"firstMeeting",label:"First Meeting?"},
+        {key:"factFinding",label:"KYC Done?"},
+        {key:"appSubmitted",label:"Submitted?"},
+        {key:"casePaid",label:"Paid?"},
+        {key:"caseApproved",label:"Approved?"},
       ],[]);
 
       useEffect(()=>writeLS(LS.settings,settings),[settings]);
