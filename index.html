@@ -470,16 +470,24 @@
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="text-[11px] text-slate-400">{(r.timestamp||"").replace("T"," ").slice(0,16)}</div>
+                    <div className="mt-3 flex justify-end">
                       <div className="flex gap-2">
-                        <button className="rounded-xl border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
-                          onClick={async ()=>{
+                        <button
+                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
+                          onClick={async () => {
                             const ok = await sendToEndpoint(DEFAULT_ENDPOINT, r);
-                            alert(ok?"Re-sent ✅":"Send failed");
-                          }}>Re-send</button>
-                        <button className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
-                          onClick={()=>setHistory(h=>h.filter(x=>x.id!==r.id))}>Delete</button>
+                            alert(ok ? "Re-sent ✅" : "Send failed");
+                          }}
+                        >
+                          Re-send
+                        </button>
+                    
+                        <button
+                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
+                          onClick={() => setHistory(h => h.filter(x => x.id !== r.id))}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </div>
