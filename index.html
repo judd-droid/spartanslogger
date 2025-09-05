@@ -119,14 +119,13 @@
       try {
         const res = await fetch(endpoint, {
           method: "POST",
-          mode: "no-cors",                          // <-- avoid CORS block
-          headers: { "Content-Type": "text/plain" },// <-- no preflight; body still JSON
+          mode: "no-cors",                      // avoid CORS checks
+          headers: { "Content-Type": "text/plain" }, // no preflight; body still JSON
           body: JSON.stringify(record),
         });
-        // In no-cors, the response is "opaque" (status 0, ok=false). Treat as success.
+        // opaque responses are expected in no-cors; treat as success
         return res.ok || res.type === "opaque";
-      } catch (e) {
-        console.warn("fetch error", e);
+      } catch {
         return false; // truly offline / DNS failure
       }
     }
