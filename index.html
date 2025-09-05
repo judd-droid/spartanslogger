@@ -34,6 +34,12 @@
         radial-gradient(900px 600px at 100% 0%, rgba(14,165,233,.10), transparent 55%),
         linear-gradient(145deg, var(--steel-0) 0%, var(--steel-1) 32%, var(--steel-2) 66%, var(--steel-3) 100%);
     }
+
+    /* iOS zoom prevention + consistent typography for form controls */
+    input, select, button, textarea {
+      font: inherit;
+      font-size: 16px; /* >=16px prevents iOS zoom-on-focus */
+    }
   </style>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -113,12 +119,12 @@
     );
     const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
       <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400" />
     );
     const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
       <input value={value} onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
         type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400" />
     );
     const Select = ({ value, onChange, options, placeholder }) => (
       <select
@@ -128,7 +134,7 @@
           if (!v) return;           // ignore empty placeholder just in case
           onChange(v);
         }}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
+        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400"
       >
         {/* Show placeholder only before the user picks a value */}
         {!value && (
@@ -147,8 +153,11 @@
       <div className="flex flex-wrap gap-2">
         {options.map(opt=>(
           <button key={opt} type="button"
-            className={cls("rounded-full px-4 py-2 text-sm font-medium border",
-              value===opt?"bg-slate-900 text-white border-slate-900":"bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200")}
+            className={cls(
+              "h-12 rounded-full px-4 text-base font-medium border flex items-center",
+              value===opt ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+            )}
             onClick={()=>onChange(opt)}>{opt}</button>
         ))}
       </div>
@@ -171,7 +180,7 @@
     const TabBar = ({ tab, setTab }) => {
       const Tab = ({ id, label }) => (
         <button onClick={()=>setTab(id)}
-          className={cls("flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold", tab===id?"bg-slate-900 text-white border-slate-900":"bg-white border-slate-200")}>{label}</button>
+          className={cls("flex-1 h-12 rounded-2xl border px-4 text-base font-semibold", tab===id?"bg-slate-900 text-white border-slate-900":"bg-white border-slate-200")}>{label}</button>
       );
       return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
     };
@@ -307,7 +316,7 @@
                 </LabeledInput>
                 <div className="flex items-center">
                   <button
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                    className="h-12 rounded-xl border border-slate-300 bg-white px-4 text-base hover:bg-slate-50"
                     onClick={() => { if (!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}
                   >
                     Clear Local Data
@@ -349,14 +358,11 @@
               </Section>
 
               <div className="mb-24 flex gap-3">
-                <button onClick={resetForm} className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Clear</button>
+                <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50"">Clear</button>
                 <button
                   onClick={handleSubmit}
                   disabled={isSending}
-                  className={cls(
-                    "flex-1 rounded-2xl px-4 py-3 font-semibold text-white active:scale-[0.99]",
-                    isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900"
-                  )}
+                  className={cls("flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]", isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900")}
                 >
                   {isSending ? "Sending…" : "Submit"}
                 </button>
