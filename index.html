@@ -68,7 +68,7 @@
         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
     );
     const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
-      <input value={value} onChange={(e)=>onChange(e.target.value===""?\"\":Number(e.target.value))}
+      <input value={value} onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
         type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
     );
@@ -172,7 +172,7 @@
           firstMeeting: form.firstMeeting?"Yes":"No", noOfMeetings: Number(form.meetingCount)||0,
           factFinding: form.factFinding?"Yes":"No", appSubmitted: form.appSubmitted?"Yes":"No",
           casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
-          fyp: form.fyp===""?\"\":Number(form.fyp), fyc: form.fyc===""?\"\":Number(form.fyc),
+          fyp: form.fyp === "" ? "" : Number(form.fyp), fyc: form.fyc === "" ? "" : Number(form.fyc),
           product: form.product, caseApproved: form.caseApproved?"Yes":"No", notes: form.notes,
           timestamp: new Date().toISOString(), dt
         };
