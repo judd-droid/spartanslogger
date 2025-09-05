@@ -346,7 +346,7 @@
                     value={settings.unit}
                     onChange={v=>setSettings(s=>({...s, unit:v}))}
                     options={UNIT_OPTIONS}
-                    placeholder="Select unit"
+                    placeholder="-- Select Unit --"
                   />
                 </LabeledInput>
                 <div className="flex items-center">
@@ -394,7 +394,7 @@
                     value={form.product}
                     onChange={v=>setForm(f=>({...f, product:v}))}
                     options={PRODUCT_OPTIONS}
-                    placeholder="Select product/plan"
+                    placeholder="-- Select Product --"
                     // no disablePlaceholder -> remains optional
                   />
               </LabeledInput>
