@@ -21,6 +21,11 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
+
+    /* ensure full-viewport coverage on mobile */
+    @supports (height: 100dvh){
+      body::before{ height: 100dvh; }
+    }
     
     /* Fixed gradient layer so it never clips while scrolling */
     body::before{
@@ -129,10 +134,8 @@
     const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
     const Page = ({children}) => (
-      <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900">
-        <div className="mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+120px)]">
-          {children}
-        </div>
+      <div className="min-h-[100dvh] w-full bg-transparent text-slate-900">
+        <div className="mx-auto w-full max-w-md px-4 pb-36">{children}</div>
       </div>
     );
     const TopBar = ({ onOpenSettings, pendingCount }) => (
