@@ -108,6 +108,13 @@
       "Money Tree",
       "Other",
     ];
+
+    const MEETING_PLACES = [
+      "Zoom", "Cafe", "Office", "Home",
+      "Online", "Other",
+      "Phone",           // NEW
+      "Client Office"    // NEW
+    ];
     
     const defaultSettings = {
       advisorName: "", unit: "" };
@@ -199,6 +206,21 @@
             clipRule="evenodd" />
         </svg>
       </div>
+    );
+
+    const TileButton = ({ selected, children, onClick }) => (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cls(
+          "h-16 w-full rounded-2xl border text-base font-semibold shadow-sm px-4 active:scale-[0.99] transition",
+          selected
+            ? "bg-slate-900 text-white border-slate-900"
+            : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
+        )}
+      >
+        {children}
+      </button>
     );
     
     const Pills = ({ options, value, onChange }) => (
@@ -411,7 +433,19 @@
               </Section>
 
               <Section title="Meeting Details" right={<span className="text-xs text-slate-500">{dayName(form.date)}</span>}>
-                <LabeledInput label="Meeting Place"><Pills options={["Zoom","Cafe","Office","Home","Online","Other"]} value={form.meetingPlace} onChange={v=>setForm(f=>({...f,meetingPlace:v}))}/></LabeledInput>
+                <LabeledInput label="Meeting Place">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {MEETING_PLACES.map(p => (
+                      <TileButton
+                        key={p}
+                        selected={form.meetingPlace === p}
+                        onClick={() => setForm(f => ({ ...f, meetingPlace: p }))}
+                      >
+                        {p}
+                      </TileButton>
+                    ))}
+                  </div>
+                </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="# of Meetings (so far)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
                   <LabeledInput label="Referrals Given (count)"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
