@@ -113,11 +113,33 @@
     };
     const Badge = ({children}) => <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">{children}</span>;
 
-    async function sendToEndpoint(url, record){
-      try{
-        const res = await fetch(url,{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(record) });
-        return res.ok;
-      }catch{ return false; }
+    async function sendToEndpoint(url, record) {
+      const endpoint = (url || "").trim();
+      if (!endpoint) return { ok: false, reason: "no-endpoint" };
+    
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(record),
+        });
+    
+        const text = await res.text();          // try to read body for debugging
+        let bodyOk = true;
+        try {
+          const j = JSON.parse(text);
+          if (typeof j.ok !== "undefined") bodyOk = !!j.ok;
+        } catch { /* non-JSON body is fine */ }
+    
+        if (!res.ok || !bodyOk) {
+          console.warn("Endpoint error", { status: res.status, text });
+          return { ok: false, reason: "server", status: res.status, text };
+        }
+        return { ok: true };
+      } catch (err) {
+        console.warn("Network/Fetch error", err);
+        return { ok: false, reason: "offline", error: String(err) };
+      }
     }
 
     function App(){
@@ -144,17 +166,17 @@
       useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
 
       useEffect(()=>{
-        const flush=()=>{
-          if(!settings.endpointUrl || outbox.length===0) return;
-          (async()=>{
-            const remaining=[];
-            for(const item of outbox){
-              const ok=await sendToEndpoint(settings.endpointUrl,item);
-              if(!ok) remaining.push(item);
+        const flush = () => {
+          if (!settings.endpointUrl || outbox.length === 0) return;
+          (async () => {
+            const remaining = [];
+            for (const item of outbox) {
+              const r = await sendToEndpoint(settings.endpointUrl, item);
+              if (!r.ok) remaining.push(item);  // keep if still failing
             }
-            if(remaining.length!==outbox.length){
+            if (remaining.length !== outbox.length) {
               setOutbox(remaining);
-              if(remaining.length===0) setToast({t:"All queued items synced ✅",type:"ok"});
+              if (remaining.length === 0) setToast({ t: "All queued items synced ✅", type: "ok" });
             }
           })();
         };
@@ -179,19 +201,32 @@
       },[form,settings]);
 
       const handleSubmit = async () => {
-        if(!settings.advisorName){ setToast({t:"Set your name in Settings first",type:"warn"}); setOpenSettings(true); return; }
-        if(!form.prospectName){ setToast({t:"Prospect name is required",type:"warn"}); return; }
-
-        const record = { id: (crypto.randomUUID?.()||String(Date.now())), ...payload };
-        setHistory(h=>[record,...h].slice(0,200));
-
-        if(settings.endpointUrl){
-          const ok=await sendToEndpoint(settings.endpointUrl,record);
-          if(!ok){ setOutbox(o=>[record,...o]); setToast({t:"Saved offline — will sync when online",type:"warn"}); }
-          else { setToast({t:"Submitted ✅",type:"ok"}); }
-        }else{
-          setOutbox(o=>[record,...o]); setToast({t:"Queued — add endpoint URL in Settings",type:"warn"});
+        if (!settings.advisorName) {
+          setToast({ t: "Set your name in Settings first", type: "warn" });
+          setOpenSettings(true);
+          return;
         }
+        if (!form.prospectName) {
+          setToast({ t: "Prospect name is required", type: "warn" });
+          return;
+        }
+      
+        const record = { id: (crypto.randomUUID?.() || String(Date.now())), ...payload };
+        setHistory((h) => [record, ...h].slice(0, 200));
+      
+        const result = await sendToEndpoint(settings.endpointUrl, record);
+      
+        if (result.ok) {
+          setToast({ t: "Submitted ✅", type: "ok" });
+        } else if (result.reason === "offline" || result.reason === "no-endpoint") {
+          setOutbox((o) => [record, ...o]);
+          setToast({ t: "Saved offline — will sync when online", type: "warn" });
+        } else {
+          // server/permission error — still keep it so you can re-send later
+          setOutbox((o) => [record, ...o]);
+          setToast({ t: `Send failed (${result.status ?? "server error"})`, type: "err" });
+        }
+      
         resetForm();
       };
 
