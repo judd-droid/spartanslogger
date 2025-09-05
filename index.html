@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spartans Meeting Logger</title>
   <style>
-    html, body { height: 100%; min-height: 100%; }
-  
     :root{
       --sn-red:#DD467D; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
       --rec-bg:#f9fafb; --bg:#f8fafc; --card:#ffffff; --line:#e5e7eb;
@@ -15,16 +13,26 @@
       --steel-2:#cfd9e6;   /* mid steel */
       --steel-3:#aebbd0;   /* deeper steel */
     }
-  
-    /* Steel gradient (win against any other bg rules) */
-    html, body{
+    
+    html, body { min-height: 100%; }               /* no fixed height */
+    
+    body{
+      background-color: var(--steel-1);            /* fallback color */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Fixed gradient layer so it never clips while scrolling */
+    body::before{
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;                                 /* behind everything */
+      pointer-events: none;
       background:
         radial-gradient(1100px 700px at 0% 0%, rgba(99,102,241,.10), transparent 60%),
         radial-gradient(900px 600px at 100% 0%, rgba(14,165,233,.10), transparent 55%),
-        linear-gradient(145deg, var(--steel-0) 0%, var(--steel-1) 32%, var(--steel-2) 66%, var(--steel-3) 100%) !important;
-      background-color: var(--steel-1) !important; /* fallback */
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+        linear-gradient(145deg, var(--steel-0) 0%, var(--steel-1) 32%, var(--steel-2) 66%, var(--steel-3) 100%);
     }
   </style>
 
