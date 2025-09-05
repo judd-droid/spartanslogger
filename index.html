@@ -149,10 +149,10 @@
       </section>
     );
     const LabeledInput = ({ label, children }) => (
-      <div className="mb-3">
-        <div className="mb-1 text-[13px] font-medium text-slate-600">{label}</div>
+      <label className="mb-4 block"> {/* was mb-3 */}
+        <div className="mb-2 text-[13px] font-medium text-slate-600">{label}</div> {/* was mb-1 */}
         {children}
-      </div>
+      </label>
     );
     
     // Text input
