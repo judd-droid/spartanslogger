@@ -77,6 +77,11 @@
     const DEFAULT_ENDPOINT =
       "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
 
+    // SAME HEIGHT FOR ALL FIELDS (inputs & selects)
+    const baseField =
+      "w-full h-14 rounded-2xl border border-slate-300 bg-white " +
+      "px-3 text-[16px] leading-none shadow-sm outline-none focus:border-slate-400";
+    
     // Edit this list anytime
     const UNIT_OPTIONS = [
       "Supernova Direct",
@@ -144,25 +149,58 @@
         {children}
       </div>
     );
+    
+    // Text input
     const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
-      <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder}
-        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400" />
-    );
-    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
-      <input value={value} onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
-        type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
-        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400" />
-    );
-    const Select = ({ value, onChange, options, placeholder, disablePlaceholder=false }) => (
-      <select
+      <input
         value={value}
         onChange={(e)=>onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
-      >
-        <option value="" disabled={disablePlaceholder}>{placeholder || "Select…"}</option>
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
+        type={type}
+        inputMode={inputMode}
+        placeholder={placeholder}
+        className={baseField}
+      />
     );
+    
+    // Number input
+    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
+      <input
+        value={value}
+        onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
+        type="number"
+        step={step}
+        min={min}
+        inputMode="numeric"
+        placeholder={placeholder}
+        className={baseField + " appearance-none"}  // consistent on iOS
+      />
+    );
+    
+    // Select (dropdown) — same height, custom chevron
+    const Select = ({ value, onChange, options, placeholder }) => (
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e)=>onChange(e.target.value)}
+          className={baseField + " appearance-none pr-10"}  // opt out of native height; room for chevron
+        >
+          {/* can't be selected, just a hint in the closed state */}
+          <option value="" disabled hidden>{placeholder || "Select…"}</option>
+          {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+    
+        {/* chevron */}
+        <svg
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"
+          viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+        >
+          <path fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"
+            clipRule="evenodd" />
+        </svg>
+      </div>
+    );
+    
     const Pills = ({ options, value, onChange }) => (
       <div className="flex flex-wrap gap-2">
         {options.map(opt=>(
