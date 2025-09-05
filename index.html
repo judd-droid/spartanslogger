@@ -470,8 +470,8 @@
                 </LabeledInput>
                 <div className="flex items-center">
                   <button
-                    className="h-12 rounded-xl border border-slate-300 bg-white px-4 text-base hover:bg-slate-50"
-                    onClick={() => { if (!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}
+                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 active:scale-[0.99]"
+                    onClick={() => { if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}
                   >
                     Clear Local Data
                   </button>
