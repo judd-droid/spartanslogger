@@ -433,9 +433,8 @@
                     {/* divider between meta and activity tags */}
                     <div className="my-2 h-px bg-slate-200"></div>
                     
-                    {/* activity tags (now also reflects First Meeting) */}
+                    {/* activity tags */}
                     <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                      {r.firstMeeting === "Yes" && <Badge>First Meeting</Badge>}
                       {r.factFinding === "Yes" && <Badge>KYC Done</Badge>}
                       {r.appSubmitted === "Yes" && <Badge>Submitted</Badge>}
                       {r.casePaid === "Yes" && <Badge>Paid</Badge>}
