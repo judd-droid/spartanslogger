@@ -414,10 +414,10 @@
                     </div>
                     <div className="mt-1 text-xs text-slate-600">{r.meetingPlace} • {r.firstMeeting==="Yes"?"First":`Mtgs: ${r.noOfMeetings}`}</div>
                     <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                      {r.factFinding==="Yes" && <Badge>Fact Finding</Badge>}
-                      {r.appSubmitted==="Yes" && <Badge>App Submitted</Badge>}
-                      {r.casePaid==="Yes" && <Badge>Case Paid</Badge>}
-                      {r.caseApproved==="Yes" && <Badge>Case Approved</Badge>}
+                      {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
+                      {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
+                      {r.casePaid==="Yes" && <Badge>Paid</Badge>}
+                      {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                       {r.fyp ? <span>FYP ₱{Number(r.fyp).toLocaleString()}</span> : null}
