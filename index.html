@@ -40,6 +40,17 @@
       font: inherit;
       font-size: 16px; /* >=16px prevents iOS zoom-on-focus */
     }
+
+    input[type="date"],
+    input[type="time"]{
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3rem;              /* = Tailwind h-12 */
+      line-height: 3rem;         /* centers the text vertically */
+      padding: 0 1rem;           /* same horizontal padding as others */
+      font-size: 16px;           /* avoids iOS zoom and huge default font */
+      font-variant-numeric: tabular-nums;
+    }
   </style>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -170,7 +181,7 @@
       </button>
     );
     const YesNoGrid = ({ items, form, setForm }) => (
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {items.map(it=>(
           <YesNoCard key={it.key} label={it.label} value={!!form[it.key]} onChange={(v)=>setForm(f=>({...f,[it.key]:v}))}/>
         ))}
