@@ -89,12 +89,25 @@
     );
     const Select = ({ value, onChange, options, placeholder }) => (
       <select
-        value={value}
-        onChange={(e)=>onChange(e.target.value)}
+        value={value || ""}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!v) return;           // ignore empty placeholder just in case
+          onChange(v);
+        }}
         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
       >
-        <option value="">{placeholder || "Select…"}</option>
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        {/* Show placeholder only before the user picks a value */}
+        {!value && (
+          <option value="" disabled>
+            {placeholder || "Select…"}
+          </option>
+        )}
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
       </select>
     );
     const Pills = ({ options, value, onChange }) => (
