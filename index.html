@@ -250,6 +250,24 @@
                     onClick={()=>{ navigator.clipboard?.writeText(JSON.stringify({settings, samplePayload: payload},null,2)); }}>
                     Copy Sample Payload
                   </button>
+                  <button
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                    onClick={async () => {
+                      if (!settings.endpointUrl) { setToast({ t: "Add endpoint URL first", type: "warn" }); return; }
+                      try {
+                        const r = await fetch(settings.endpointUrl, { method: "GET" });
+                        const text = await r.text();
+                        setToast({ t: r.ok ? "Endpoint reachable ✅" : `Endpoint error ${r.status}`, type: r.ok ? "ok" : "err" });
+                        console.log("GET /exec →", r.status, text);
+                      } catch (e) {
+                        setToast({ t: "Cannot reach endpoint", type: "err" });
+                        console.warn(e);
+                      }
+                    }}
+                  >
+                    Test Endpoint
+                  </button>
+
                 </div>
               </div>
             </Section>
