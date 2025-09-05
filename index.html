@@ -115,32 +115,21 @@
 
     async function sendToEndpoint(url, record) {
       const endpoint = (url || "").trim();
-      if (!endpoint) return { ok: false, reason: "no-endpoint" };
-    
+      if (!endpoint) return false;
       try {
         const res = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          mode: "no-cors",                          // <-- avoid CORS block
+          headers: { "Content-Type": "text/plain" },// <-- no preflight; body still JSON
           body: JSON.stringify(record),
         });
-        const text = await res.text();                   // log server response for debugging
-        console.log("POST /exec →", res.status, text);
-    
-        // Treat non-2xx as failure
-        if (!res.ok) return { ok: false, reason: "server", status: res.status, text };
-    
-        // If Apps Script returned JSON {ok:false}, treat as failure too
-        try {
-          const j = JSON.parse(text);
-          if (typeof j.ok !== "undefined" && !j.ok) return { ok: false, reason: "server", status: res.status, text };
-        } catch (_) {}
-        return { ok: true };
-      } catch (err) {
-        console.warn("Network/Fetch error:", err);
-        return { ok: false, reason: "offline", error: String(err) };
+        // In no-cors, the response is "opaque" (status 0, ok=false). Treat as success.
+        return res.ok || res.type === "opaque";
+      } catch (e) {
+        console.warn("fetch error", e);
+        return false; // truly offline / DNS failure
       }
     }
-
 
     function App(){
       const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
@@ -246,10 +235,8 @@
                       const url = (settings.endpointUrl || "").trim();
                       if (!url) { setToast({ t: "Add endpoint URL first", type: "warn" }); return; }
                       try {
-                        const res = await fetch(url, { method: "GET" });
-                        const text = await res.text();
-                        console.log("GET /exec →", res.status, text);
-                        setToast({ t: res.ok ? "Endpoint reachable ✅" : `Endpoint error ${res.status}`, type: res.ok ? "ok" : "err" });
+                        await fetch(settings.endpointUrl.trim(), { method: "GET", mode: "no-cors" });
+                        setToast({ t: "Endpoint reachable ✅", type: "ok" });
                       } catch {
                         setToast({ t: "Cannot reach endpoint", type: "err" });
                       }
