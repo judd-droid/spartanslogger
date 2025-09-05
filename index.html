@@ -110,8 +110,12 @@
     ];
 
     const MEETING_PLACES = [
-      "Zoom", "Cafe", "Resto", "Client Home",
-      "Mall", "Client Office", "AIA Office", "Other"
+      "Zoom",
+      "Cafe/Resto",
+      "Client Home",
+      "Client Office",
+      "AIA Office",
+      "Other",
     ];
     
     const defaultSettings = {
@@ -206,6 +210,26 @@
       </div>
     );
 
+    const ChoiceGrid = ({ options, value, onChange }) => (
+      <div className="grid grid-cols-2 gap-3">
+        {options.map(opt => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={cls(
+              "h-16 rounded-2xl border text-base font-semibold transition active:scale-[0.99]",
+              value === opt
+                ? "bg-slate-900 text-white border-slate-900"
+                : "bg-white text-slate-800 border-slate-300"
+            )}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    );
+    
     const TileButton = ({ selected, children, onClick }) => (
       <button
         type="button"
@@ -433,17 +457,11 @@
 
               <Section title="Meeting Details" right={<span className="text-xs text-slate-500">{dayName(form.date)}</span>}>
                 <LabeledInput label="Meeting Place">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {MEETING_PLACES.map(p => (
-                      <TileButton
-                        key={p}
-                        selected={form.meetingPlace === p}
-                        onClick={() => setForm(f => ({ ...f, meetingPlace: p }))}
-                      >
-                        {p}
-                      </TileButton>
-                    ))}
-                  </div>
+                  <ChoiceGrid
+                    options={MEETING_PLACES}
+                    value={form.meetingPlace}
+                    onChange={(v) => setForm(f => ({ ...f, meetingPlace: v }))}
+                  />
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="# of Meetings (so far)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
