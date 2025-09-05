@@ -431,7 +431,7 @@
                     </div>
                     
                     {/* divider between meta and activity tags */}
-                    <div className="my-2 h-px bg-slate-200"></div>
+                    <div className="my-3 h-px bg-slate-200"></div>
                     
                     {/* activity tags */}
                     <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
@@ -444,12 +444,19 @@
                     {/* divider between activity tags and sales stats */}
                     <div className="my-3 h-px bg-slate-200"></div>
                     
-                    {/* sales / product / referrals */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-700">
-                      {r.fyp ? <span>FYP ₱{Number(r.fyp).toLocaleString()}</span> : null}
-                      {r.fyc ? <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span> : null}
-                      {r.product ? <span>• {r.product}</span> : null}
-                      {r.referralsGiven ? <span>• Referrals: {r.referralsGiven}</span> : null}
+                    {/* sales / product / referrals — with auto “•” separators */}
+                    <div
+                      className="
+                        flex flex-wrap items-center text-xs text-slate-700 gap-y-1
+                        [&>span]:flex [&>span]:items-center
+                        [&>span+span]:before:content-['•'] [&>span+span]:before:mx-2
+                        [&>span+span]:before:text-slate-300
+                      "
+                    >
+                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                      {r.fyc && <span>FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                      {r.product && <span>{r.product}</span>}
+                      {r.referralsGiven && <span>Referrals: {r.referralsGiven}</span>}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
