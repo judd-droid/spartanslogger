@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spartans Meeting Logger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>html,body{height:100%} body{background:linear-gradient(180deg,#fff,#f5f7fb);}</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel (CDN) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- App -->
+  <script type="text/babel">
+    const {useEffect,useMemo,useState} = React;
+
+    const cls = (...xs) => xs.filter(Boolean).join(" ");
+    const todayISODate = () => new Date().toISOString().slice(0, 10);
+    const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+    const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{ weekday:"long" });
+
+    const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1" };
+
+    const defaultSettings = { advisorName:"", unit:"", endpointUrl:"" };
+    const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
+      firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
+      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", notes:"" };
+
+    const readLS = (k,f)=>{ try{ const v=JSON.parse(localStorage.getItem(k)||"null"); return v??f; }catch{return f;} };
+    const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+    const Page = ({children}) => (
+      <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900">
+        <div className="mx-auto w-full max-w-md px-4 pb-32">{children}</div>
+      </div>
+    );
+    const TopBar = ({ onOpenSettings, pendingCount }) => (
+      <header className="sticky top-0 z-50 mb-4 flex items-center justify-between bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
+          <h1 className="text-lg font-bold">Spartans Logger</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          {pendingCount>0 && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{pendingCount} queued</span>}
+          <button onClick={onOpenSettings} className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]">⚙️ Settings</button>
+        </div>
+      </header>
+    );
+    const Section = ({title,children,right}) => (
+      <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold tracking-wide text-slate-600 uppercase">{title}</h2>{right}
+        </div>{children}
+      </section>
+    );
+    const LabeledInput = ({label,children}) => (
+      <label className="mb-3 block">
+        <div className="mb-1 text-[13px] font-medium text-slate-600">{label}</div>{children}
+      </label>
+    );
+    const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
+      <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+    );
+    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
+      <input value={value} onChange={(e)=>onChange(e.target.value===""?\"\":Number(e.target.value))}
+        type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+    );
+    const Pills = ({ options, value, onChange }) => (
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt=>(
+          <button key={opt} type="button"
+            className={cls("rounded-full px-4 py-2 text-sm font-medium border",
+              value===opt?"bg-slate-900 text-white border-slate-900":"bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200")}
+            onClick={()=>onChange(opt)}>{opt}</button>
+        ))}
+      </div>
+    );
+    const YesNoCard = ({ label, value, onChange }) => (
+      <button type="button" onClick={()=>onChange(!value)}
+        className={cls("flex h-16 w-full items-center justify-between rounded-2xl border text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
+          value?"border-emerald-300 bg-emerald-500 text-white":"border-rose-300 bg-rose-500 text-white")}>
+        <span className="text-left text-sm font-medium opacity-90">{label}</span>
+        <span className="text-xl tracking-wide">{value?"YES":"NO"}</span>
+      </button>
+    );
+    const YesNoGrid = ({ items, form, setForm }) => (
+      <div className="grid grid-cols-2 gap-3">
+        {items.map(it=>(
+          <YesNoCard key={it.key} label={it.label} value={!!form[it.key]} onChange={(v)=>setForm(f=>({...f,[it.key]:v}))}/>
+        ))}
+      </div>
+    );
+    const TabBar = ({ tab, setTab }) => {
+      const Tab = ({ id, label }) => (
+        <button onClick={()=>setTab(id)}
+          className={cls("flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold", tab===id?"bg-slate-900 text-white border-slate-900":"bg-white border-slate-200")}>{label}</button>
+      );
+      return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
+    };
+    const Toast = ({ text, type="ok", onClose }) => {
+      useEffect(()=>{ const t=setTimeout(onClose,2600); return ()=>clearTimeout(t); },[onClose]);
+      return (
+        <div className={cls("fixed left-1/2 top-4 z-[60] -translate-x-1/2 rounded-xl px-4 py-2 text-sm font-medium shadow",
+          type==="ok"?"bg-emerald-600 text-white":type==="warn"?"bg-amber-500 text-white":"bg-rose-600 text-white")}>{text}</div>
+      );
+    };
+    const Badge = ({children}) => <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">{children}</span>;
+
+    async function sendToEndpoint(url, record){
+      try{
+        const res = await fetch(url,{ method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(record) });
+        return res.ok;
+      }catch{ return false; }
+    }
+
+    function App(){
+      const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
+      const [form,setForm]=useState(()=>({...emptyForm}));
+      const [tab,setTab]=useState("log");
+      const [history,setHistory]=useState(()=>readLS(LS.history,[]));
+      const [outbox,setOutbox]=useState(()=>readLS(LS.outbox,[]));
+      const [openSettings,setOpenSettings]=useState(false);
+      const [toast,setToast]=useState(null);
+
+      const yesNoItems = useMemo(()=>[
+        {key:"firstMeeting",label:"First Meeting"},
+        {key:"factFinding",label:"Fact Finding (KYC)"},
+        {key:"appSubmitted",label:"App Submitted"},
+        {key:"casePaid",label:"Case Paid"},
+        {key:"caseApproved",label:"Case Approved"},
+      ],[]);
+
+      useEffect(()=>writeLS(LS.settings,settings),[settings]);
+      useEffect(()=>writeLS(LS.history,history),[history]);
+      useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
+
+      useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
+
+      useEffect(()=>{
+        const flush=()=>{
+          if(!settings.endpointUrl || outbox.length===0) return;
+          (async()=>{
+            const remaining=[];
+            for(const item of outbox){
+              const ok=await sendToEndpoint(settings.endpointUrl,item);
+              if(!ok) remaining.push(item);
+            }
+            if(remaining.length!==outbox.length){
+              setOutbox(remaining);
+              if(remaining.length===0) setToast({t:"All queued items synced ✅",type:"ok"});
+            }
+          })();
+        };
+        flush(); window.addEventListener("focus",flush);
+        return ()=>window.removeEventListener("focus",flush);
+      },[settings.endpointUrl,outbox]);
+
+      const meetingPlaceOptions=["Zoom","Cafe","Office","Home","Online","Other"];
+      const resetForm=()=>setForm({...emptyForm,meetingPlace:form.meetingPlace});
+      const payload = useMemo(()=>{
+        const dt=`${form.date} ${form.time}`;
+        return {
+          advisor: settings.advisorName, unit: settings.unit, prospect: form.prospectName,
+          date: form.date, day: dayName(form.date), appointmentTime: form.time, meetingPlace: form.meetingPlace,
+          firstMeeting: form.firstMeeting?"Yes":"No", noOfMeetings: Number(form.meetingCount)||0,
+          factFinding: form.factFinding?"Yes":"No", appSubmitted: form.appSubmitted?"Yes":"No",
+          casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
+          fyp: form.fyp===""?\"\":Number(form.fyp), fyc: form.fyc===""?\"\":Number(form.fyc),
+          product: form.product, caseApproved: form.caseApproved?"Yes":"No", notes: form.notes,
+          timestamp: new Date().toISOString(), dt
+        };
+      },[form,settings]);
+
+      const handleSubmit = async () => {
+        if(!settings.advisorName){ setToast({t:"Set your name in Settings first",type:"warn"}); setOpenSettings(true); return; }
+        if(!form.prospectName){ setToast({t:"Prospect name is required",type:"warn"}); return; }
+
+        const record = { id: (crypto.randomUUID?.()||String(Date.now())), ...payload };
+        setHistory(h=>[record,...h].slice(0,200));
+
+        if(settings.endpointUrl){
+          const ok=await sendToEndpoint(settings.endpointUrl,record);
+          if(!ok){ setOutbox(o=>[record,...o]); setToast({t:"Saved offline — will sync when online",type:"warn"}); }
+          else { setToast({t:"Submitted ✅",type:"ok"}); }
+        }else{
+          setOutbox(o=>[record,...o]); setToast({t:"Queued — add endpoint URL in Settings",type:"warn"});
+        }
+        resetForm();
+      };
+
+      const pendingCount = outbox.length;
+
+      return (
+        <Page>
+          <TopBar onOpenSettings={()=>setOpenSettings(true)} pendingCount={pendingCount}/>
+          {openSettings && (
+            <Section title="Settings" right={<button onClick={()=>setOpenSettings(false)} className="text-sm font-semibold text-slate-900">Done</button>}>
+              <div className="grid gap-3">
+                <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jenny Santos"/></LabeledInput>
+                <LabeledInput label="Unit (optional)"><TextInput value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} placeholder="e.g., Aquila Direct"/></LabeledInput>
+                <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/..."/></LabeledInput>
+                <div className="flex items-center justify-between">
+                  <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                    onClick={()=>{ if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}>
+                    Clear Local Data
+                  </button>
+                  <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                    onClick={()=>{ navigator.clipboard?.writeText(JSON.stringify({settings, samplePayload: payload},null,2)); }}>
+                    Copy Sample Payload
+                  </button>
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {/* Log Tab */}
+          {tab==="log" && (
+            <>
+              <Section title="Prospect">
+                <LabeledInput label="Prospect Name *"><TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Alexandra Ong"/></LabeledInput>
+                <div className="grid grid-cols-2 gap-3">
+                  <LabeledInput label="Date"><TextInput type="date" value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/></LabeledInput>
+                  <LabeledInput label="Time"><TextInput type="time" value={form.time} onChange={v=>setForm(f=>({...f,time:v}))}/></LabeledInput>
+                </div>
+              </Section>
+
+              <Section title="Meeting Details" right={<span className="text-xs text-slate-500">{dayName(form.date)}</span>}>
+                <LabeledInput label="Meeting Place"><Pills options={["Zoom","Cafe","Office","Home","Online","Other"]} value={form.meetingPlace} onChange={v=>setForm(f=>({...f,meetingPlace:v}))}/></LabeledInput>
+                <div className="grid grid-cols-2 gap-3">
+                  <LabeledInput label="# of Meetings (so far)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
+                  <LabeledInput label="Referrals Given (count)"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
+                </div>
+              </Section>
+
+              <Section title="What happened? (tap to toggle)">
+                <YesNoGrid items={yesNoItems} form={form} setForm={setForm}/>
+              </Section>
+
+              <Section title="Amounts & Product (optional)">
+                <div className="grid grid-cols-2 gap-3">
+                  <LabeledInput label="FYP (₱)"><NumberInput value={form.fyp} onChange={v=>setForm(f=>({...f,fyp:v}))} min={0} step={100} placeholder="e.g., 12000"/></LabeledInput>
+                  <LabeledInput label="FYC (₱)"><NumberInput value={form.fyc} onChange={v=>setForm(f=>({...f,fyc:v}))} min={0} step={100} placeholder="e.g., 2400"/></LabeledInput>
+                </div>
+                <LabeledInput label="Product / Plan"><TextInput value={form.product} onChange={v=>setForm(f=>({...f,product:v}))} placeholder="e.g., Future Builder / ACP 100"/></LabeledInput>
+                <LabeledInput label="Notes (optional)"><textarea value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows="3" placeholder="Quick notes" className="w-full rounded-xl border border-slate-300 px-3 py-3 shadow-sm outline-none"/></LabeledInput>
+              </Section>
+
+              <div className="mb-24 flex gap-3">
+                <button onClick={resetForm} className="flex-1 rounded-2xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Clear</button>
+                <button onClick={handleSubmit} className="flex-1 rounded-2xl bg-slate-900 px-4 py-3 font-semibold text-white active:scale-[0.99]">Submit</button>
+              </div>
+            </>
+          )}
+
+          {/* History Tab */}
+          {tab==="history" && (
+            <Section title="Local History">
+              <div className="space-y-3">
+                {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
+                {history.map(r=>(
+                  <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold">{r.prospect}</div>
+                      <div className="text-xs text-slate-500">{r.date} {r.appointmentTime}</div>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-600">{r.meetingPlace} • {r.firstMeeting==="Yes"?"First":`Mtgs: ${r.noOfMeetings}`}</div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      {r.factFinding==="Yes" && <Badge>Fact Finding</Badge>}
+                      {r.appSubmitted==="Yes" && <Badge>App Submitted</Badge>}
+                      {r.casePaid==="Yes" && <Badge>Case Paid</Badge>}
+                      {r.caseApproved==="Yes" && <Badge>Case Approved</Badge>}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                      {r.fyp ? <span>FYP ₱{Number(r.fyp).toLocaleString()}</span> : null}
+                      {r.fyc ? <span>FYC ₱{Number(r.fyc).toLocaleString()}</span> : null}
+                      {r.product ? <span>• {r.product}</span> : null}
+                      {r.referralsGiven ? <span>• Referrals: {r.referralsGiven}</span> : null}
+                    </div>
+                    {r.notes && <div className="mt-2 text-sm">📝 {r.notes}</div>}
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-[11px] text-slate-400">{(r.timestamp||"").replace("T"," ").slice(0,16)}</div>
+                      <div className="flex gap-2">
+                        <button className="rounded-xl border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
+                          onClick={async ()=>{
+                            if(!settings.endpointUrl){ alert("Add endpoint URL in Settings"); return; }
+                            const ok=await sendToEndpoint(settings.endpointUrl,r);
+                            alert(ok?"Re-sent ✅":"Send failed");
+                          }}>Re-send</button>
+                        <button className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
+                          onClick={()=>setHistory(h=>h.filter(x=>x.id!==r.id))}>Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <TabBar tab={tab} setTab={setTab}/>
+          {toast && <Toast text={toast.t} type={toast.type||"ok"} onClose={()=>setToast(null)} />}
+        </Page>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
