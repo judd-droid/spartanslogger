@@ -26,7 +26,15 @@
 
     const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1" };
 
-    const defaultSettings = { advisorName:"", unit:"", endpointUrl:"" };
+    const DEFAULT_ENDPOINT =
+      "https://script.google.com/macros/s/AKfycbwl9kYkiZdf5xn3vzJ00UkAaLH_ggLMq-6tmtEkYwERZfeDmo1v4X_V-iLfo9zJ1hNKuA/exec";
+    
+    const defaultSettings = {
+      advisorName: "",
+      unit: "",
+      endpointUrl: DEFAULT_ENDPOINT,   // <-- prefilled
+    };
+    
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
       caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", notes:"" };
@@ -132,6 +140,15 @@
 
     function App(){
       const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
+
+      useEffect(() => {
+        if (!settings.endpointUrl) {
+          setSettings(s => ({ ...s, endpointUrl: DEFAULT_ENDPOINT }));
+        }
+        // run once on mount
+        // eslint-disable-next-line
+      }, []);
+      
       const [form,setForm]=useState(()=>({...emptyForm}));
       const [tab,setTab]=useState("log");
       const [history,setHistory]=useState(()=>readLS(LS.history,[]));
@@ -217,7 +234,7 @@
               <div className="grid gap-3">
                 <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/></LabeledInput>
                 <LabeledInput label="Unit (optional)"><TextInput value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} placeholder="e.g., Aquila Direct"/></LabeledInput>
-                <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/..."/></LabeledInput>
+                <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/macros/s/AKfycbwl9kYkiZdf5xn3vzJ00UkAaLH_ggLMq-6tmtEkYwERZfeDmo1v4X_V-iLfo9zJ1hNKuA/exec"/></LabeledInput>
                 <div className="flex items-center justify-between">
                   <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
                     onClick={()=>{ if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}>
