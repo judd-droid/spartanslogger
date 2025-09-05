@@ -86,6 +86,23 @@
       "Alphara",
       // "… add more"
     ];
+
+    const PRODUCT_OPTIONS = [
+      "A+ Signature",
+      "ACP 100",
+      "AHIP",
+      "Ascend",
+      "Family Secure",
+      "Future Builder",
+      "Future Scholar",
+      "Goals Protect",
+      "Guardian 1",
+      "Guardian 65",
+      "Health Achieve",
+      "Max Protect",
+      "Money Tree",
+      "Other",
+    ];
     
     const defaultSettings = {
       advisorName: "", unit: "" };
@@ -136,27 +153,14 @@
         type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
         className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400" />
     );
-    const Select = ({ value, onChange, options, placeholder }) => (
+    const Select = ({ value, onChange, options, placeholder, disablePlaceholder=false }) => (
       <select
-        value={value || ""}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (!v) return;           // ignore empty placeholder just in case
-          onChange(v);
-        }}
-        className="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base shadow-sm outline-none focus:border-slate-400"
+        value={value}
+        onChange={(e)=>onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
       >
-        {/* Show placeholder only before the user picks a value */}
-        {!value && (
-          <option value="" disabled>
-            {placeholder || "Select…"}
-          </option>
-        )}
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
+        <option value="" disabled={disablePlaceholder}>{placeholder || "Select…"}</option>
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
     );
     const Pills = ({ options, value, onChange }) => (
@@ -385,7 +389,15 @@
                   <LabeledInput label="FYP (₱)"><NumberInput value={form.fyp} onChange={v=>setForm(f=>({...f,fyp:v}))} min={0} step={100} placeholder="e.g., 12000"/></LabeledInput>
                   <LabeledInput label="FYC (₱)"><NumberInput value={form.fyc} onChange={v=>setForm(f=>({...f,fyc:v}))} min={0} step={100} placeholder="e.g., 2400"/></LabeledInput>
                 </div>
-                <LabeledInput label="Product / Plan"><TextInput value={form.product} onChange={v=>setForm(f=>({...f,product:v}))} placeholder="e.g., Future Builder / ACP 100"/></LabeledInput>
+                <LabeledInput label="Product">
+                  <Select
+                    value={form.product}
+                    onChange={v=>setForm(f=>({...f, product:v}))}
+                    options={PRODUCT_OPTIONS}
+                    placeholder="Select product/plan"
+                    // no disablePlaceholder -> remains optional
+                  />
+              </LabeledInput>
               </Section>
 
               <div className="mb-24 flex gap-3">
