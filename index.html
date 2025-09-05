@@ -44,7 +44,7 @@
     
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
-      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", notes:"" };
+      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"" };
 
     const readLS = (k,f)=>{ try{ const v=JSON.parse(localStorage.getItem(k)||"null"); return v??f; }catch{return f;} };
     const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -230,7 +230,7 @@
           factFinding: form.factFinding?"Yes":"No", appSubmitted: form.appSubmitted?"Yes":"No",
           casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
           fyp: form.fyp === "" ? "" : Number(form.fyp), fyc: form.fyc === "" ? "" : Number(form.fyc),
-          product: form.product, caseApproved: form.caseApproved?"Yes":"No", notes: form.notes,
+          product: form.product, caseApproved: form.caseApproved?"Yes":"No",
           timestamp: new Date().toISOString(), dt
         };
       },[form,settings]);
@@ -313,7 +313,6 @@
                   <LabeledInput label="FYC (₱)"><NumberInput value={form.fyc} onChange={v=>setForm(f=>({...f,fyc:v}))} min={0} step={100} placeholder="e.g., 2400"/></LabeledInput>
                 </div>
                 <LabeledInput label="Product / Plan"><TextInput value={form.product} onChange={v=>setForm(f=>({...f,product:v}))} placeholder="e.g., Future Builder / ACP 100"/></LabeledInput>
-                <LabeledInput label="Notes (optional)"><textarea value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} rows="3" placeholder="Quick notes" className="w-full rounded-xl border border-slate-300 px-3 py-3 shadow-sm outline-none"/></LabeledInput>
               </Section>
 
               <div className="mb-24 flex gap-3">
@@ -356,7 +355,6 @@
                       {r.product ? <span>• {r.product}</span> : null}
                       {r.referralsGiven ? <span>• Referrals: {r.referralsGiven}</span> : null}
                     </div>
-                    {r.notes && <div className="mt-2 text-sm">📝 {r.notes}</div>}
                     <div className="mt-3 flex items-center justify-between">
                       <div className="text-[11px] text-slate-400">{(r.timestamp||"").replace("T"," ").slice(0,16)}</div>
                       <div className="flex gap-2">
