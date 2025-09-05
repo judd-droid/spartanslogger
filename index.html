@@ -43,7 +43,6 @@
   </style>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>html,body{height:100%} body{background:linear-gradient(180deg,#fff,#f5f7fb);}</style>
 </head>
 <body>
   <div id="root"></div>
@@ -248,8 +247,8 @@
           (async () => {
             const remaining = [];
             for (const item of outbox) {
-              const r = await sendToEndpoint(DEFAULT_ENDPOINT, item);
-              if (!r.ok) remaining.push(item);
+              const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
+              if (!ok) remaining.push(item);
             }
             if (remaining.length !== outbox.length) {
               setOutbox(remaining);
@@ -358,7 +357,7 @@
               </Section>
 
               <div className="mb-24 flex gap-3">
-                <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50"">Clear</button>
+                <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50">Clear</button>
                 <button
                   onClick={handleSubmit}
                   disabled={isSending}
