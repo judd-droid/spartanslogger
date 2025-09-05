@@ -172,7 +172,7 @@
             const remaining = [];
             for (const item of outbox) {
               const r = await sendToEndpoint(settings.endpointUrl, item);
-              if (!r.ok) remaining.push(item);  // keep if still failing
+              if (!r.ok) remaining.push(item);
             }
             if (remaining.length !== outbox.length) {
               setOutbox(remaining);
