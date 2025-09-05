@@ -129,8 +129,10 @@
     const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
     const Page = ({children}) => (
-      <div className="min-h-screen w-full text-slate-900">
-        <div className="mx-auto w-full max-w-md px-4 pb-32">{children}</div>
+      <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900">
+        <div className="mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+120px)]">
+          {children}
+        </div>
       </div>
     );
     const TopBar = ({ onOpenSettings, pendingCount }) => (
@@ -227,6 +229,39 @@
             {opt}
           </button>
         ))}
+      </div>
+    );
+
+    const FloatingTabBar = ({ tab, setTab }) => (
+      <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
+        <div className="mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+          <div className="pointer-events-auto rounded-2xl border border-slate-200 bg-white/90 backdrop-blur shadow-lg p-2 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setTab("log")}
+              className={cls(
+                "h-12 rounded-xl font-semibold",
+                tab === "log"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-900"
+              )}
+              aria-pressed={tab === "log"}
+            >
+              Quick Log
+            </button>
+            <button
+              onClick={() => setTab("history")}
+              className={cls(
+                "h-12 rounded-xl font-semibold",
+                tab === "history"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-900"
+              )}
+              aria-pressed={tab === "history"}
+            >
+              History
+            </button>
+          </div>
+        </div>
       </div>
     );
     
@@ -489,7 +524,7 @@
               </LabeledInput>
               </Section>
 
-              <div className="mb-24 flex gap-3">
+              <div className="mb-36 flex gap-3">
                 <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50">Clear</button>
                 <button
                   onClick={handleSubmit}
@@ -585,7 +620,7 @@
             </Section>
           )}
 
-          <TabBar tab={tab} setTab={setTab}/>
+          <FloatingTabBar tab={tab} setTab={setTab} />
           {toast && <Toast text={toast.t} type={toast.type||"ok"} onClose={()=>setToast(null)} />}
         </Page>
       );
