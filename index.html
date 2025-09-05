@@ -172,21 +172,42 @@
         ))}
       </div>
     );
+    
     const YesNoCard = ({ label, value, onChange }) => (
-      <button type="button" onClick={()=>onChange(!value)}
-        className={cls("flex h-16 w-full items-center justify-between rounded-2xl border text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
-          value?"border-emerald-300 bg-emerald-500 text-white":"border-rose-300 bg-rose-500 text-white")}>
-        <span className="text-left text-sm font-medium opacity-90">{label}</span>
-        <span className="text-xl tracking-wide">{value?"YES":"NO"}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={cls(
+          // smaller height/font on tiny screens, larger on bigger ones
+          "flex h-14 sm:h-16 w-full items-center justify-between rounded-2xl border text-base sm:text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
+          value
+            ? "border-emerald-300 bg-emerald-500 text-white"
+            : "border-rose-300 bg-rose-500 text-white"
+        )}
+      >
+        <span className="text-left text-[13px] sm:text-sm font-medium opacity-90">
+          {label}
+        </span>
+        <span className="text-lg sm:text-xl tracking-wide">
+          {value ? "YES" : "NO"}
+        </span>
       </button>
     );
+    
     const YesNoGrid = ({ items, form, setForm }) => (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {items.map(it=>(
-          <YesNoCard key={it.key} label={it.label} value={!!form[it.key]} onChange={(v)=>setForm(f=>({...f,[it.key]:v}))}/>
+      // force 2 columns by default (works on mobile)
+      <div className="grid grid-cols-2 gap-3">
+        {items.map((it) => (
+          <YesNoCard
+            key={it.key}
+            label={it.label}
+            value={!!form[it.key]}
+            onChange={(v) => setForm((f) => ({ ...f, [it.key]: v }))}
+          />
         ))}
       </div>
     );
+
     const TabBar = ({ tab, setTab }) => {
       const Tab = ({ id, label }) => (
         <button onClick={()=>setTab(id)}
@@ -239,7 +260,7 @@
       const [toast,setToast]=useState(null);
 
       const yesNoItems = useMemo(()=>[
-        {key:"firstMeeting",label:"First Meeting?"},
+        {key:"firstMeeting",label:"1st Meeting?"},
         {key:"factFinding",label:"KYC Done?"},
         {key:"appSubmitted",label:"Submitted?"},
         {key:"casePaid",label:"Paid?"},
