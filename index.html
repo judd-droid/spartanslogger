@@ -28,6 +28,16 @@
 
     const DEFAULT_ENDPOINT =
       "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
+
+    // Edit this list anytime
+    const UNIT_OPTIONS = [
+      "Supernova Direct",
+      "Aquila Direct",
+      "Stellar Direct",
+      "Aurora",
+      "Alphara",
+      // "… add more"
+    ];
     
     const defaultSettings = {
       advisorName: "",
@@ -79,6 +89,16 @@
       <input value={value} onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
         type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder}
         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+    );
+    const Select = ({ value, onChange, options, placeholder }) => (
+      <select
+        value={value}
+        onChange={(e)=>onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
+      >
+        <option value="">{placeholder || "Select…"}</option>
+        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+      </select>
     );
     const Pills = ({ options, value, onChange }) => (
       <div className="flex flex-wrap gap-2">
@@ -210,6 +230,7 @@
       const handleSubmit = async () => {
         if (isSending) return;
         if (!settings.advisorName) { setToast({ t:"Set your name in Settings first", type:"warn" }); setOpenSettings(true); return; }
+        if (!settings.unit) { setToast({ t:"Select your Unit in Settings", type:"warn" }); setOpenSettings(true); return; }
         if (!form.prospectName)    { setToast({ t:"Prospect name is required", type:"warn" }); return; }
       
         setIsSending(true);
@@ -233,7 +254,14 @@
             <Section title="Settings" right={<button onClick={()=>setOpenSettings(false)} className="text-sm font-semibold text-slate-900">Done</button>}>
               <div className="grid gap-3">
                 <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/></LabeledInput>
-                <LabeledInput label="Unit (optional)"><TextInput value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} placeholder="e.g., Aquila Direct"/></LabeledInput>
+                <LabeledInput label="Unit *">
+                  <Select
+                    value={settings.unit}
+                    onChange={v=>setSettings(s=>({...s, unit:v}))}
+                    options={UNIT_OPTIONS}
+                    placeholder="Select unit"
+                  />
+                </LabeledInput>
                 <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec"/></LabeledInput>
                 <div className="flex items-center justify-between">
                   <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
