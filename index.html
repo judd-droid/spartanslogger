@@ -557,12 +557,21 @@
                     </div>
                     
                     {/* meta: place + first/mtgs */}
-                    <div className="mt-1 text-xs text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <div className="mt-1 text-xs text-slate-600 flex items-center gap-1">
                       <span>{r.meetingPlace || "—"}</span>
-                      {r.firstMeeting === "Yes"
-                        ? <span className="text-emerald-600">• First meeting</span>
-                        : (Number(r.noOfMeetings) > 0 ? <span>• Mtgs: {r.noOfMeetings}</span> : null)}
+                      <span>•</span>
+                      <span className={r.firstMeeting === "Yes" ? "text-emerald-600" : ""}>
+                        {r.firstMeeting === "Yes" ? "First meeting" :
+                          (Number(r.noOfMeetings) > 0 ? `Mtgs: ${r.noOfMeetings}` : "—")}
+                      </span>
                     </div>
+                    
+                    {/* NEW: referrals on its own line (only when >0) */}
+                    {Number(r.referralsGiven) > 0 && (
+                      <div className="mt-1 text-xs text-slate-600">
+                        Referrals: {Number(r.referralsGiven)}
+                      </div>
+                    )}
                     
                     {/* divider above activity tags */}
                     <div className="my-3 h-px bg-slate-200"></div>
@@ -578,7 +587,7 @@
                     {/* divider below activity tags */}
                     <div className="my-3 h-px bg-slate-200"></div>
                     
-                    {/* sales / product / referrals with automatic • separators */}
+                    {/* sales / product (no referrals here anymore) */}
                     <div
                       className="
                         flex flex-wrap items-center text-xs text-slate-700 gap-y-1
@@ -590,9 +599,6 @@
                       {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
                       {r.fyc && <span>FYC ₱{Number(r.fyc).toLocaleString()}</span>}
                       {r.product && <span>{r.product}</span>}
-                      {Number(r.referralsGiven) > 0 && (
-                        <span>Referrals: {Number(r.referralsGiven)}</span>
-                      )}
                     </div>
 
                     <div className="mt-3 flex justify-end">
