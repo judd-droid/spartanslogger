@@ -40,10 +40,7 @@
     ];
     
     const defaultSettings = {
-      advisorName: "",
-      unit: "",
-      endpointUrl: DEFAULT_ENDPOINT,   // <-- prefilled
-    };
+      advisorName: "", unit: "" };
     
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
@@ -192,11 +189,11 @@
 
       useEffect(()=>{
         const flush = () => {
-          if (!settings.endpointUrl || outbox.length === 0) return;
+          if (outbox.length === 0) return;
           (async () => {
             const remaining = [];
             for (const item of outbox) {
-              const r = await sendToEndpoint(settings.endpointUrl, item);
+              const r = await sendToEndpoint(DEFAULT_ENDPOINT, item);
               if (!r.ok) remaining.push(item);
             }
             if (remaining.length !== outbox.length) {
@@ -237,7 +234,7 @@
         const record = { id: (crypto.randomUUID?.() || String(Date.now())), ...payload };
         setHistory(h => [record, ...h].slice(0, 200));
       
-        const ok = await sendToEndpoint(settings.endpointUrl, record);
+        const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
         if (!ok) { setOutbox(o => [record, ...o]); setToast({ t:"Saved offline — will sync when online", type:"warn" }); }
         else     { setToast({ t:"Submitted ✅", type:"ok" }); }
       
@@ -249,7 +246,7 @@
 
       return (
         <Page>
-          <TopBar onOpenSettings={()=>setOpenSettings(true)} pendingCount={pendingCount}/>
+          <TopBar onOpenSettings={()=>setOpenSettings(o => !o)} pendingCount={pendingCount}/>
           {openSettings && (
             <Section title="Settings" right={<button onClick={()=>setOpenSettings(false)} className="text-sm font-semibold text-slate-900">Done</button>}>
               <div className="grid gap-3">
@@ -262,32 +259,13 @@
                     placeholder="Select unit"
                   />
                 </LabeledInput>
-                <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec"/></LabeledInput>
-                <div className="flex items-center justify-between">
-                  <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-                    onClick={()=>{ if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}>
-                    Clear Local Data
-                  </button>
-                  <button className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
-                    onClick={()=>{ navigator.clipboard?.writeText(JSON.stringify({settings, samplePayload: payload},null,2)); }}>
-                    Copy Sample Payload
-                  </button>
+                <div className="flex items-center">
                   <button
                     className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-                    onClick={async () => {
-                      const url = (settings.endpointUrl || "").trim();
-                      if (!url) { setToast({ t: "Add endpoint URL first", type: "warn" }); return; }
-                      try {
-                        await fetch(settings.endpointUrl.trim(), { method: "GET", mode: "no-cors" });
-                        setToast({ t: "Endpoint reachable ✅", type: "ok" });
-                      } catch {
-                        setToast({ t: "Cannot reach endpoint", type: "err" });
-                      }
-                    }}
+                    onClick={() => { if (!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}
                   >
-                    Test Endpoint
+                    Clear Local Data
                   </button>
-
                 </div>
               </div>
             </Section>
@@ -371,8 +349,7 @@
                       <div className="flex gap-2">
                         <button className="rounded-xl border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
                           onClick={async ()=>{
-                            if(!settings.endpointUrl){ alert("Add endpoint URL in Settings"); return; }
-                            const ok=await sendToEndpoint(settings.endpointUrl,r);
+                            const ok = await sendToEndpoint(DEFAULT_ENDPOINT, r);
                             alert(ok?"Re-sent ✅":"Send failed");
                           }}>Re-send</button>
                         <button className="rounded-xl border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700 hover:bg-rose-100"
