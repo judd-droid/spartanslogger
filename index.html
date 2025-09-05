@@ -420,20 +420,29 @@
                 {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
                 {history.map(r=>(
                   <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                    
-                    {/* meta line: venue + first/mtgs */}
-                    <div className="mt-1 text-xs sm:text-sm text-slate-600 flex items-center gap-2">
-                      <span>{r.meetingPlace}</span>
-                      <span>•</span>
-                      {r.firstMeeting === "Yes"
-                        ? <span className="font-medium text-emerald-700">First meeting</span>
-                        : <span>Mtgs: {r.noOfMeetings || 0}</span>}
+
+                    {/* header: prospect + date/time */}
+                    <div className="flex items-start justify-between">
+                      <div className="text-base sm:text-lg font-semibold text-slate-900">
+                        {r.prospect || "—"}
+                      </div>
+                      <div className="text-[11px] sm:text-xs text-slate-500">
+                        {r.date} {r.appointmentTime}
+                      </div>
                     </div>
                     
-                    {/* divider between meta and activity tags */}
+                    {/* meta: place + first/mtgs */}
+                    <div className="mt-1 text-xs text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span>{r.meetingPlace || "—"}</span>
+                      {r.firstMeeting === "Yes"
+                        ? <span className="text-emerald-600">• First meeting</span>
+                        : (Number(r.noOfMeetings) > 0 ? <span>• Mtgs: {r.noOfMeetings}</span> : null)}
+                    </div>
+                    
+                    {/* divider above activity tags */}
                     <div className="my-3 h-px bg-slate-200"></div>
                     
-                    {/* activity tags */}
+                    {/* activity tags with equal top/bottom spacing */}
                     <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
                       {r.factFinding === "Yes" && <Badge>KYC Done</Badge>}
                       {r.appSubmitted === "Yes" && <Badge>Submitted</Badge>}
@@ -441,10 +450,10 @@
                       {r.caseApproved === "Yes" && <Badge>Approved</Badge>}
                     </div>
                     
-                    {/* divider between activity tags and sales stats */}
+                    {/* divider below activity tags */}
                     <div className="my-3 h-px bg-slate-200"></div>
                     
-                    {/* sales / product / referrals — with auto “•” separators */}
+                    {/* sales / product / referrals with automatic • separators */}
                     <div
                       className="
                         flex flex-wrap items-center text-xs text-slate-700 gap-y-1
@@ -456,7 +465,9 @@
                       {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
                       {r.fyc && <span>FYC ₱{Number(r.fyc).toLocaleString()}</span>}
                       {r.product && <span>{r.product}</span>}
-                      {r.referralsGiven && <span>Referrals: {r.referralsGiven}</span>}
+                      {Number(r.referralsGiven) > 0 && (
+                        <span>Referrals: {Number(r.referralsGiven)}</span>
+                      )}
                     </div>
 
                     <div className="mt-3 flex items-center justify-between">
