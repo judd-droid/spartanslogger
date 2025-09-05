@@ -215,7 +215,7 @@
           {openSettings && (
             <Section title="Settings" right={<button onClick={()=>setOpenSettings(false)} className="text-sm font-semibold text-slate-900">Done</button>}>
               <div className="grid gap-3">
-                <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jenny Santos"/></LabeledInput>
+                <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/></LabeledInput>
                 <LabeledInput label="Unit (optional)"><TextInput value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} placeholder="e.g., Aquila Direct"/></LabeledInput>
                 <LabeledInput label="Endpoint URL (Apps Script Web App)"><TextInput value={settings.endpointUrl} onChange={v=>setSettings(s=>({...s,endpointUrl:v}))} placeholder="https://script.google.com/..."/></LabeledInput>
                 <div className="flex items-center justify-between">
@@ -252,7 +252,7 @@
           {tab==="log" && (
             <>
               <Section title="Prospect">
-                <LabeledInput label="Prospect Name *"><TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Alexandra Ong"/></LabeledInput>
+                <LabeledInput label="Prospect Name *"><TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Juan Dela Cruz"/></LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="Date"><TextInput type="date" value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/></LabeledInput>
                   <LabeledInput label="Time"><TextInput type="time" value={form.time} onChange={v=>setForm(f=>({...f,time:v}))}/></LabeledInput>
