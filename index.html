@@ -141,6 +141,21 @@
       "AIA Office",
       "Other",
     ];
+
+    // Motivational micro-quotes
+    const QUOTES = [
+      "Great days are built one call at a time.",
+      "Action beats perfection. Log it, move to the next.",
+      "Consistency compounds. Keep swinging.",
+      "Prospect today, paid tomorrow.",
+      "Hard work works.",
+      "Tiny progress today, massive results later.",
+      "Energy up, pipeline up.",
+      "Every conversation is a seed.",
+      "Winners do the boring work.",
+      "Discipline > motivation."
+    ];
+    const randQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
     
     const defaultSettings = {
       advisorName: "", unit: "" };
@@ -434,21 +449,18 @@
       return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
     };
     
-    // Bigger, high-contrast toast
-    const Toast = ({ text, type = "ok", onClose }) => {
+    // Bigger, high-contrast toast (now supports sub-line)
+    const Toast = ({ text, sub, type = "ok", onClose }) => {
       React.useEffect(() => {
         const t = setTimeout(onClose, 3000);
-        // subtle haptic on mobile
         navigator.vibrate?.(40);
         return () => clearTimeout(t);
       }, [onClose]);
     
       const color =
-        type === "ok"
-          ? "bg-emerald-600"
-          : type === "warn"
-          ? "bg-amber-500"
-          : "bg-[var(--sn-red)]";
+        type === "ok"   ? "bg-emerald-600"
+        : type === "warn"? "bg-amber-500"
+        :                 "bg-[var(--sn-red)]";
     
       const icon = type === "ok" ? "✅" : type === "warn" ? "⚠️" : "✖️";
     
@@ -459,11 +471,12 @@
           aria-live="polite"
         >
           <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out]">
-            <div
-              className={`flex items-center gap-3 ${color} text-white rounded-2xl px-5 py-3 text-lg md:text-xl font-bold shadow-2xl ring-1 ring-black/10 backdrop-blur`}
-            >
-              <span className="text-2xl leading-none">{icon}</span>
-              <span className="whitespace-pre">{text}</span>
+            <div className={`flex items-start gap-3 ${color} text-white rounded-2xl px-5 py-3 shadow-2xl ring-1 ring-black/10 backdrop-blur`}>
+              <span className="text-2xl leading-none mt-0.5">{icon}</span>
+              <div>
+                <div className="text-lg md:text-xl font-bold">{text}</div>
+                {sub && <div className="text-[12px] md:text-sm opacity-95 mt-0.5">{sub}</div>}
+              </div>
             </div>
             {/* progress bar */}
             <div className="h-1 rounded-b-2xl overflow-hidden bg-white/30">
@@ -637,7 +650,8 @@
           setOutbox(o => [record, ...o]);
           setToast({ t:"Saved offline — will sync when online", type:"warn" });
         } else {
-          setToast({ t: editingId ? "Updated ✅" : "Submitted ✅", type:"ok" });
+          const msg = editingId ? "Updated ✅" : "Submitted ✅";
+          setToast({ t: msg, sub: randQuote(), type: "ok" });
         }
       
         setEditingId(null);   // exit edit mode
@@ -882,7 +896,7 @@
           )}
 
           <FloatingTabBar tab={tab} setTab={setTab} />
-          {toast && <Toast text={toast.t} type={toast.type||"ok"} onClose={()=>setToast(null)} />}
+          {toast && <Toast text={toast.t} sub={toast.sub} type={toast.type||"ok"} onClose={()=>setToast(null)} />}
         </Page>
       );
     }
