@@ -54,6 +54,7 @@
     const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:"long"});
 
     const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1" };
+    const LS_SYNC = { last: "sn.meet.lastsync.v1" };
 
     const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
 
@@ -259,6 +260,8 @@
     }
 
     function App(){
+      const [lastSyncAt, setLastSyncAt] = useState(() => readLS(LS_SYNC.last, ""));
+      
       // state (declare before effects)
       const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
       const [form,setForm]=useState(()=>({...emptyForm}));
@@ -268,6 +271,67 @@
       const [openSettings,setOpenSettings]=useState(false);
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
+
+      // Merge server records into local history by id (fallback: entryID)
+      function mergeServerUpdates(updates) {
+        if (!Array.isArray(updates) || updates.length === 0) return;
+      
+        setHistory(h => {
+          const byId = new Map(h.map((r, i) => [r.id, i]));
+          const byEntry = new Map(h.map((r, i) => [r.entryID, i]).filter(([k]) => !!k));
+          const next = h.slice();
+      
+          for (const u of updates) {
+            const keyId = u.id != null ? String(u.id) : null;
+            const keyEntry = u.entryID != null ? String(u.entryID) : null;
+      
+            let idx = (keyId && byId.has(keyId)) ? byId.get(keyId) :
+                      (keyEntry && byEntry.has(keyEntry)) ? byEntry.get(keyEntry) : -1;
+      
+            // Normalize a few fields so the UI stays consistent
+            if (u.firstMeeting != null && (u.firstMeeting === true || u.firstMeeting === "true")) u.firstMeeting = "Yes";
+            if (u.factFinding != null && (u.factFinding === true || u.factFinding === "true")) u.factFinding = "Yes";
+            if (u.appSubmitted != null && (u.appSubmitted === true || u.appSubmitted === "true")) u.appSubmitted = "Yes";
+            if (u.casePaid != null && (u.casePaid === true || u.casePaid === "true")) u.casePaid = "Yes";
+            if (u.caseApproved != null && (u.caseApproved === true || u.caseApproved === "true")) u.caseApproved = "Yes";
+      
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], ...u };     // overwrite with admin-edited version
+            } else {
+              // new to this device; append at top
+              next.unshift({ id: keyId || crypto.randomUUID?.() || String(Date.now()), ...u });
+            }
+          }
+          return next;
+        });
+      
+        // If any of the updates match outbox ids, remove them (server has them already)
+        setOutbox(o => o.filter(rec => !updates.some(u => String(u.id||"") === String(rec.id||""))));
+      }
+
+      // Pull updates from server since lastSyncAt for this advisor
+      async function pullUpdates() {
+        if (!settings.advisorName) return;
+      
+        const since = lastSyncAt || "1970-01-01T00:00:00Z";
+        const url = `${DEFAULT_ENDPOINT}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}`;
+      
+        try {
+          const res = await fetch(url, { method: "GET" });
+          const json = await res.json().catch(() => ({}));
+          if (!json || !json.ok) return;
+      
+          const updates = Array.isArray(json.updated) ? json.updated : [];
+          if (updates.length > 0) {
+            mergeServerUpdates(updates);
+            setToast({ t: `Pulled ${updates.length} update${updates.length>1?'s':''} 🔄`, type: "ok" });
+          }
+          const nowIso = new Date().toISOString();
+          setLastSyncAt(nowIso); writeLS(LS_SYNC.last, nowIso);
+        } catch (e) {
+          // ignore (offline etc.)
+        }
+      }
 
       // auto-open settings if needed
       useEffect(()=>{ if(!settings.advisorName || !settings.unit){ setOpenSettings(true); } },[]);
@@ -285,29 +349,41 @@
         else if(n===1 && !form.firstMeeting) setForm(f=>({...f,firstMeeting:true}));
       },[form.meetingCount]);
 
-      // flush queued items: on mount, focus/online/visibility, and whenever outbox changes
-      useEffect(()=>{
-        const flush = async () => {
-          if(outbox.length===0) return;
-          let sent=0; const remaining=[];
-          for(const item of outbox){
-            const ok = await sendToEndpoint(DEFAULT_ENDPOINT,item);
-            if(ok) sent++; else remaining.push(item);
-          }
-          if(remaining.length!==outbox.length){
-            setOutbox(remaining);
-            if(sent>0) setToast({ t:`Synced ${sent} queued ${sent===1?"item":"items"} ✅`, type:"ok" });
-          }
-        };
-        flush();
-        const onFocus=()=>flush();
-        const onOnline=()=>flush();
-        const onVisible=()=>{ if(!document.hidden) flush(); };
-        window.addEventListener("focus",onFocus);
-        window.addEventListener("online",onOnline);
-        document.addEventListener("visibilitychange",onVisible);
-        return ()=>{ window.removeEventListener("focus",onFocus); window.removeEventListener("online",onOnline); document.removeEventListener("visibilitychange",onVisible); };
-      },[outbox]);
+    // Combined sync: send queued → pull admin edits
+    useEffect(() => {
+      const flushOutbox = async () => {
+        if (outbox.length === 0) return;
+        let sent = 0;
+        const remaining = [];
+        for (const item of outbox) {
+          const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
+          if (ok) sent++; else remaining.push(item);
+        }
+        if (remaining.length !== outbox.length) {
+          setOutbox(remaining);
+          if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
+        }
+      };
+    
+      const runSync = async () => {
+        await flushOutbox();
+        await pullUpdates();            // <-- pull admin edits/corrections
+      };
+    
+      runSync();
+      const onFocus   = () => runSync();
+      const onOnline  = () => runSync();
+      const onVisible = () => { if (!document.hidden) runSync(); };
+    
+      window.addEventListener("focus", onFocus);
+      window.addEventListener("online", onOnline);
+      document.addEventListener("visibilitychange", onVisible);
+      return () => {
+        window.removeEventListener("focus", onFocus);
+        window.removeEventListener("online", onOnline);
+        document.removeEventListener("visibilitychange", onVisible);
+      };
+    }, [outbox, settings.advisorName]);
 
       // scroll to top when opening settings
       useEffect(()=>{ if(openSettings){ requestAnimationFrame(()=>{ try{ window.scrollTo({top:0,behavior:"smooth"});}catch{} }); } },[openSettings]);
