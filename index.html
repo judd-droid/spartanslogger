@@ -554,7 +554,17 @@
                       type="button"
                       onClick={() => pullUpdates({ quietIfNone: false })}   // show “Up to date ✅” when nothing changed
                       disabled={!settings.advisorName || !settings.syncKey}
-                      className={...}
+                      className={cls(
+                        "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
+                        !settings.advisorName || !settings.syncKey
+                          ? "bg-slate-300 text-white cursor-not-allowed"
+                          : "bg-slate-900 text-white hover:opacity-95"
+                      )}
+                      title={
+                        !settings.advisorName || !settings.syncKey
+                          ? "Enter Advisor Name and Sync Key first"
+                          : "Pull admin updates now"
+                      }
                     >
                       Sync now
                     </button>
