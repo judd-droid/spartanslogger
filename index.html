@@ -49,7 +49,11 @@
     const { useEffect, useMemo, useState } = React;
     const SYNC_URL = "/api/sync";   // ← our secure proxy
 
-
+    const btnSecondary =
+      "rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold " +
+      "text-slate-900 shadow-sm hover:bg-slate-50 active:scale-[0.98] " +
+      "disabled:opacity-60 disabled:cursor-not-allowed";
+    
     const cls = (...xs) => xs.filter(Boolean).join(" ");
     const todayISODate = () => new Date().toISOString().slice(0,10);
     const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
@@ -555,12 +559,7 @@
                       type="button"
                       onClick={pullUpdates}
                       disabled={!settings.advisorName || !settings.syncKey}
-                      className={cls(
-                        "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
-                        !settings.advisorName || !settings.syncKey
-                          ? "bg-slate-300 text-white cursor-not-allowed"
-                          : "bg-slate-900 text-white hover:opacity-95"
-                      )}
+                      className={btnSecondary}
                       title={!settings.advisorName || !settings.syncKey
                         ? "Enter Advisor Name and Sync Key first"
                         : "Pull admin updates now"}
@@ -592,16 +591,11 @@
                         type="button"
                         onClick={forceFullSync}
                         disabled={!settings.advisorName || !settings.syncKey}
-                        className={cls(
-                          "rounded-xl px-3 py-2 text-sm font-medium shadow-sm active:scale-[0.98]",
-                          !settings.advisorName || !settings.syncKey
-                            ? "bg-slate-300 text-white cursor-not-allowed"
-                            : "bg-slate-900 text-white hover:opacity-95"
-                        )}
+                        className={btnSecondary}
                       >
                         🔄 Get a Fresh Copy
                       </button>
-          
+
                       <button
                         type="button"
                         onClick={nukeEverything}
@@ -632,7 +626,7 @@
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
+                    className={btnSecondary}
                     onClick={() => setOpenSettings(false)}
                   >
                     Done
