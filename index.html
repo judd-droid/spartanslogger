@@ -375,7 +375,7 @@
             setToast({ t: `Pulled ${updates.length} update${updates.length > 1 ? "s" : ""} 🔄`, type: "ok" });
           } else {
             // This is the important feedback when nothing changed
-            setToast({ t: "No new changes found", type: "ok" });
+            setToast({ t: "Sync: No new changes found", type: "ok" });
           }
       
           const nowIso = new Date().toISOString();
