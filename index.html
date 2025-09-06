@@ -552,7 +552,7 @@
                     // Sync button in Settings
                     <button
                       type="button"
-                      onClick={() => pullUpdates({ quietIfNone: false })}   // show “Up to date ✅” when nothing changed
+                      onClick={() => pullUpdates({ quietIfNone: false })}  // user-initiated → show "Up to date ✅"
                       disabled={!settings.advisorName || !settings.syncKey}
                       className={cls(
                         "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
