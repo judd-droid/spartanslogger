@@ -84,18 +84,38 @@
       </div>
     );
 
+    // put near the top of your script (you already have this line)
+    const LOGO_SRC = "./supernova-wordmark.png";
+    
+    // replace the whole TopBar component with this:
     const TopBar = ({ onOpenSettings, pendingCount }) => (
-      <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200">
-        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+      <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 rounded-b-2xl shadow-sm overflow-hidden">
+        {/* row 1: logo (left) + settings (right) */}
+        <div className="flex items-center justify-between px-4 pt-3">
+          <img
+            src={LOGO_SRC}
+            alt="Supernova Financial"
+            className="h-6 md:h-7 select-none"
+            draggable="false"
+          />
+          <button
+            onClick={onOpenSettings}
+            className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]"
+          >
+            ⚙️ Settings
+          </button>
+        </div>
+    
+        {/* row 2: app title */}
+        <div className="flex items-center justify-between px-4 pb-2 pt-1">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
             <h1 className="text-lg font-bold">Meeting Logger</h1>
           </div>
-          <button onClick={onOpenSettings} className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]">
-            ⚙️ Settings
-          </button>
         </div>
-        {pendingCount>0 && (
+    
+        {/* queued pill (below the title) */}
+        {pendingCount > 0 && (
           <div className="px-4 pb-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 text-amber-900 text-xs font-semibold px-3 py-1">
               <span className="inline-block h-2 w-2 rounded-full bg-amber-600" />
