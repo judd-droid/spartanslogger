@@ -161,21 +161,53 @@
     const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
       <input value={value} onChange={(e)=>onChange(e.target.value===""?"":Number(e.target.value))} type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder} className={baseField+" appearance-none"}/>
     );
-    const MoneyInput = ({ value, onChange, placeholder }) => {
-      const display = value===""||value==null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
+    const MoneyInput = ({ value, onChange, placeholder, disabled = false }) => {
+      const display = value === "" || value == null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
       return (
-        <input type="text" inputMode="numeric" value={display} placeholder={placeholder}
-          onChange={(e)=>{ const digits=e.target.value.replace(/\D/g,""); onChange(digits===""?"":Number(digits)); }}
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
+        <input
+          type="text"
+          inputMode="numeric"
+          value={display}
+          placeholder={placeholder}
+          onChange={(e) => {
+            if (disabled) return;
+            const digits = e.target.value.replace(/\D/g, "");
+            onChange(digits === "" ? "" : Number(digits));
+          }}
+          disabled={disabled}
+          className={cls(
+            "w-full rounded-xl px-3 py-3 text-base shadow-sm outline-none border",
+            disabled
+              ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+              : "bg-white border-slate-300 focus:border-slate-400"
+          )}
+        />
       );
     };
-    const Select = ({ value, onChange, options, placeholder }) => (
+    const Select = ({ value, onChange, options, placeholder, disabled = false }) => (
       <div className="relative">
-        <select value={value} onChange={(e)=>onChange(e.target.value)} className={baseField+" appearance-none pr-10"}>
-          <option value="" disabled hidden>{placeholder||"Select…"}</option>
-          {options.map(opt=> <option key={opt} value={opt}>{opt}</option>)}
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          className={cls(
+            baseField,
+            "appearance-none pr-10",
+            disabled && "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+          )}
+        >
+          <option value="" disabled hidden>{placeholder || "-- Select --"}</option>
+          {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
-        <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <svg
+          className={cls(
+            "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5",
+            disabled ? "text-slate-300" : "text-slate-400"
+          )}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
           <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
         </svg>
       </div>
@@ -505,7 +537,8 @@
       };
 
       const pendingCount = outbox.length;
-
+      const canEditAmounts = !!(form.appSubmitted || form.casePaid || form.caseApproved);
+      
       return (
         <Page>
           <TopBar settingsOpen={openSettings} onToggleSettings={() => setOpenSettings(v => !v)} pendingCount={pendingCount} />
@@ -665,11 +698,33 @@
 
               <Section title="Amounts & Product (optional)">
                 <div className="grid grid-cols-2 gap-3">
-                  <LabeledInput label="FYP (₱)"><MoneyInput value={form.fyp} onChange={(v)=>setForm(f=>({...f,fyp:v}))} placeholder="e.g., 12,000"/></LabeledInput>
-                  <LabeledInput label="FYC (₱)"><MoneyInput value={form.fyc} onChange={(v)=>setForm(f=>({...f,fyc:v}))} placeholder="e.g., 2,400"/></LabeledInput>
+                  <LabeledInput label="FYP (₱)">
+                    <MoneyInput
+                      value={form.fyp}
+                      onChange={(v) => setForm(f => ({ ...f, fyp: v }))}
+                      placeholder="e.g., 12,000"
+                      disabled={!canEditAmounts}
+                    />
+                  </LabeledInput>
+              
+                  <LabeledInput label="FYC (₱)">
+                    <MoneyInput
+                      value={form.fyc}
+                      onChange={(v) => setForm(f => ({ ...f, fyc: v }))}
+                      placeholder="e.g., 2,400"
+                      disabled={!canEditAmounts}
+                    />
+                  </LabeledInput>
                 </div>
+              
                 <LabeledInput label="Product">
-                  <Select value={form.product} onChange={v=>setForm(f=>({...f,product:v}))} options={PRODUCT_OPTIONS} placeholder="-- Select Product --"/>
+                  <Select
+                    value={form.product}
+                    onChange={(v) => setForm(f => ({ ...f, product: v }))}
+                    options={PRODUCT_OPTIONS}
+                    placeholder="-- Select Product --"
+                    disabled={!canEditAmounts}
+                  />
                 </LabeledInput>
               </Section>
 
