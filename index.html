@@ -151,11 +151,16 @@
             <img
               src={LOGO_SRC}
               alt="Supernova"
-              className="h-11 sm:h-12 w-auto max-w-[220px] object-contain shrink-0 select-none -ml-4 sm:ml-0"
+              /* nudge the logo slightly LEFT so it lines up with the dot */
+              className="h-11 sm:h-12 w-auto max-w-[220px] object-contain shrink-0 select-none -ml-0.5"
               draggable="false"
             />
             <div className="mt-1 flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+              {/* use --sn-red for the dot */}
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--sn-red)' }}
+              />
               <h1 className="text-xl font-bold tracking-tight">Spartans Logger</h1>
             </div>
           </div>
