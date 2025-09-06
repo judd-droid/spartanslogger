@@ -140,20 +140,27 @@
         <div className="mx-auto w-full max-w-md px-4 pb-36">{children}</div>
       </div>
     );
+
+    const LOGO_SRC = "./supernova-wordmark.png";
     
     const TopBar = ({ onOpenSettings, pendingCount }) => (
-      <header className="sticky top-0 z-50 mb-4 border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+      <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3">
+        <div className="flex items-start justify-between">
+          {/* Left: logo over title */}
+          <div className="flex flex-col">
             <img
-              src="supernova-wordmark.png"
-              alt="Supernova Spartans"
-              className="h-5 sm:h-6 object-contain select-none"
-              loading="eager"
+              src={LOGO_SRC}
+              alt="Supernova"
+              className="h-10 sm:h-12 w-auto select-none"
+              draggable="false"
             />
+            <div className="mt-1 flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+              <h1 className="text-xl font-bold tracking-tight">Spartans Logger</h1>
+            </div>
           </div>
     
+          {/* Right: settings + queue badge */}
           <div className="flex items-center gap-3">
             {pendingCount > 0 && (
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
@@ -170,6 +177,7 @@
         </div>
       </header>
     );
+
 
     const Section = ({title,children,right}) => (
       <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
