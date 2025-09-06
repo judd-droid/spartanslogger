@@ -88,25 +88,34 @@
     const LOGO_SRC = "./supernova-wordmark.png";
     
     // replace the whole TopBar component with this:
-    const TopBar = ({ onOpenSettings, pendingCount }) => (
+    const TopBar = ({ settingsOpen, onToggleSettings, pendingCount }) => (
       <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 rounded-b-2xl shadow-sm overflow-hidden">
-        {/* row 1: bigger logo + settings */}
         <div className="flex items-center justify-between px-4 pt-4">
-          <img
-            src={LOGO_SRC}
-            alt="Supernova Financial"
-            className="h-12 md:h-14 select-none"
-            draggable="false"
-          />
+          <img src={LOGO_SRC} alt="Supernova Financial" className="h-12 md:h-14 select-none" />
           <button
-            onClick={onOpenSettings}
-            className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]"
+            onClick={onToggleSettings}
+            aria-pressed={settingsOpen}
+            aria-expanded={settingsOpen}
+            className={
+              "rounded-2xl border px-3 py-1.5 text-sm transition shadow-sm " +
+              (settingsOpen
+                ? "bg-slate-900 text-white border-slate-900 shadow-inner translate-y-[1px]"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 active:scale-[0.98]")
+            }
           >
-            ⚙️ Settings
+            <span
+              className={
+                "mr-1 inline-block transition-transform duration-200 " +
+                (settingsOpen ? "rotate-90" : "")
+              }
+              aria-hidden="true"
+            >
+              ⚙️
+            </span>
+            Settings
           </button>
         </div>
     
-        {/* row 2: larger title + extra space below */}
         <div className="flex items-center justify-between px-4 pt-2 pb-5">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
@@ -114,7 +123,6 @@
           </div>
         </div>
     
-        {/* queued pill (below the title) */}
         {pendingCount > 0 && (
           <div className="px-4 pb-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 text-amber-900 text-xs font-semibold px-3 py-1">
@@ -370,7 +378,7 @@
 
       return (
         <Page>
-          <TopBar onOpenSettings={()=>setOpenSettings(v=>!v)} pendingCount={pendingCount} />
+          <TopBar settingsOpen={openSettings} onToggleSettings={() => setOpenSettings(v => !v)} pendingCount={pendingCount} />
 
           {openSettings && (
             <Section title="SETTINGS">
