@@ -8,75 +8,32 @@
     :root{
       --sn-red:#DD467D; --sn-red-light:#F7B4CC; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
       --rec-bg:#f9fafb; --bg:#f8fafc; --card:#ffffff; --line:#e5e7eb;
-      --steel-0:#f3f6fb;   /* very light blue-gray */
-      --steel-1:#e5ecf5;   /* light steel */
-      --steel-2:#cfd9e6;   /* mid steel */
-      --steel-3:#aebbd0;   /* deeper steel */
+      --steel-0:#f3f6fb; --steel-1:#e5ecf5; --steel-2:#cfd9e6; --steel-3:#aebbd0;
     }
-
-    /* If the browser supports color-mix, generate it from --sn-red */
     @supports (color: color-mix(in srgb, black, white)) {
-      :root{
-        --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white);
-      }
+      :root{ --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white); }
     }
-    
-    html, body { min-height: 100%; }               /* no fixed height */
-    
+    html,body{min-height:100%}
     body{
-      background-color: var(--steel-1);            /* fallback color */
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      background-color:var(--steel-1);
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
-
-    /* ensure full-viewport coverage on mobile */
-    @supports (height: 100dvh){
-      body::before{ height: 100dvh; }
-    }
-    
-    /* Fixed gradient layer so it never clips while scrolling */
+    @supports (height:100dvh){ body::before{height:100dvh} }
     body::before{
-      content: "";
-      position: fixed;
-      inset: 0;
-      z-index: -1;                                 /* behind everything */
-      pointer-events: none;
+      content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
       background:
         radial-gradient(1100px 700px at 0% 0%, rgba(99,102,241,.10), transparent 60%),
         radial-gradient(900px 600px at 100% 0%, rgba(14,165,233,.10), transparent 55%),
         linear-gradient(145deg, var(--steel-0) 0%, var(--steel-1) 32%, var(--steel-2) 66%, var(--steel-3) 100%);
     }
-
-    /* Toast Keyframes */
-    @keyframes toastIn {
-      from { transform: translateY(-10px); opacity: 0; }
-      to   { transform: translateY(0);     opacity: 1; }
-    }
-    @keyframes toastBar {
-      from { transform: scaleX(1); }
-      to   { transform: scaleX(0); }
-    }
-
-    /* iOS zoom prevention + consistent typography for form controls */
-    input, select, button, textarea {
-      font: inherit;
-      font-size: 16px; /* >=16px prevents iOS zoom-on-focus */
-    }
-
-    input[type="date"],
-    input[type="time"]{
-      -webkit-appearance: none;
-      appearance: none;
-      height: 3rem;              /* = Tailwind h-12 */
-      line-height: 3rem;         /* centers the text vertically */
-      padding: 0 1rem;           /* same horizontal padding as others */
-      font-size: 16px;           /* avoids iOS zoom and huge default font */
-      font-variant-numeric: tabular-nums;
+    @keyframes toastIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+    input,select,button,textarea{font:inherit;font-size:16px}
+    input[type="date"],input[type="time"]{
+      -webkit-appearance:none;appearance:none;height:3rem;line-height:3rem;padding:0 1rem;font-size:16px;font-variant-numeric:tabular-nums;
     }
   </style>
-
   <script src="https://cdn.tailwindcss.com"></script>
-
   <link rel="preload" href="./supernova-wordmark.png" as="image">
 </head>
 <body>
@@ -89,77 +46,31 @@
 
   <!-- App -->
   <script type="text/babel">
-    const {useEffect,useMemo,useState} = React;
+    const { useEffect, useMemo, useState } = React;
 
     const cls = (...xs) => xs.filter(Boolean).join(" ");
-    const todayISODate = () => new Date().toISOString().slice(0, 10);
+    const todayISODate = () => new Date().toISOString().slice(0,10);
     const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
-    const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{ weekday:"long" });
+    const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:"long"});
 
     const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1" };
 
-    const DEFAULT_ENDPOINT =
-      "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
+    const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
 
-    // SAME HEIGHT FOR ALL FIELDS (inputs & selects)
-    const baseField =
-      "w-full h-14 rounded-2xl border border-slate-300 bg-white " +
-      "px-3 text-[16px] leading-none shadow-sm outline-none focus:border-slate-400";
-    
-    // Edit this list anytime
-    const UNIT_OPTIONS = [
-      "Supernova Direct",
-      "Aquila Direct",
-      "Stellar Direct",
-      "Aurora",
-      "Alphara",
-      // "… add more"
-    ];
+    const baseField = "w-full h-14 rounded-2xl border border-slate-300 bg-white px-3 text-[16px] leading-none shadow-sm outline-none focus:border-slate-400";
 
-    const PRODUCT_OPTIONS = [
-      "A+ Signature",
-      "ACP 100",
-      "AHIP",
-      "Ascend",
-      "Family Secure",
-      "Future Builder",
-      "Future Scholar",
-      "Goals Protect",
-      "Guardian 1",
-      "Guardian 65",
-      "Health Achieve",
-      "Max Protect",
-      "Money Tree",
-      "Other",
-    ];
+    const UNIT_OPTIONS = ["Supernova Direct","Aquila Direct","Stellar Direct","Aurora","Alphara"];
+    const PRODUCT_OPTIONS = ["A+ Signature","ACP 100","AHIP","Ascend","Family Secure","Future Builder","Future Scholar","Goals Protect","Guardian 1","Guardian 65","Health Achieve","Max Protect","Money Tree","Other"];
+    const MEETING_PLACES = ["Zoom","Cafe/Resto","Client Home","Client Office","AIA Office","Other"];
 
-    const MEETING_PLACES = [
-      "Zoom",
-      "Cafe/Resto",
-      "Client Home",
-      "Client Office",
-      "AIA Office",
-      "Other",
-    ];
-
-    // Motivational micro-quotes
     const QUOTES = [
-      "Great days are built one call at a time.",
-      "Consistency compounds. Keep swinging!",
-      "Prospect today, paid tomorrow.",
-      "Hard work works!",
-      "Tiny progress today, massive results later.",
-      "Energy up, pipeline up!",
-      "Every conversation is a seed.",
-      "Discipline > motivation!",
-      "Energy is contagious—share it!",
-      "You only lose if you stop."
+      "Great days are built one call at a time.","Consistency compounds. Keep swinging!","Prospect today, paid tomorrow.","Hard work works!",
+      "Tiny progress today, massive results later.","Energy up, pipeline up!","Every conversation is a seed.","Discipline > motivation!",
+      "Energy is contagious—share it!","You only lose if you stop."
     ];
-    const getRandomQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
-    
-    const defaultSettings = {
-      advisorName: "", unit: "" };
-    
+    const getRandomQuote = () => QUOTES[Math.floor(Math.random()*QUOTES.length)];
+
+    const defaultSettings = { advisorName:"", unit:"" };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
       caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"" };
@@ -173,8 +84,6 @@
       </div>
     );
 
-    const LOGO_SRC = "./supernova-wordmark.png";
-    
     const TopBar = ({ onOpenSettings, pendingCount }) => (
       <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200">
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
@@ -182,16 +91,11 @@
             <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
             <h1 className="text-lg font-bold">Meeting Logger</h1>
           </div>
-          <button
-            onClick={onOpenSettings}
-            className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]"
-          >
+          <button onClick={onOpenSettings} className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]">
             ⚙️ Settings
           </button>
         </div>
-    
-        {/* queued pill BELOW the title */}
-        {pendingCount > 0 && (
+        {pendingCount>0 && (
           <div className="px-4 pb-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 text-amber-900 text-xs font-semibold px-3 py-1">
               <span className="inline-block h-2 w-2 rounded-full bg-amber-600" />
@@ -201,7 +105,7 @@
         )}
       </header>
     );
-    
+
     const Section = ({title,children,right}) => (
       <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
@@ -209,270 +113,104 @@
         </div>{children}
       </section>
     );
-    const LabeledInput = ({ label, children }) => (
-      <label className="mb-4 block"> {/* was mb-3 */}
-        <div className="mb-2 text-[13px] font-medium text-slate-600">{label}</div> {/* was mb-1 */}
+    const LabeledInput = ({label,children}) => (
+      <label className="mb-4 block">
+        <div className="mb-2 text-[13px] font-medium text-slate-600">{label}</div>
         {children}
       </label>
     );
-    
-    // Text input
-    const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
-      <input
-        value={value}
-        onChange={(e)=>onChange(e.target.value)}
-        type={type}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        className={baseField}
-      />
-    );
-    
-    // Number input
-    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
-      <input
-        value={value}
-        onChange={(e)=>onChange(e.target.value === "" ? "" : Number(e.target.value))}
-        type="number"
-        step={step}
-        min={min}
-        inputMode="numeric"
-        placeholder={placeholder}
-        className={baseField + " appearance-none"}  // consistent on iOS
-      />
-    );
 
+    const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
+      <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder} className={baseField}/>
+    );
+    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
+      <input value={value} onChange={(e)=>onChange(e.target.value===""?"":Number(e.target.value))} type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder} className={baseField+" appearance-none"}/>
+    );
     const MoneyInput = ({ value, onChange, placeholder }) => {
-      // show with commas; keep state numeric (or "")
-      const display =
-        value === "" || value == null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
-    
+      const display = value===""||value==null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
       return (
-        <input
-          type="text"
-          inputMode="numeric"
-          value={display}
-          placeholder={placeholder}
-          onChange={(e) => {
-            const digits = e.target.value.replace(/\D/g, ""); // strip everything except 0–9
-            if (digits === "") onChange("");
-            else onChange(Number(digits));
-          }}
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
-        />
+        <input type="text" inputMode="numeric" value={display} placeholder={placeholder}
+          onChange={(e)=>{ const digits=e.target.value.replace(/\D/g,""); onChange(digits===""?"":Number(digits)); }}
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400" />
       );
     };
-
-    // Select (dropdown) — same height, custom chevron
     const Select = ({ value, onChange, options, placeholder }) => (
       <div className="relative">
-        <select
-          value={value}
-          onChange={(e)=>onChange(e.target.value)}
-          className={baseField + " appearance-none pr-10"}  // opt out of native height; room for chevron
-        >
-          {/* can't be selected, just a hint in the closed state */}
-          <option value="" disabled hidden>{placeholder || "Select…"}</option>
-          {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+        <select value={value} onChange={(e)=>onChange(e.target.value)} className={baseField+" appearance-none pr-10"}>
+          <option value="" disabled hidden>{placeholder||"Select…"}</option>
+          {options.map(opt=> <option key={opt} value={opt}>{opt}</option>)}
         </select>
-    
-        {/* chevron */}
-        <svg
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"
-          viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
-        >
-          <path fillRule="evenodd"
-            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"
-            clipRule="evenodd" />
+        <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
         </svg>
       </div>
     );
-
     const ChoiceGrid = ({ options, value, onChange }) => (
       <div className="grid grid-cols-2 gap-3">
-        {options.map(opt => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => onChange(opt)}
-            className={cls(
-              "h-16 rounded-2xl border text-base font-semibold transition active:scale-[0.99]",
-              value === opt
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-800 border-slate-300"
-            )}
-          >
+        {options.map(opt=>(
+          <button key={opt} type="button" onClick={()=>onChange(opt)}
+            className={cls("h-16 rounded-2xl border text-base font-semibold transition active:scale-[0.99]",
+              value===opt ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-800 border-slate-300")}>
             {opt}
           </button>
         ))}
       </div>
     );
-
     const FloatingTabBar = ({ tab, setTab }) => (
-      <div
-        className="
-          fixed z-50 pointer-events-none
-          bottom-[calc(env(safe-area-inset-bottom)+12px)]
-          left-2 right-2
-          sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[30rem]
-        "
-      >
+      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[30rem]">
         <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-2 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
-          {/* Log */}
-          <button
-            onClick={() => setTab('log')}
-            className={cls(
-              "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab === "log"
-                ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]"
-                : "bg-white text-[var(--sn-black)]"
-            )}
-            aria-pressed={tab === "log"}
-            aria-label="Log your meeting"
-          >
+          <button onClick={()=>setTab('log')}
+            className={cls("h-16 rounded-xl font-semibold transition flex items-center justify-center",
+              tab==="log" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]")}
+            aria-pressed={tab==="log"} aria-label="Log your meeting">
             <div className="flex flex-col items-center leading-tight pt-1 pb-1">
-              <img src="log.svg" alt="" aria-hidden="true"
-                   className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 object-contain" />
+              <img src="log.svg" alt="" aria-hidden="true" className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 object-contain"/>
               <span className="text-[13px]">Log Your Meeting</span>
             </div>
           </button>
-    
-          {/* History */}
-          <button
-            onClick={() => setTab('history')}
-            className={cls(
-              "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab === "history"
-                ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]"
-                : "bg-white text-[var(--sn-black)]"
-            )}
-            aria-pressed={tab === "history"}
-            aria-label="History"
-          >
+          <button onClick={()=>setTab('history')}
+            className={cls("h-16 rounded-xl font-semibold transition flex items-center justify-center",
+              tab==="history" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]")}
+            aria-pressed={tab==="history"} aria-label="History">
             <div className="flex flex-col items-center leading-tight pt-1 pb-1">
-              <img src="history.svg" alt="" aria-hidden="true"
-                   className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 object-contain" />
+              <img src="history.svg" alt="" aria-hidden="true" className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 object-contain"/>
               <span className="text-[13px]">History</span>
             </div>
           </button>
         </div>
       </div>
     );
-    
-    const TileButton = ({ selected, children, onClick }) => (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cls(
-          // ↓ add leading-snug (or leading-tight if you want it even tighter)
-          "h-16 w-full rounded-2xl border shadow-sm px-4 text-base leading-snug text-center active:scale-[0.99] transition",
-          selected
-            ? "bg-slate-900 text-white border-slate-900"
-            : "bg-white text-slate-800 border-slate-300 hover:bg-slate-50"
-        )}
-      >
-        <span className="block leading-snug">{children}</span>
-      </button>
-    );
-    
-    const Pills = ({ options, value, onChange }) => (
-      <div className="flex flex-wrap gap-2">
-        {options.map(opt=>(
-          <button key={opt} type="button"
-            className={cls(
-              "h-12 rounded-full px-4 text-base font-medium border flex items-center",
-              value===opt ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-            )}
-            onClick={()=>onChange(opt)}>{opt}</button>
-        ))}
-      </div>
-    );
-    
     const YesNoCard = ({ label, value, onChange }) => (
-      <button
-        type="button"
-        onClick={() => onChange(!value)}
-        className={cls(
-          "flex h-16 w-full items-center justify-between rounded-2xl border text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
-          value
-            ? "bg-emerald-500 border-emerald-300 text-white"
-            : "text-white"
-        )}
-        style={
-          value
-            ? undefined
-            : { backgroundColor: "var(--sn-red)", borderColor: "var(--sn-red)" }
-        }
-      >
+      <button type="button" onClick={()=>onChange(!value)}
+        className={cls("flex h-16 w-full items-center justify-between rounded-2xl border text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
+          value ? "bg-emerald-500 border-emerald-300 text-white" : "text-white")}
+        style={ value ? undefined : { backgroundColor:"var(--sn-red)", borderColor:"var(--sn-red)" } }>
         <span className="text-left text-sm font-medium opacity-90">{label}</span>
-        <span className="text-xl tracking-wide">{value ? "YES" : "NO"}</span>
+        <span className="text-xl tracking-wide">{value?"YES":"NO"}</span>
       </button>
     );
-    
     const YesNoGrid = ({ items, form, setForm }) => (
-      // force 2 columns by default (works on mobile)
       <div className="grid grid-cols-2 gap-3">
-        {items.map((it) => (
-          <YesNoCard
-            key={it.key}
-            label={it.label}
-            value={!!form[it.key]}
-            onChange={(v) => setForm((f) => ({ ...f, [it.key]: v }))}
-          />
+        {items.map(it=>(
+          <YesNoCard key={it.key} label={it.label} value={!!form[it.key]} onChange={(v)=>setForm(f=>({...f,[it.key]:v}))}/>
         ))}
       </div>
     );
 
-    const TabBar = ({ tab, setTab }) => {
-      const Tab = ({ id, label }) => (
-        <button onClick={()=>setTab(id)}
-          className={cls("flex-1 h-12 rounded-2xl border px-4 text-base font-semibold", tab===id?"bg-slate-900 text-white border-slate-900":"bg-white border-slate-200")}>{label}</button>
-      );
-      return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
-    };
-    
-    // Bigger, high-contrast toast (single right-side icon + optional quote)
-    const Toast = ({ text, quote, type = "ok", onClose }) => {
-      React.useEffect(() => {
-        const t = setTimeout(onClose, 3000);
-        navigator.vibrate?.(40);
-        return () => clearTimeout(t);
-      }, [onClose]);
-    
-      const bg =
-        type === "ok"
-          ? "bg-emerald-600"
-          : type === "warn"
-          ? "bg-amber-500"
-          : "bg-[var(--sn-red)]";
-    
-      const icon = type === "ok" ? "✅" : type === "warn" ? "⚠️" : "✖️";
-      const queuedIds = useMemo(() => new Set(outbox.map(o => o.id)), [outbox]);
-    
+    const Toast = ({ text, quote, type="ok", onClose }) => {
+      React.useEffect(()=>{ const t=setTimeout(onClose,3000); navigator.vibrate?.(40); return ()=>clearTimeout(t); },[onClose]);
+      const bg = type==="ok" ? "bg-emerald-600" : type==="warn" ? "bg-amber-500" : "bg-[var(--sn-red)]";
+      const icon = type==="ok" ? "✅" : type==="warn" ? "⚠️" : "✖️";
       return (
-        <div
-          className="fixed inset-0 z-[120] flex items-start justify-center pointer-events-none"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="fixed inset-0 z-[120] flex items-start justify-center pointer-events-none" role="status" aria-live="polite">
           <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out]">
             <div className={`rounded-2xl px-5 py-3 text-white shadow-2xl ring-1 ring-black/10 backdrop-blur ${bg}`}>
-              {/* header row: title on the left, single icon on the right */}
               <div className="flex items-center justify-between gap-3">
                 <div className="text-lg md:text-xl font-bold">{text}</div>
                 <span className="text-2xl leading-none">{icon}</span>
               </div>
-    
-              {/* small motivational quote */}
-              {quote && (
-                <div className="mt-1 text-[13px] md:text-sm opacity-90">
-                  {quote}
-                </div>
-              )}
+              {quote && <div className="mt-1 text-[13px] md:text-sm opacity-90">{quote}</div>}
             </div>
-    
-            {/* progress bar */}
             <div className="h-1 rounded-b-2xl overflow-hidden bg-white/30">
               <div className="h-full bg-white/90 origin-left animate-[toastBar_3s_linear]" />
             </div>
@@ -480,127 +218,71 @@
         </div>
       );
     };
-    
-    const Badge = ({ children }) => (
-      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-        {children}
-      </span>
+    const Badge = ({children}) => (
+      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{children}</span>
     );
 
-    async function sendToEndpoint(url, record) {
-      const endpoint = (url || "").trim();
-      if (!endpoint) return false;
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          mode: "no-cors",                       // avoid CORS preflight/restrictions
-          headers: { "Content-Type": "text/plain" }, // still sending JSON body
-          body: JSON.stringify(record),
-        });
-        // opaque responses are expected in no-cors; treat as success if it didn't throw
-        return res.ok || res.type === "opaque";
-      } catch {
-        return false;
-      }
+    async function sendToEndpoint(url, record){
+      const endpoint=(url||"").trim(); if(!endpoint) return false;
+      try{
+        const res=await fetch(endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(record)});
+        return res.ok || res.type==="opaque";
+      }catch{ return false; }
     }
 
     function App(){
+      // state (declare before effects)
       const [settings,setSettings]=useState(()=>({...defaultSettings,...readLS(LS.settings,{})}));
-
-        useEffect(() => {
-          if (!settings.endpointUrl) return;
-        
-          const flush = async () => {
-            if (outbox.length === 0) return;
-        
-            let sent = 0;
-            const remaining = [];
-            for (const item of outbox) {
-              const ok = await sendToEndpoint(settings.endpointUrl, item);
-              if (ok) sent++; else remaining.push(item);
-            }
-            if (remaining.length !== outbox.length) {
-              setOutbox(remaining);
-              if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
-            }
-          };
-        
-          // run once now, then on app focus / online / tab return
-          flush();
-          const onFocus = () => flush();
-          const onOnline = () => flush();
-          const onVisible = () => { if (!document.hidden) flush(); };
-        
-          window.addEventListener("focus", onFocus);
-          window.addEventListener("online", onOnline);
-          document.addEventListener("visibilitychange", onVisible);
-        
-          return () => {
-            window.removeEventListener("focus", onFocus);
-            window.removeEventListener("online", onOnline);
-            document.removeEventListener("visibilitychange", onVisible);
-          };
-        }, [settings.endpointUrl, outbox]);
-
-      }, []);
-      
       const [form,setForm]=useState(()=>({...emptyForm}));
       const [tab,setTab]=useState("log");
       const [history,setHistory]=useState(()=>readLS(LS.history,[]));
       const [outbox,setOutbox]=useState(()=>readLS(LS.outbox,[]));
-      
       const [openSettings,setOpenSettings]=useState(false);
-      // When Settings opens, scroll to it (at the top)
-      useEffect(() => {
-        if (openSettings) {
-          // wait one paint so the section is in the DOM, then scroll smoothly
-          requestAnimationFrame(() => {
-            try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
-          });
-        }
-      }, [openSettings]);
-
       const [toast,setToast]=useState(null);
+      const [editingId,setEditingId]=useState(null);
 
-      // --- Edit mode state + helpers ---
-      const [editingId, setEditingId] = useState(null);
-      
-      function recordToForm(r){
-        return {
-          prospectName: r.prospect || "",
-          date: r.date || todayISODate(),
-          time: r.appointmentTime || nowHM(),
-          meetingPlace: r.meetingPlace || "Zoom",
-          firstMeeting: (r.firstMeeting === "Yes"),
-          meetingCount: Number(r.noOfMeetings || (r.firstMeeting === "Yes" ? 1 : 2)),
-          factFinding: (r.factFinding === "Yes"),
-          appSubmitted: (r.appSubmitted === "Yes"),
-          casePaid: (r.casePaid === "Yes"),
-          caseApproved: (r.caseApproved === "Yes"),
-          referralsGiven: Number(r.referralsGiven || 0),
-          fyp: r.fyp ?? "",
-          fyc: r.fyc ?? "",
-          product: r.product || ""
+      // auto-open settings if needed
+      useEffect(()=>{ if(!settings.advisorName || !settings.unit){ setOpenSettings(true); } },[]);
+
+      // persist to localStorage
+      useEffect(()=>writeLS(LS.settings,settings),[settings]);
+      useEffect(()=>writeLS(LS.history,history),[history]);
+      useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
+
+      // keep meetingCount/firstMeeting in sync
+      useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
+      useEffect(()=>{
+        const n=Number(form.meetingCount)||0;
+        if(n>1 && form.firstMeeting) setForm(f=>({...f,firstMeeting:false}));
+        else if(n===1 && !form.firstMeeting) setForm(f=>({...f,firstMeeting:true}));
+      },[form.meetingCount]);
+
+      // flush queued items: on mount, focus/online/visibility, and whenever outbox changes
+      useEffect(()=>{
+        const flush = async () => {
+          if(outbox.length===0) return;
+          let sent=0; const remaining=[];
+          for(const item of outbox){
+            const ok = await sendToEndpoint(DEFAULT_ENDPOINT,item);
+            if(ok) sent++; else remaining.push(item);
+          }
+          if(remaining.length!==outbox.length){
+            setOutbox(remaining);
+            if(sent>0) setToast({ t:`Synced ${sent} queued ${sent===1?"item":"items"} ✅`, type:"ok" });
+          }
         };
-      }
-      
-      function startEdit(rec){
-        setOpenSettings(false);
-        setEditingId(rec.id);
-        setForm(recordToForm(rec));
-        setTab("log");
-        setToast({ t: "Loaded for editing ✍️", type: "ok" });
-        try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
-      }
+        flush();
+        const onFocus=()=>flush();
+        const onOnline=()=>flush();
+        const onVisible=()=>{ if(!document.hidden) flush(); };
+        window.addEventListener("focus",onFocus);
+        window.addEventListener("online",onOnline);
+        document.addEventListener("visibilitychange",onVisible);
+        return ()=>{ window.removeEventListener("focus",onFocus); window.removeEventListener("online",onOnline); document.removeEventListener("visibilitychange",onVisible); };
+      },[outbox]);
 
-      // Open Settings automatically if required fields are empty (first run or cleared)
-      useEffect(() => {
-        if (!settings.advisorName || !settings.unit) {
-          setOpenSettings(true);
-        }
-        // run once on mount
-        // eslint-disable-next-line
-      }, []);
+      // scroll to top when opening settings
+      useEffect(()=>{ if(openSettings){ requestAnimationFrame(()=>{ try{ window.scrollTo({top:0,behavior:"smooth"});}catch{} }); } },[openSettings]);
 
       const yesNoItems = useMemo(()=>[
         {key:"firstMeeting",label:"1st Meeting?"},
@@ -610,44 +292,26 @@
         {key:"caseApproved",label:"Approved?"},
       ],[]);
 
-      useEffect(()=>writeLS(LS.settings,settings),[settings]);
-      useEffect(()=>writeLS(LS.history,history),[history]);
-      useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
-
-      useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
-      // Keep firstMeeting in sync with meetingCount
-      useEffect(() => {
-        const n = Number(form.meetingCount) || 0;
-      
-        if (n > 1 && form.firstMeeting) {
-          // any number > 1 → not first meeting
-          setForm(f => ({ ...f, firstMeeting: false }));
-        } else if (n === 1 && !form.firstMeeting) {
-          // exactly 1 → first meeting
-          setForm(f => ({ ...f, firstMeeting: true }));
-        }
-      }, [form.meetingCount]);
-
-      useEffect(()=>{
-        const flush = () => {
-          if (outbox.length === 0) return;
-          (async () => {
-            const remaining = [];
-            for (const item of outbox) {
-              const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
-              if (!ok) remaining.push(item);
-            }
-            if (remaining.length !== outbox.length) {
-              setOutbox(remaining);
-              if (remaining.length === 0) setToast({ t: "All queued items synced ✅", type: "ok" });
-            }
-          })();
+      function recordToForm(r){
+        return {
+          prospectName:r.prospect||"", date:r.date||todayISODate(), time:r.appointmentTime||nowHM(),
+          meetingPlace:r.meetingPlace||"Zoom",
+          firstMeeting:(r.firstMeeting==="Yes"),
+          meetingCount:Number(r.noOfMeetings || (r.firstMeeting==="Yes"?1:2)),
+          factFinding:(r.factFinding==="Yes"),
+          appSubmitted:(r.appSubmitted==="Yes"),
+          casePaid:(r.casePaid==="Yes"),
+          caseApproved:(r.caseApproved==="Yes"),
+          referralsGiven:Number(r.referralsGiven||0),
+          fyp:r.fyp??"", fyc:r.fyc??"", product:r.product||""
         };
-        flush(); window.addEventListener("focus",flush);
-        return ()=>window.removeEventListener("focus",flush);
-      },[settings.endpointUrl,outbox]);
+      }
+      function startEdit(rec){
+        setOpenSettings(false); setEditingId(rec.id); setForm(recordToForm(rec)); setTab("log");
+        setToast({ t:"Loaded for editing ✍️", type:"ok" });
+        try{ window.scrollTo({top:0,behavior:"smooth"}); }catch{}
+      }
 
-      const meetingPlaceOptions=["Zoom","Cafe","Office","Home","Online","Other"];
       const resetForm=()=>setForm({...emptyForm,meetingPlace:form.meetingPlace});
       const payload = useMemo(()=>{
         const dt=`${form.date} ${form.time}`;
@@ -657,94 +321,64 @@
           firstMeeting: form.firstMeeting?"Yes":"No", noOfMeetings: Number(form.meetingCount)||0,
           factFinding: form.factFinding?"Yes":"No", appSubmitted: form.appSubmitted?"Yes":"No",
           casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
-          fyp: form.fyp === "" ? "" : Number(form.fyp), fyc: form.fyc === "" ? "" : Number(form.fyc),
+          fyp: form.fyp===""? "" : Number(form.fyp), fyc: form.fyc===""? "" : Number(form.fyc),
           product: form.product, caseApproved: form.caseApproved?"Yes":"No",
           timestamp: new Date().toISOString(), dt
         };
       },[form,settings]);
 
-      const [isSending, setIsSending] = useState(false);
-      
-      const handleSubmit = async () => {
-        if (isSending) return;
-        if (!settings.advisorName) { setToast({ t:"Set your name in Settings first", type:"warn" }); setOpenSettings(true); return; }
-        if (!settings.unit)        { setToast({ t:"Select your Unit in Settings",   type:"warn" }); setOpenSettings(true); return; }
-        if (!form.prospectName)    { setToast({ t:"Prospect name is required",       type:"warn" }); return; }
-      
+      const [isSending,setIsSending]=useState(false);
+      const handleSubmit = async ()=>{
+        if(isSending) return;
+        if(!settings.advisorName){ setToast({t:"Set your name in Settings first",type:"warn"}); setOpenSettings(true); return; }
+        if(!settings.unit){ setToast({t:"Select your Unit in Settings",type:"warn"}); setOpenSettings(true); return; }
+        if(!form.prospectName){ setToast({t:"Prospect name is required",type:"warn"}); return; }
+
         setIsSending(true);
-      
         const id = editingId || (crypto.randomUUID?.() || String(Date.now()));
         const record = { id, ...payload };
-      
-        // If editing, replace the existing history item; else prepend a new one
-        setHistory(h => editingId ? h.map(x => (x.id === editingId ? record : x)) : [record, ...h].slice(0, 200));
-      
+        setHistory(h => editingId ? h.map(x => x.id===editingId ? record : x) : [record, ...h].slice(0,200));
+
         const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
-        if (!ok) {
-          setOutbox(o => [record, ...o]);
-          setToast({ t: "Saved offline — will sync when online", type: "warn" });
-        } else {
-          setToast({
-            t: editingId ? "Updated" : "Submitted",
-            quote: getRandomQuote(),
-            type: "ok"
-          });
-        }
-      
-        setEditingId(null);   // exit edit mode
-        resetForm();
-        setIsSending(false);
+        if(!ok){ setOutbox(o=>[record,...o]); setToast({ t:"Saved offline — will sync when online", type:"warn" }); }
+        else{ setToast({ t: editingId ? "Updated" : "Submitted", quote:getRandomQuote(), type:"ok" }); }
+
+        setEditingId(null); resetForm(); setIsSending(false);
       };
-      
+
       const pendingCount = outbox.length;
 
       return (
         <Page>
-          <TopBar onOpenSettings={() => setOpenSettings(v => !v)} pendingCount={pendingCount} />
+          <TopBar onOpenSettings={()=>setOpenSettings(v=>!v)} pendingCount={pendingCount} />
+
           {openSettings && (
             <Section title="SETTINGS">
               <div className="grid gap-3">
                 <LabeledInput label="Your Name (Advisor)">
-                  <TextInput value={settings.advisorName}
-                             onChange={v=>setSettings(s=>({...s,advisorName:v}))}
-                             placeholder="e.g., Jimmy Santos"/>
+                  <TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/>
                 </LabeledInput>
-          
                 <LabeledInput label="Unit *">
-                  <Select value={settings.unit}
-                          onChange={v=>setSettings(s=>({...s, unit:v}))}
-                          options={UNIT_OPTIONS}
-                          placeholder="-- Select Unit --"/>
+                  <Select value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} options={UNIT_OPTIONS} placeholder="-- Select Unit --"/>
                 </LabeledInput>
-          
                 <div className="mt-1 flex items-center justify-between gap-3">
-                  {/* Clear (danger) */}
-                  <button
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
-                    onClick={() => {
-                      if (!confirm("Clear all local history & outbox?")) return;
-                      localStorage.clear(); location.reload();
-                    }}
-                  >
+                  <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
+                          onClick={()=>{ if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}>
                     Clear Local Data
                   </button>
-          
-                  {/* Done (primary) */}
-                  <button
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
-                    onClick={() => setOpenSettings(false)}>
-                    Done
-                  </button>
+                  <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
+                          onClick={()=>setOpenSettings(false)}>Done</button>
                 </div>
               </div>
             </Section>
           )}
 
-          {/* Log Tab */}
           {tab==="log" && (
             <>
               <Section title="Prospect">
-                <LabeledInput label="Prospect Name *"><TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Juan Dela Cruz"/></LabeledInput>
+                <LabeledInput label="Prospect Name *">
+                  <TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Juan Dela Cruz"/>
+                </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="Date"><TextInput type="date" value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/></LabeledInput>
                   <LabeledInput label="Time"><TextInput type="time" value={form.time} onChange={v=>setForm(f=>({...f,time:v}))}/></LabeledInput>
@@ -753,11 +387,7 @@
 
               <Section title="Meeting Details" right={<span className="text-xs text-slate-500">{dayName(form.date)}</span>}>
                 <LabeledInput label="Meeting Place">
-                  <ChoiceGrid
-                    options={MEETING_PLACES}
-                    value={form.meetingPlace}
-                    onChange={(v) => setForm(f => ({ ...f, meetingPlace: v }))}
-                  />
+                  <ChoiceGrid options={MEETING_PLACES} value={form.meetingPlace} onChange={(v)=>setForm(f=>({...f,meetingPlace:v}))}/>
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="# of Meetings (so far)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
@@ -771,189 +401,86 @@
 
               <Section title="Amounts & Product (optional)">
                 <div className="grid grid-cols-2 gap-3">
-                  <LabeledInput label="FYP (₱)">
-                    <MoneyInput
-                      value={form.fyp}
-                      onChange={(v) => setForm((f) => ({ ...f, fyp: v }))}
-                      placeholder="e.g., 12,000"
-                    />
-                  </LabeledInput>
-                  
-                  <LabeledInput label="FYC (₱)">
-                    <MoneyInput
-                      value={form.fyc}
-                      onChange={(v) => setForm((f) => ({ ...f, fyc: v }))}
-                      placeholder="e.g., 2,400"
-                    />
-                  </LabeledInput>
+                  <LabeledInput label="FYP (₱)"><MoneyInput value={form.fyp} onChange={(v)=>setForm(f=>({...f,fyp:v}))} placeholder="e.g., 12,000"/></LabeledInput>
+                  <LabeledInput label="FYC (₱)"><MoneyInput value={form.fyc} onChange={(v)=>setForm(f=>({...f,fyc:v}))} placeholder="e.g., 2,400"/></LabeledInput>
                 </div>
                 <LabeledInput label="Product">
-                  <Select
-                    value={form.product}
-                    onChange={v=>setForm(f=>({...f, product:v}))}
-                    options={PRODUCT_OPTIONS}
-                    placeholder="-- Select Product --"
-                    // no disablePlaceholder -> remains optional
-                  />
-              </LabeledInput>
+                  <Select value={form.product} onChange={v=>setForm(f=>({...f,product:v}))} options={PRODUCT_OPTIONS} placeholder="-- Select Product --"/>
+                </LabeledInput>
               </Section>
 
               <div className="mb-36 flex gap-3">
                 <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50">Clear</button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSending}
-                  className={cls("flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]", isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900")}
-                >
+                <button onClick={handleSubmit} disabled={isSending}
+                  className={cls("flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]", isSending?"bg-slate-400 cursor-not-allowed":"bg-slate-900")}>
                   {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
                 </button>
               </div>
             </>
           )}
 
-          {/* History Tab */}
-          {tab === "history" && (
+          {tab==="history" && (
             <Section title="Local History">
               <div className="space-y-3">
-                {history.length === 0 && (
-                  <div className="text-sm text-slate-500">No entries yet.</div>
-                )}
-          
-                {history.map((r) => {
-                  // queued? (still waiting to auto-sync)
-                  const isQueued = Array.isArray(outbox) && outbox.some((o) => o.id === r.id);
-          
-                  // what we actually have to show in the middle
-                  const hasBadges =
-                    r.factFinding === "Yes" ||
-                    r.appSubmitted === "Yes" ||
-                    r.casePaid === "Yes" ||
-                    r.caseApproved === "Yes";
-          
+                {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
+                {history.map(r=>{
+                  const isQueued = Array.isArray(outbox) && outbox.some(o=>o.id===r.id);
+                  const hasBadges = r.factFinding==="Yes"||r.appSubmitted==="Yes"||r.casePaid==="Yes"||r.caseApproved==="Yes";
                   const hasMoney = !!r.fyp || !!r.fyc;
                   const hasProduct = !!r.product;
                   const hasStats = hasMoney || hasProduct;
-          
                   return (
-                    <div
-                      key={r.id}
-                      className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-                    >
-                      {/* Card header */}
+                    <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0 font-semibold text-lg leading-tight break-words">
-                          {r.prospect}
-                        </div>
-          
-                        {/* right: queued badge + timestamp (timestamp never wraps) */}
+                        <div className="flex-1 min-w-0 font-semibold text-lg leading-tight break-words">{r.prospect}</div>
                         <div className="shrink-0 flex items-center gap-2">
-                          {isQueued && (
-                            <span className="rounded-full bg-amber-100 text-amber-900 text-[11px] font-semibold px-2 py-0.5">
-                              Queued
-                            </span>
-                          )}
-                          <div className="whitespace-nowrap text-xs text-slate-500">
-                            {r.date} {r.appointmentTime}
-                          </div>
+                          {isQueued && <span className="rounded-full bg-amber-100 text-amber-900 text-[11px] font-semibold px-2 py-0.5">Queued</span>}
+                          <div className="whitespace-nowrap text-xs text-slate-500">{r.date} {r.appointmentTime}</div>
                         </div>
                       </div>
-          
-                      {/* meta: place + first/mtgs */}
+
                       <div className="mt-1 text-xs text-slate-600 flex items-center gap-1">
-                        <span>{r.meetingPlace || "—"}</span>
-                        <span>•</span>
-                        <span
-                          className={r.firstMeeting === "Yes" ? "text-emerald-600" : ""}
-                        >
-                          {r.firstMeeting === "Yes"
-                            ? "First meeting"
-                            : Number(r.noOfMeetings) > 0
-                            ? `Mtgs: ${r.noOfMeetings}`
-                            : "—"}
+                        <span>{r.meetingPlace||"—"}</span><span>•</span>
+                        <span className={r.firstMeeting==="Yes"?"text-emerald-600":""}>
+                          {r.firstMeeting==="Yes" ? "First meeting" : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—")}
                         </span>
                       </div>
-          
-                      {/* referrals on its own line (only when >0) */}
-                      {Number(r.referralsGiven) > 0 && (
-                        <div className="mt-1 text-xs text-slate-600">
-                          Referrals: {Number(r.referralsGiven)}
-                        </div>
-                      )}
-          
-                      {/* MIDDLE AREA (badges + sales) with smart dividers */}
+                      {Number(r.referralsGiven)>0 && <div className="mt-1 text-xs text-slate-600">Referrals: {Number(r.referralsGiven)}</div>}
+
                       {!hasBadges && !hasStats ? (
-                        /* nothing to show → just one divider */
                         <div className="my-3 h-px bg-slate-200"></div>
                       ) : (
                         <>
-                          {/* always a divider before the first visible section */}
                           <div className="my-3 h-px bg-slate-200"></div>
-          
-                          {/* activity badges */}
                           {hasBadges && (
                             <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                              {r.factFinding === "Yes" && <Badge>KYC Done</Badge>}
-                              {r.appSubmitted === "Yes" && <Badge>Submitted</Badge>}
-                              {r.casePaid === "Yes" && <Badge>Paid</Badge>}
-                              {r.caseApproved === "Yes" && <Badge>Approved</Badge>}
+                              {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
+                              {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
+                              {r.casePaid==="Yes" && <Badge>Paid</Badge>}
+                              {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
                             </div>
                           )}
-          
-                          {/* only add a second divider if BOTH sections exist */}
-                          {hasBadges && hasStats && (
-                            <div className="my-3 h-px bg-slate-200"></div>
-                          )}
-          
-                          {/* Sales stats line 1: FYP + FYC */}
+                          {hasBadges && hasStats && <div className="my-3 h-px bg-slate-200"></div>}
                           {hasMoney && (
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                              {r.fyp && (
-                                <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>
-                              )}
-                              {r.fyc && (
-                                <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>
-                              )}
+                              {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                              {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
                             </div>
                           )}
-          
-                          {/* Sales stats line 2: product always on its own line */}
-                          {hasProduct && (
-                            <div className="mt-1 text-xs text-slate-600">{r.product}</div>
-                          )}
+                          {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
                         </>
                       )}
-          
-                      {/* footer actions */}
+
                       <div className="mt-3 flex justify-end">
                         <div className="flex gap-2">
-                          <button
-                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
-                            onClick={() => startEdit(r)}
-                          >
-                            Edit
-                          </button>
-          
-                          <button
-                            className={cls(
-                              "rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                            )}
-                            disabled={isQueued}
-                            title={isQueued ? "Already queued — will auto-sync" : "Send now"}
-                            onClick={async () => {
-                              const url = (settings?.endpointUrl || DEFAULT_ENDPOINT);
-                              const ok = await sendToEndpoint(url, r);
-                              alert(ok ? "Re-sent ✅" : "Send failed");
-                            }}
-                          >
+                          <button className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50" onClick={()=>startEdit(r)}>Edit</button>
+                          <button className={cls("rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed")}
+                                  disabled={isQueued} title={isQueued?"Already queued — will auto-sync":"Send now"}
+                                  onClick={async ()=>{ const ok=await sendToEndpoint(DEFAULT_ENDPOINT,r); alert(ok?"Re-sent ✅":"Send failed"); }}>
                             {isQueued ? "Queued" : "Re-send"}
                           </button>
-          
-                          <button
-                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
-                            onClick={() => setHistory((h) => h.filter((x) => x.id !== r.id))}
-                          >
-                            Delete
-                          </button>
+                          <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
+                                  onClick={()=>setHistory(h=>h.filter(x=>x.id!==r.id))}>Delete</button>
                         </div>
                       </div>
                     </div>
@@ -963,16 +490,8 @@
             </Section>
           )}
 
-          <FloatingTabBar tab={tab} setTab={setTab} />
-          {toast && (
-            <Toast
-              text={toast.t}
-              quote={toast.quote}
-              type={toast.type || "ok"}
-              onClose={() => setToast(null)}
-            />
-          )}
-
+          <FloatingTabBar tab={tab} setTab={setTab}/>
+          {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
         </Page>
       );
     }
