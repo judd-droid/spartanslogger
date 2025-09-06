@@ -535,7 +535,18 @@
       const [tab,setTab]=useState("log");
       const [history,setHistory]=useState(()=>readLS(LS.history,[]));
       const [outbox,setOutbox]=useState(()=>readLS(LS.outbox,[]));
+      
       const [openSettings,setOpenSettings]=useState(false);
+      // When Settings opens, scroll to it (at the top)
+      useEffect(() => {
+        if (openSettings) {
+          // wait one paint so the section is in the DOM, then scroll smoothly
+          requestAnimationFrame(() => {
+            try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+          });
+        }
+      }, [openSettings]);
+
       const [toast,setToast]=useState(null);
 
       // --- Edit mode state + helpers ---
