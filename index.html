@@ -585,7 +585,7 @@
                         onClick={clearHistoryAndOutbox}
                         className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
                       >
-                        🧹 Clear History & Outbox
+                        🧹 Clear on This Phone
                       </button>
           
                       <button
@@ -599,7 +599,7 @@
                             : "bg-slate-900 text-white hover:opacity-95"
                         )}
                       >
-                        🔄 Force full sync
+                        🔄 Get a Fresh Copy
                       </button>
           
                       <button
@@ -607,13 +607,13 @@
                         onClick={nukeEverything}
                         className="rounded-xl border border-rose-300 bg-rose-600/10 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-600/20 active:scale-[0.98]"
                       >
-                        ⛔ Clear EVERYTHING
+                         ↺ Reset App on Phone
                       </button>
           
                       <div className="mt-1 space-y-1 text-[11px] leading-snug text-slate-500">
-                        <div><b>Clear History & Outbox</b> – removes only local records; keeps your name, unit, and sync key.</div>
-                        <div><b>Force full sync</b> – asks the server for all of your rows again.</div>
-                        <div><b>Clear EVERYTHING</b> – resets the app; you’ll re-enter settings next time.</div>
+                        <div><b>Clear on This Phone – Removes the meeting list and outbox on this phone only. Your name, unit, and sync key stay saved.</div>
+                        <div><b>Get a Fresh Copy – Re-downloads all your entries from the server and merges them. Safe to use anytime (e.g., after a cleanup or new phone).</div>
+                        <div><b>Reset App on Phone – Resets this app’s saved data on this device. Your records on the server stay unchanged. You'll enter your details next time.</div>
                       </div>
                     </div>
                   )}
