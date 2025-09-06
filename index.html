@@ -568,11 +568,16 @@
       useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
 
       useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
-      // If user sets # of meetings > 1, force First Meeting = false
+      // Keep firstMeeting in sync with meetingCount
       useEffect(() => {
         const n = Number(form.meetingCount) || 0;
+      
         if (n > 1 && form.firstMeeting) {
+          // any number > 1 → not first meeting
           setForm(f => ({ ...f, firstMeeting: false }));
+        } else if (n === 1 && !form.firstMeeting) {
+          // exactly 1 → first meeting
+          setForm(f => ({ ...f, firstMeeting: true }));
         }
       }, [form.meetingCount]);
 
