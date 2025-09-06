@@ -59,6 +59,8 @@
   </style>
 
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preload" href="./supernova-wordmark.png" as="image">
 </head>
 <body>
   <div id="root"></div>
@@ -138,18 +140,37 @@
         <div className="mx-auto w-full max-w-md px-4 pb-36">{children}</div>
       </div>
     );
+    
     const TopBar = ({ onOpenSettings, pendingCount }) => (
-      <header className="sticky top-0 z-50 mb-4 flex items-center justify-between bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
-          <h1 className="text-lg font-bold">Spartans Logger</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {pendingCount>0 && <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{pendingCount} queued</span>}
-          <button onClick={onOpenSettings} className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]">⚙️ Settings</button>
+      <header className="sticky top-0 z-50 mb-4 border-b border-slate-200 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-md items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+            <img
+              src="supernova-wordmark.png"
+              alt="Supernova Spartans"
+              className="h-5 sm:h-6 object-contain select-none"
+              loading="eager"
+            />
+          </div>
+    
+          <div className="flex items-center gap-3">
+            {pendingCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                {pendingCount} queued
+              </span>
+            )}
+            <button
+              onClick={onOpenSettings}
+              className="rounded-2xl border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50 active:scale-[0.98]"
+            >
+              ⚙️ Settings
+            </button>
+          </div>
         </div>
       </header>
     );
+
     const Section = ({title,children,right}) => (
       <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
