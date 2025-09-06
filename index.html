@@ -47,6 +47,7 @@
   <!-- App -->
   <script type="text/babel">
     const { useEffect, useMemo, useState } = React;
+    const SYNC_URL = "/api/sync";
 
     const cls = (...xs) => xs.filter(Boolean).join(" ");
     const todayISODate = () => new Date().toISOString().slice(0,10);
@@ -314,10 +315,9 @@
         if (!settings.advisorName) return;
       
         const since = lastSyncAt || "1970-01-01T00:00:00Z";
-        const url = `${DEFAULT_ENDPOINT}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}`;
       
         try {
-          const res = await fetch(url, { method: "GET" });
+          const res = await fetch(`${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}`)
           const json = await res.json().catch(() => ({}));
           if (!json || !json.ok) return;
       
