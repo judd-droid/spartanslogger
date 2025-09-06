@@ -90,12 +90,12 @@
     // replace the whole TopBar component with this:
     const TopBar = ({ onOpenSettings, pendingCount }) => (
       <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 rounded-b-2xl shadow-sm overflow-hidden">
-        {/* row 1: logo (left) + settings (right) */}
+        {/* row 1: bigger logo + settings */}
         <div className="flex items-center justify-between px-4 pt-4">
           <img
             src={LOGO_SRC}
             alt="Supernova Financial"
-            className="h-8 md:h-10 select-none"
+            className="h-10 md:h-12 select-none"
             draggable="false"
           />
           <button
@@ -106,11 +106,11 @@
           </button>
         </div>
     
-        {/* row 2: app title with more bottom padding */}
+        {/* row 2: smaller title + extra space below */}
         <div className="flex items-center justify-between px-4 pt-2 pb-4">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-3 w-3 rounded-full bg-rose-500" />
-            <h1 className="text-xl md:text-2xl font-bold leading-tight">Meeting Logger</h1>
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-rose-500" />
+            <h1 className="text-base md:text-lg font-semibold leading-tight">Meeting Logger</h1>
           </div>
         </div>
     
@@ -125,7 +125,7 @@
         )}
       </header>
     );
-
+        
     const Section = ({title,children,right}) => (
       <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
