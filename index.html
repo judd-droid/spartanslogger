@@ -422,6 +422,15 @@
       const [openSettings,setOpenSettings]=useState(false);
       const [toast,setToast]=useState(null);
 
+      // Open Settings automatically if required fields are empty (first run or cleared)
+      useEffect(() => {
+        if (!settings.advisorName || !settings.unit) {
+          setOpenSettings(true);
+        }
+        // run once on mount
+        // eslint-disable-next-line
+      }, []);
+
       const yesNoItems = useMemo(()=>[
         {key:"firstMeeting",label:"1st Meeting?"},
         {key:"factFinding",label:"KYC Done?"},
@@ -495,25 +504,39 @@
 
       return (
         <Page>
-          <TopBar onOpenSettings={()=>setOpenSettings(o => !o)} pendingCount={pendingCount}/>
+          <TopBar onOpenSettings={() => setOpenSettings(v => !v)} pendingCount={pendingCount} />
           {openSettings && (
-            <Section title="Settings" right={<button onClick={()=>setOpenSettings(false)} className="text-sm font-semibold text-slate-900">Done</button>}>
+            <Section title="SETTINGS">
               <div className="grid gap-3">
-                <LabeledInput label="Your Name (Advisor)"><TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/></LabeledInput>
-                <LabeledInput label="Unit *">
-                  <Select
-                    value={settings.unit}
-                    onChange={v=>setSettings(s=>({...s, unit:v}))}
-                    options={UNIT_OPTIONS}
-                    placeholder="-- Select Unit --"
-                  />
+                <LabeledInput label="Your Name (Advisor)">
+                  <TextInput value={settings.advisorName}
+                             onChange={v=>setSettings(s=>({...s,advisorName:v}))}
+                             placeholder="e.g., Jimmy Santos"/>
                 </LabeledInput>
-                <div className="flex items-center">
+          
+                <LabeledInput label="Unit *">
+                  <Select value={settings.unit}
+                          onChange={v=>setSettings(s=>({...s, unit:v}))}
+                          options={UNIT_OPTIONS}
+                          placeholder="Select unit"/>
+                </LabeledInput>
+          
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  {/* Clear (danger) */}
                   <button
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 active:scale-[0.99]"
-                    onClick={() => { if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}
-                  >
+                    className="rounded-xl border border-[var(--sn-red)]/30 bg-[var(--sn-red)]/10 px-3 py-2 text-sm font-medium text-[var(--sn-red)] hover:bg-[var(--sn-red)]/15 active:scale-[0.98]"
+                    onClick={() => {
+                      if (!confirm("Clear all local history & outbox?")) return;
+                      localStorage.clear(); location.reload();
+                    }}>
                     Clear Local Data
+                  </button>
+          
+                  {/* Done (primary) */}
+                  <button
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
+                    onClick={() => setOpenSettings(false)}>
+                    Done
                   </button>
                 </div>
               </div>
