@@ -274,6 +274,34 @@
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
 
+      // Put these inside App() (they use state setters):
+      function clearHistoryAndOutbox() {
+        // remove only data, keep settings (name/unit/syncKey)
+        localStorage.removeItem(LS.history);
+        localStorage.removeItem(LS.outbox);
+        localStorage.removeItem(LS_SYNC.last);
+      
+        setHistory([]);
+        setOutbox([]);
+        setLastSyncAt("");
+      
+        setToast({ t: "Cleared history & outbox. You can sync again.", type: "ok" });
+      }
+      
+      function nukeEverything() {
+        if (!confirm("This will remove ALL settings (name, unit, sync key) and data. Continue?")) return;
+        localStorage.clear();
+        location.reload();
+      }
+      
+      function forceFullSync() {
+        // set the base to epoch so next pull gets everything
+        const epoch = "1970-01-01T00:00:00Z";
+        setLastSyncAt("");                // clear in state
+        writeLS(LS_SYNC.last, "");        // clear in storage
+        pullUpdates();                    // immediately try to pull
+      }
+
       // Merge server records into local history by id (fallback: entryID)
       function mergeServerUpdates(updates) {
         if (!Array.isArray(updates) || updates.length === 0) return;
@@ -313,29 +341,47 @@
 
       // Pull updates from server since lastSyncAt for this advisor
       async function pullUpdates() {
-        if (!settings.advisorName || !settings.syncKey) return; // need both for secured sync
+        if (!settings.advisorName || !settings.syncKey) return;
       
         const since = lastSyncAt || "1970-01-01T00:00:00Z";
       
         try {
-          const res = await fetch(
-            `${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}&key=${encodeURIComponent(settings.syncKey)}&_=${Date.now()}`,
-            { cache: "no-store" }
-          );
-          if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings", type: "warn" }); return; }
-
-          const json = await res.json().catch(() => ({}));
-          if (!json || !json.ok) return;
+          const qs = new URLSearchParams({
+            since,
+            advisor: settings.advisorName,
+            key: settings.syncKey
+          });
+          const res = await fetch(`${SYNC_URL}?${qs.toString()}`);
+      
+          if (!res.ok) {
+            setToast({ t: `Sync failed (${res.status})`, type: "warn" });
+            return;
+          }
+          if (res.status === 401) {
+            setToast({ t: "Invalid sync key — check Settings", type: "warn" });
+            return;
+          }
+      
+          const json = await res.json().catch(() => null);
+          if (!json || json.ok !== true) {
+            setToast({ t: "Sync failed (bad response)", type: "warn" });
+            return;
+          }
       
           const updates = Array.isArray(json.updated) ? json.updated : [];
           if (updates.length > 0) {
             mergeServerUpdates(updates);
-            setToast({ t: `Pulled ${updates.length} update${updates.length>1?'s':''} 🔄`, type: "ok" });
+            setToast({ t: `Pulled ${updates.length} update${updates.length > 1 ? "s" : ""} 🔄`, type: "ok" });
+          } else {
+            // This is the important feedback when nothing changed
+            setToast({ t: "No new changes found", type: "ok" });
           }
+      
           const nowIso = new Date().toISOString();
-          setLastSyncAt(nowIso); writeLS(LS_SYNC.last, nowIso);
+          setLastSyncAt(nowIso);
+          writeLS(LS_SYNC.last, nowIso);
         } catch (e) {
-          // ignore (offline etc.)
+          setToast({ t: "Sync failed (offline?)", type: "warn" });
         }
       }
 
@@ -500,40 +546,48 @@
           
                 {/* Actions */}
                 <div className="mt-1 flex flex-wrap items-center gap-3">
-                  {/* left: danger */}
+                  {/* left: data clear (safe) */}
                   <button
                     type="button"
                     className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
-                    onClick={() => {
-                      if (!confirm("Clear all local history & outbox?")) return;
-                      localStorage.clear(); location.reload();
-                    }}
+                    onClick={clearHistoryAndOutbox}
                   >
-                    Clear Local Data
+                    Clear History & Outbox
                   </button>
-          
-                  {/* right: primary actions */}
+                
+                  {/* right: sync + done */}
                   <div className="ml-auto flex gap-2">
                     <button
                       type="button"
                       onClick={pullUpdates}
                       disabled={!settings.advisorName || !settings.syncKey}
                       aria-disabled={!settings.advisorName || !settings.syncKey}
-                      title={
-                        !settings.advisorName || !settings.syncKey
-                          ? "Enter Advisor Name and Sync Key first"
-                          : "Pull admin updates now"
-                      }
                       className={cls(
                         "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
                         !settings.advisorName || !settings.syncKey
                           ? "bg-slate-300 text-white cursor-not-allowed"
                           : "bg-slate-900 text-white hover:opacity-95"
                       )}
+                      title={!settings.advisorName || !settings.syncKey ? "Enter Advisor Name and Sync Key first" : "Pull admin updates now"}
                     >
                       Sync now
                     </button>
-          
+                
+                    <button
+                      type="button"
+                      onClick={forceFullSync}
+                      disabled={!settings.advisorName || !settings.syncKey}
+                      className={cls(
+                        "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
+                        !settings.advisorName || !settings.syncKey
+                          ? "bg-slate-300 text-white cursor-not-allowed"
+                          : "bg-slate-900 text-white hover:opacity-95"
+                      )}
+                      title="Reset last sync and fetch everything"
+                    >
+                      Force full sync
+                    </button>
+                
                     <button
                       type="button"
                       className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
@@ -542,6 +596,14 @@
                       Done
                     </button>
                   </div>
+                </div>
+                
+                {/* Optional: a tiny 'nuclear' link under the buttons */}
+                <div className="text-[12px] text-slate-500">
+                  Need to reset the app completely?{" "}
+                  <button type="button" className="underline" onClick={nukeEverything}>
+                    Clear EVERYTHING
+                  </button>
                 </div>
               </div>
             </Section>
