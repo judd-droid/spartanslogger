@@ -402,7 +402,7 @@
         else if(n===1 && !form.firstMeeting) setForm(f=>({...f,firstMeeting:true}));
       },[form.meetingCount]);
 
-      // Combined sync: send queued → pull admin edits
+      // A) Flush outbox when it changes, and when the device comes back online
       useEffect(() => {
         const flushOutbox = async () => {
           if (outbox.length === 0) return;
@@ -418,25 +418,19 @@
           }
         };
       
-        const runSync = async () => {
-          await flushOutbox();
-          await pullUpdates();            // <-- pull admin edits/corrections
-        };
+        flushOutbox();
       
-        runSync();
-        const onFocus   = () => runSync();
-        const onOnline  = () => runSync();
-        const onVisible = () => { if (!document.hidden) runSync(); };
-      
-        window.addEventListener("focus", onFocus);
+        const onOnline = () => flushOutbox();           // only flush on reconnect
         window.addEventListener("online", onOnline);
-        document.addEventListener("visibilitychange", onVisible);
-        return () => {
-          window.removeEventListener("focus", onFocus);
-          window.removeEventListener("online", onOnline);
-          document.removeEventListener("visibilitychange", onVisible);
-        };
-      }, [outbox, settings.advisorName, settings.syncKey]);
+        return () => window.removeEventListener("online", onOnline);
+      }, [outbox]);
+      
+      // B) Do one quiet pull when creds become available (first load or after typing them)
+      useEffect(() => {
+        if (settings.advisorName && settings.syncKey) {
+          pullUpdates({ quietIfNone: true });           // no toast if there’s nothing new
+        }
+      }, [settings.advisorName, settings.syncKey]);
 
       // Fire a one-off pull when name or key becomes valid
       useEffect(() => {
@@ -554,19 +548,16 @@
                         Last sync: {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"}
                       </div>
                     </div>
-          
+
+                    // Sync button in Settings
                     <button
                       type="button"
-                      onClick={pullUpdates}
+                      onClick={() => pullUpdates({ quietIfNone: false })}   // show “Up to date ✅” when nothing changed
                       disabled={!settings.advisorName || !settings.syncKey}
-                      className={btnSecondary}
-                      title={!settings.advisorName || !settings.syncKey
-                        ? "Enter Advisor Name and Sync Key first"
-                        : "Pull admin updates now"}
+                      className={...}
                     >
                       Sync now
                     </button>
-                  </div>
           
                   {/* Advanced tools (collapsed by default) */}
                   <button
