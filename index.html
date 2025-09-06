@@ -6,12 +6,19 @@
   <title>Spartans Meeting Logger</title>
   <style>
     :root{
-      --sn-red:#DD467D; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
+      --sn-red:#DD467D; --sn-red-light:#F7B4CC; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
       --rec-bg:#f9fafb; --bg:#f8fafc; --card:#ffffff; --line:#e5e7eb;
       --steel-0:#f3f6fb;   /* very light blue-gray */
       --steel-1:#e5ecf5;   /* light steel */
       --steel-2:#cfd9e6;   /* mid steel */
       --steel-3:#aebbd0;   /* deeper steel */
+    }
+
+    /* If the browser supports color-mix, generate it from --sn-red */
+    @supports (color: color-mix(in srgb, black, white)) {
+      :root{
+        --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white);
+      }
     }
     
     html, body { min-height: 100%; }               /* no fixed height */
@@ -318,7 +325,9 @@
             onClick={() => setTab('log')}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab === "log" ? "bg-slate-900 text-white" : "bg-white text-slate-900"
+              tab === "log"
+                ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]"
+                : "bg-white text-[var(--sn-black)]"
             )}
             aria-pressed={tab === "log"}
             aria-label="Log your meeting"
@@ -334,7 +343,9 @@
             onClick={() => setTab('history')}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab === "history" ? "bg-slate-900 text-white" : "bg-white text-slate-900"
+              tab === "history"
+                ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]"
+                : "bg-white text-[var(--sn-black)]"
             )}
             aria-pressed={tab === "history"}
             aria-label="History"
