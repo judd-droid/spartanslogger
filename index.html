@@ -226,7 +226,28 @@
         className={baseField + " appearance-none"}  // consistent on iOS
       />
     );
+
+    const MoneyInput = ({ value, onChange, placeholder }) => {
+      // show with commas; keep state numeric (or "")
+      const display =
+        value === "" || value == null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
     
+      return (
+        <input
+          type="text"
+          inputMode="numeric"
+          value={display}
+          placeholder={placeholder}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, ""); // strip everything except 0–9
+            if (digits === "") onChange("");
+            else onChange(Number(digits));
+          }}
+          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-base shadow-sm outline-none focus:border-slate-400"
+        />
+      );
+    };
+
     // Select (dropdown) — same height, custom chevron
     const Select = ({ value, onChange, options, placeholder }) => (
       <div className="relative">
@@ -581,8 +602,21 @@
 
               <Section title="Amounts & Product (optional)">
                 <div className="grid grid-cols-2 gap-3">
-                  <LabeledInput label="FYP (₱)"><NumberInput value={form.fyp} onChange={v=>setForm(f=>({...f,fyp:v}))} min={0} step={100} placeholder="e.g., 12000"/></LabeledInput>
-                  <LabeledInput label="FYC (₱)"><NumberInput value={form.fyc} onChange={v=>setForm(f=>({...f,fyc:v}))} min={0} step={100} placeholder="e.g., 2400"/></LabeledInput>
+                  <LabeledInput label="FYP (₱)">
+                    <MoneyInput
+                      value={form.fyp}
+                      onChange={(v) => setForm((f) => ({ ...f, fyp: v }))}
+                      placeholder="e.g., 12,000"
+                    />
+                  </LabeledInput>
+                  
+                  <LabeledInput label="FYC (₱)">
+                    <MoneyInput
+                      value={form.fyc}
+                      onChange={(v) => setForm((f) => ({ ...f, fyc: v }))}
+                      placeholder="e.g., 2,400"
+                    />
+                  </LabeledInput>
                 </div>
                 <LabeledInput label="Product">
                   <Select
