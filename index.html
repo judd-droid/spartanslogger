@@ -274,33 +274,30 @@
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
 
-      // Put these inside App() (they use state setters):
+      // --- maintenance helpers ---
       function clearHistoryAndOutbox() {
-        // remove only data, keep settings (name/unit/syncKey)
         localStorage.removeItem(LS.history);
         localStorage.removeItem(LS.outbox);
         localStorage.removeItem(LS_SYNC.last);
-      
         setHistory([]);
         setOutbox([]);
         setLastSyncAt("");
-      
-        setToast({ t: "Cleared history & outbox. You can sync again.", type: "ok" });
-      }
-      
-      function nukeEverything() {
-        if (!confirm("This will remove ALL settings (name, unit, sync key) and data. Continue?")) return;
-        localStorage.clear();
-        location.reload();
+        setToast({ t: "Cleared local history & outbox. You can sync again.", type: "ok" });
       }
       
       function forceFullSync() {
-        // set the base to epoch so next pull gets everything
-        const epoch = "1970-01-01T00:00:00Z";
-        setLastSyncAt("");                // clear in state
-        writeLS(LS_SYNC.last, "");        // clear in storage
-        pullUpdates();                    // immediately try to pull
+        setLastSyncAt("");
+        writeLS(LS_SYNC.last, "");
+        pullUpdates();
       }
+      
+      function nukeEverything() {
+        if (!confirm("Remove ALL settings (name, unit, sync key) and local data?")) return;
+        localStorage.clear();
+        location.reload();
+      }
+
+      const [showAdvanced, setShowAdvanced] = useState(false);
 
       // Merge server records into local history by id (fallback: entryID)
       function mergeServerUpdates(updates) {
@@ -517,8 +514,8 @@
 
           {openSettings && (
             <Section title="SETTINGS">
-              <div className="grid gap-3">
-          
+              <div className="grid gap-4">
+                {/* 1) Basic settings */}
                 <LabeledInput label="Your Name (Advisor)">
                   <TextInput
                     value={settings.advisorName}
@@ -544,65 +541,92 @@
                   />
                 </LabeledInput>
           
-                {/* Actions */}
-                <div className="mt-1 flex flex-wrap items-center gap-3">
-                  {/* left: data clear (safe) */}
-                  <button
-                    type="button"
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
-                    onClick={clearHistoryAndOutbox}
-                  >
-                    Clear History & Outbox
-                  </button>
-                
-                  {/* right: sync + done */}
-                  <div className="ml-auto flex gap-2">
+                {/* 2) Sync area */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-700">Sync</div>
+                      <div className="text-xs text-slate-600 truncate">
+                        Last sync: {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"}
+                      </div>
+                    </div>
+          
                     <button
                       type="button"
                       onClick={pullUpdates}
                       disabled={!settings.advisorName || !settings.syncKey}
-                      aria-disabled={!settings.advisorName || !settings.syncKey}
                       className={cls(
                         "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
                         !settings.advisorName || !settings.syncKey
                           ? "bg-slate-300 text-white cursor-not-allowed"
                           : "bg-slate-900 text-white hover:opacity-95"
                       )}
-                      title={!settings.advisorName || !settings.syncKey ? "Enter Advisor Name and Sync Key first" : "Pull admin updates now"}
+                      title={!settings.advisorName || !settings.syncKey
+                        ? "Enter Advisor Name and Sync Key first"
+                        : "Pull admin updates now"}
                     >
                       Sync now
                     </button>
-                
-                    <button
-                      type="button"
-                      onClick={forceFullSync}
-                      disabled={!settings.advisorName || !settings.syncKey}
-                      className={cls(
-                        "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
-                        !settings.advisorName || !settings.syncKey
-                          ? "bg-slate-300 text-white cursor-not-allowed"
-                          : "bg-slate-900 text-white hover:opacity-95"
-                      )}
-                      title="Reset last sync and fetch everything"
-                    >
-                      Force full sync
-                    </button>
-                
-                    <button
-                      type="button"
-                      className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
-                      onClick={() => setOpenSettings(false)}
-                    >
-                      Done
-                    </button>
                   </div>
+          
+                  {/* Advanced tools (collapsed by default) */}
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(v => !v)}
+                    className="mt-3 text-xs text-slate-600 underline"
+                  >
+                    {showAdvanced ? "Hide advanced" : "Advanced…"}
+                  </button>
+          
+                  {showAdvanced && (
+                    <div className="mt-3 grid gap-2">
+                      <button
+                        type="button"
+                        onClick={clearHistoryAndOutbox}
+                        className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
+                      >
+                        🧹 Clear History & Outbox
+                      </button>
+          
+                      <button
+                        type="button"
+                        onClick={forceFullSync}
+                        disabled={!settings.advisorName || !settings.syncKey}
+                        className={cls(
+                          "rounded-xl px-3 py-2 text-sm font-medium shadow-sm active:scale-[0.98]",
+                          !settings.advisorName || !settings.syncKey
+                            ? "bg-slate-300 text-white cursor-not-allowed"
+                            : "bg-slate-900 text-white hover:opacity-95"
+                        )}
+                      >
+                        🔄 Force full sync
+                      </button>
+          
+                      <button
+                        type="button"
+                        onClick={nukeEverything}
+                        className="rounded-xl border border-rose-300 bg-rose-600/10 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-600/20 active:scale-[0.98]"
+                      >
+                        ⛔ Clear EVERYTHING
+                      </button>
+          
+                      <div className="mt-1 space-y-1 text-[11px] leading-snug text-slate-500">
+                        <div><b>Clear History & Outbox</b> – removes only local records; keeps your name, unit, and sync key.</div>
+                        <div><b>Force full sync</b> – asks the server for all of your rows again.</div>
+                        <div><b>Clear EVERYTHING</b> – resets the app; you’ll re-enter settings next time.</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                
-                {/* Optional: a tiny 'nuclear' link under the buttons */}
-                <div className="text-[12px] text-slate-500">
-                  Need to reset the app completely?{" "}
-                  <button type="button" className="underline" onClick={nukeEverything}>
-                    Clear EVERYTHING
+          
+                {/* 3) Close */}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
+                    onClick={() => setOpenSettings(false)}
+                  >
+                    Done
                   </button>
                 </div>
               </div>
