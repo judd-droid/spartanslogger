@@ -319,7 +319,8 @@
       
         try {
           const res = await fetch(
-            `${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}&key=${encodeURIComponent(settings.syncKey)}`
+            `${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}&key=${encodeURIComponent(settings.syncKey)}&_=${Date.now()}`,
+            { cache: "no-store" }
           );
           if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings", type: "warn" }); return; }
 
@@ -354,41 +355,48 @@
         else if(n===1 && !form.firstMeeting) setForm(f=>({...f,firstMeeting:true}));
       },[form.meetingCount]);
 
-    // Combined sync: send queued → pull admin edits
-    useEffect(() => {
-      const flushOutbox = async () => {
-        if (outbox.length === 0) return;
-        let sent = 0;
-        const remaining = [];
-        for (const item of outbox) {
-          const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
-          if (ok) sent++; else remaining.push(item);
+      // Combined sync: send queued → pull admin edits
+      useEffect(() => {
+        const flushOutbox = async () => {
+          if (outbox.length === 0) return;
+          let sent = 0;
+          const remaining = [];
+          for (const item of outbox) {
+            const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
+            if (ok) sent++; else remaining.push(item);
+          }
+          if (remaining.length !== outbox.length) {
+            setOutbox(remaining);
+            if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
+          }
+        };
+      
+        const runSync = async () => {
+          await flushOutbox();
+          await pullUpdates();            // <-- pull admin edits/corrections
+        };
+      
+        runSync();
+        const onFocus   = () => runSync();
+        const onOnline  = () => runSync();
+        const onVisible = () => { if (!document.hidden) runSync(); };
+      
+        window.addEventListener("focus", onFocus);
+        window.addEventListener("online", onOnline);
+        document.addEventListener("visibilitychange", onVisible);
+        return () => {
+          window.removeEventListener("focus", onFocus);
+          window.removeEventListener("online", onOnline);
+          document.removeEventListener("visibilitychange", onVisible);
+        };
+      }, [outbox, settings.advisorName, settings.syncKey]);
+
+      // Fire a one-off pull when name or key becomes valid
+      useEffect(() => {
+        if (settings.advisorName && settings.syncKey) {
+          pullUpdates();
         }
-        if (remaining.length !== outbox.length) {
-          setOutbox(remaining);
-          if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
-        }
-      };
-    
-      const runSync = async () => {
-        await flushOutbox();
-        await pullUpdates();            // <-- pull admin edits/corrections
-      };
-    
-      runSync();
-      const onFocus   = () => runSync();
-      const onOnline  = () => runSync();
-      const onVisible = () => { if (!document.hidden) runSync(); };
-    
-      window.addEventListener("focus", onFocus);
-      window.addEventListener("online", onOnline);
-      document.addEventListener("visibilitychange", onVisible);
-      return () => {
-        window.removeEventListener("focus", onFocus);
-        window.removeEventListener("online", onOnline);
-        document.removeEventListener("visibilitychange", onVisible);
-      };
-    }, [outbox, settings.advisorName]);
+      }, [settings.advisorName, settings.syncKey]);
 
       // scroll to top when opening settings
       useEffect(()=>{ if(openSettings){ requestAnimationFrame(()=>{ try{ window.scrollTo({top:0,behavior:"smooth"});}catch{} }); } },[openSettings]);
@@ -464,12 +472,24 @@
           {openSettings && (
             <Section title="SETTINGS">
               <div className="grid gap-3">
+          
                 <LabeledInput label="Your Name (Advisor)">
-                  <TextInput value={settings.advisorName} onChange={v=>setSettings(s=>({...s,advisorName:v}))} placeholder="e.g., Jimmy Santos"/>
+                  <TextInput
+                    value={settings.advisorName}
+                    onChange={v => setSettings(s => ({ ...s, advisorName: v }))}
+                    placeholder="e.g., Jimmy Santos"
+                  />
                 </LabeledInput>
+          
                 <LabeledInput label="Unit *">
-                  <Select value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} options={UNIT_OPTIONS} placeholder="-- Select Unit --"/>
+                  <Select
+                    value={settings.unit}
+                    onChange={v => setSettings(s => ({ ...s, unit: v }))}
+                    options={UNIT_OPTIONS}
+                    placeholder="-- Select Unit --"
+                  />
                 </LabeledInput>
+          
                 <LabeledInput label="Sync Key">
                   <TextInput
                     value={settings.syncKey}
@@ -477,13 +497,51 @@
                     placeholder="Paste the key from admin"
                   />
                 </LabeledInput>
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
-                          onClick={()=>{ if(!confirm("Clear all local history & outbox?")) return; localStorage.clear(); location.reload(); }}>
+          
+                {/* Actions */}
+                <div className="mt-1 flex flex-wrap items-center gap-3">
+                  {/* left: danger */}
+                  <button
+                    type="button"
+                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
+                    onClick={() => {
+                      if (!confirm("Clear all local history & outbox?")) return;
+                      localStorage.clear(); location.reload();
+                    }}
+                  >
                     Clear Local Data
                   </button>
-                  <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
-                          onClick={()=>setOpenSettings(false)}>Done</button>
+          
+                  {/* right: primary actions */}
+                  <div className="ml-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={pullUpdates}
+                      disabled={!settings.advisorName || !settings.syncKey}
+                      aria-disabled={!settings.advisorName || !settings.syncKey}
+                      title={
+                        !settings.advisorName || !settings.syncKey
+                          ? "Enter Advisor Name and Sync Key first"
+                          : "Pull admin updates now"
+                      }
+                      className={cls(
+                        "rounded-xl px-4 py-2 text-sm font-semibold shadow-sm active:scale-[0.98]",
+                        !settings.advisorName || !settings.syncKey
+                          ? "bg-slate-300 text-white cursor-not-allowed"
+                          : "bg-slate-900 text-white hover:opacity-95"
+                      )}
+                    >
+                      Sync now
+                    </button>
+          
+                    <button
+                      type="button"
+                      className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
+                      onClick={() => setOpenSettings(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
                 </div>
               </div>
             </Section>
