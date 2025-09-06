@@ -909,7 +909,15 @@
           )}
 
           <FloatingTabBar tab={tab} setTab={setTab} />
-          {toast && <Toast text={toast.t} sub={toast.sub} type={toast.type||"ok"} onClose={()=>setToast(null)} />}
+          {toast && (
+            <Toast
+              text={toast.t}
+              quote={toast.quote}
+              type={toast.type || "ok"}
+              onClose={() => setToast(null)}
+            />
+          )}
+
         </Page>
       );
     }
