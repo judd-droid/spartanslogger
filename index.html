@@ -144,18 +144,18 @@
 
     // Motivational micro-quotes
     const QUOTES = [
-      "Great days are built one call at a time.",
-      "Action beats perfection. Log it, move to the next.",
-      "Consistency compounds. Keep swinging.",
-      "Prospect today, paid tomorrow.",
-      "Hard work works.",
-      "Tiny progress today, massive results later.",
-      "Energy up, pipeline up.",
       "Every conversation is a seed.",
-      "Winners do the boring work.",
-      "Discipline > motivation."
+      "Small wins, stacked daily.",
+      "Show up. The rest follows.",
+      "Consistency compounds.",
+      "Activity is the lead measure.",
+      "Effort today, results tomorrow.",
+      "One more call. One more rep.",
+      "Progress beats perfection.",
+      "Energy is contagious—share it.",
+      "You only lose if you stop."
     ];
-    const randQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    const getRandomQuote = () => QUOTES[Math.floor(Math.random() * QUOTES.length)];
     
     const defaultSettings = {
       advisorName: "", unit: "" };
@@ -449,18 +449,20 @@
       return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
     };
     
-    // Bigger, high-contrast toast (now supports sub-line)
-    const Toast = ({ text, sub, type = "ok", onClose }) => {
+    // Bigger, high-contrast toast (single right-side icon + optional quote)
+    const Toast = ({ text, quote, type = "ok", onClose }) => {
       React.useEffect(() => {
         const t = setTimeout(onClose, 3000);
         navigator.vibrate?.(40);
         return () => clearTimeout(t);
       }, [onClose]);
     
-      const color =
-        type === "ok"   ? "bg-emerald-600"
-        : type === "warn"? "bg-amber-500"
-        :                 "bg-[var(--sn-red)]";
+      const bg =
+        type === "ok"
+          ? "bg-emerald-600"
+          : type === "warn"
+          ? "bg-amber-500"
+          : "bg-[var(--sn-red)]";
     
       const icon = type === "ok" ? "✅" : type === "warn" ? "⚠️" : "✖️";
     
@@ -471,16 +473,24 @@
           aria-live="polite"
         >
           <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out]">
-            <div className={`flex items-start gap-3 ${color} text-white rounded-2xl px-5 py-3 shadow-2xl ring-1 ring-black/10 backdrop-blur`}>
-              <span className="text-2xl leading-none mt-0.5">{icon}</span>
-              <div>
+            <div className={`rounded-2xl px-5 py-3 text-white shadow-2xl ring-1 ring-black/10 backdrop-blur ${bg}`}>
+              {/* header row: title on the left, single icon on the right */}
+              <div className="flex items-center justify-between gap-3">
                 <div className="text-lg md:text-xl font-bold">{text}</div>
-                {sub && <div className="text-[12px] md:text-sm opacity-95 mt-0.5">{sub}</div>}
+                <span className="text-2xl leading-none">{icon}</span>
               </div>
+    
+              {/* small motivational quote */}
+              {quote && (
+                <div className="mt-1 text-[13px] md:text-sm opacity-90">
+                  {quote}
+                </div>
+              )}
             </div>
+    
             {/* progress bar */}
             <div className="h-1 rounded-b-2xl overflow-hidden bg-white/30">
-              <div className="h-full bg-white/90 origin-left animate-[toastBar_3s_linear]"></div>
+              <div className="h-full bg-white/90 origin-left animate-[toastBar_3s_linear]" />
             </div>
           </div>
         </div>
@@ -648,10 +658,13 @@
         const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
         if (!ok) {
           setOutbox(o => [record, ...o]);
-          setToast({ t:"Saved offline — will sync when online", type:"warn" });
+          setToast({ t: "Saved offline — will sync when online", type: "warn" });
         } else {
-          const msg = editingId ? "Updated ✅" : "Submitted ✅";
-          setToast({ t: msg, sub: randQuote(), type: "ok" });
+          setToast({
+            t: editingId ? "Updated" : "Submitted",
+            quote: getRandomQuote(),
+            type: "ok"
+          });
         }
       
         setEditingId(null);   // exit edit mode
