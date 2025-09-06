@@ -304,35 +304,46 @@
     );
 
     const FloatingTabBar = ({ tab, setTab }) => (
-      <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-        <div className="mx-auto w-full max-w-md px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-          {/* ⬇️ red background */}
-          <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-2 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
-            <button
-              onClick={() => setTab('log')}
-              className={cls(
-                "h-12 rounded-xl font-semibold transition",
-                tab === "log"
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-900"
-              )}
-              aria-pressed={tab === "log"}
-            >
-              Log Your Meeting
-            </button>
-            <button
-              onClick={() => setTab('history')}
-              className={cls(
-                "h-12 rounded-xl font-semibold transition",
-                tab === "history"
-                  ? "bg-slate-900 text-white"
-                  : "bg-white text-slate-900"
-              )}
-              aria-pressed={tab === "history"}
-            >
-              History
-            </button>
-          </div>
+      <div
+        className="
+          fixed z-50 pointer-events-none
+          bottom-[calc(env(safe-area-inset-bottom)+12px)]
+          left-2 right-2
+          sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[30rem]
+        "
+      >
+        <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-2 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
+          {/* Log */}
+          <button
+            onClick={() => setTab('log')}
+            className={cls(
+              "h-16 rounded-xl font-semibold transition flex items-center justify-center",
+              tab === "log" ? "bg-slate-900 text-white" : "bg-white text-slate-900"
+            )}
+            aria-pressed={tab === "log"}
+            aria-label="Log your meeting"
+          >
+            <div className="flex flex-col items-center leading-tight">
+              <img src="log.svg" alt="" aria-hidden="true" className="w-5 h-5 mb-1 opacity-90" />
+              <span className="text-[13px]">Log Your Meeting</span>
+            </div>
+          </button>
+    
+          {/* History */}
+          <button
+            onClick={() => setTab('history')}
+            className={cls(
+              "h-16 rounded-xl font-semibold transition flex items-center justify-center",
+              tab === "history" ? "bg-slate-900 text-white" : "bg-white text-slate-900"
+            )}
+            aria-pressed={tab === "history"}
+            aria-label="History"
+          >
+            <div className="flex flex-col items-center leading-tight">
+              <img src="history.svg" alt="" aria-hidden="true" className="w-5 h-5 mb-1 opacity-90" />
+              <span className="text-[13px]">History</span>
+            </div>
+          </button>
         </div>
       </div>
     );
