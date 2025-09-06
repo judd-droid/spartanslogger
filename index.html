@@ -515,6 +515,37 @@
       const [openSettings,setOpenSettings]=useState(false);
       const [toast,setToast]=useState(null);
 
+      // --- Edit mode state + helpers ---
+      const [editingId, setEditingId] = useState(null);
+      
+      function recordToForm(r){
+        return {
+          prospectName: r.prospect || "",
+          date: r.date || todayISODate(),
+          time: r.appointmentTime || nowHM(),
+          meetingPlace: r.meetingPlace || "Zoom",
+          firstMeeting: (r.firstMeeting === "Yes"),
+          meetingCount: Number(r.noOfMeetings || (r.firstMeeting === "Yes" ? 1 : 2)),
+          factFinding: (r.factFinding === "Yes"),
+          appSubmitted: (r.appSubmitted === "Yes"),
+          casePaid: (r.casePaid === "Yes"),
+          caseApproved: (r.caseApproved === "Yes"),
+          referralsGiven: Number(r.referralsGiven || 0),
+          fyp: r.fyp ?? "",
+          fyc: r.fyc ?? "",
+          product: r.product || ""
+        };
+      }
+      
+      function startEdit(rec){
+        setOpenSettings(false);
+        setEditingId(rec.id);
+        setForm(recordToForm(rec));
+        setTab("log");
+        setToast({ t: "Loaded for editing ✍️", type: "ok" });
+        try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+      }
+
       // Open Settings automatically if required fields are empty (first run or cleared)
       useEffect(() => {
         if (!settings.advisorName || !settings.unit) {
@@ -537,6 +568,13 @@
       useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
 
       useEffect(()=>{ setForm(f=>({...f,meetingCount:f.firstMeeting?1:Math.max(2,Number(f.meetingCount)||2)})); },[form.firstMeeting]);
+      // If user sets # of meetings > 1, force First Meeting = false
+      useEffect(() => {
+        const n = Number(form.meetingCount) || 0;
+        if (n > 1 && form.firstMeeting) {
+          setForm(f => ({ ...f, firstMeeting: false }));
+        }
+      }, [form.meetingCount]);
 
       useEffect(()=>{
         const flush = () => {
@@ -578,17 +616,26 @@
       const handleSubmit = async () => {
         if (isSending) return;
         if (!settings.advisorName) { setToast({ t:"Set your name in Settings first", type:"warn" }); setOpenSettings(true); return; }
-        if (!settings.unit) { setToast({ t:"Select your Unit in Settings", type:"warn" }); setOpenSettings(true); return; }
-        if (!form.prospectName)    { setToast({ t:"Prospect name is required", type:"warn" }); return; }
+        if (!settings.unit)        { setToast({ t:"Select your Unit in Settings",   type:"warn" }); setOpenSettings(true); return; }
+        if (!form.prospectName)    { setToast({ t:"Prospect name is required",       type:"warn" }); return; }
       
         setIsSending(true);
-        const record = { id: (crypto.randomUUID?.() || String(Date.now())), ...payload };
-        setHistory(h => [record, ...h].slice(0, 200));
+      
+        const id = editingId || (crypto.randomUUID?.() || String(Date.now()));
+        const record = { id, ...payload };
+      
+        // If editing, replace the existing history item; else prepend a new one
+        setHistory(h => editingId ? h.map(x => (x.id === editingId ? record : x)) : [record, ...h].slice(0, 200));
       
         const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
-        if (!ok) { setOutbox(o => [record, ...o]); setToast({ t:"Saved offline — will sync when online", type:"warn" }); }
-        else     { setToast({ t:"Submitted ✅", type:"ok" }); }
+        if (!ok) {
+          setOutbox(o => [record, ...o]);
+          setToast({ t:"Saved offline — will sync when online", type:"warn" });
+        } else {
+          setToast({ t: editingId ? "Updated ✅" : "Submitted ✅", type:"ok" });
+        }
       
+        setEditingId(null);   // exit edit mode
         resetForm();
         setIsSending(false);
       };
@@ -702,7 +749,7 @@
                   disabled={isSending}
                   className={cls("flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]", isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900")}
                 >
-                  {isSending ? "Sending…" : "Submit"}
+                  {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
                 </button>
               </div>
             </>
@@ -799,6 +846,13 @@
                         <div className="flex gap-2">
                           <button
                             className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
+                            onClick={() => startEdit(r)}
+                          >
+                            Edit
+                          </button>
+                      
+                          <button
+                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
                             onClick={async () => {
                               const ok = await sendToEndpoint(DEFAULT_ENDPOINT, r);
                               alert(ok ? "Re-sent ✅" : "Send failed");
@@ -806,7 +860,7 @@
                           >
                             Re-send
                           </button>
-                
+                      
                           <button
                             className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
                             onClick={() => setHistory(h => h.filter(x => x.id !== r.id))}
