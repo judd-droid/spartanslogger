@@ -378,6 +378,7 @@
       );
       return (<div className="fixed bottom-4 left-0 right-0 mx-auto flex w-full max-w-md gap-3 px-4"><Tab id="log" label="Quick Log"/><Tab id="history" label="History"/></div>);
     };
+    
     const Toast = ({ text, type="ok", onClose }) => {
       useEffect(()=>{ const t=setTimeout(onClose,2600); return ()=>clearTimeout(t); },[onClose]);
       return (
@@ -385,7 +386,12 @@
           type==="ok"?"bg-emerald-600 text-white":type==="warn"?"bg-amber-500 text-white":"bg-rose-600 text-white")}>{text}</div>
       );
     };
-    const Badge = ({children}) => <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-white">{children}</span>;
+    
+    const Badge = ({ children }) => (
+      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+        {children}
+      </span>
+    );
 
     async function sendToEndpoint(url, record) {
       const endpoint = (url || "").trim();
@@ -524,11 +530,12 @@
                 <div className="mt-1 flex items-center justify-between gap-3">
                   {/* Clear (danger) */}
                   <button
-                    className="rounded-xl border border-[var(--sn-red)]/30 bg-[var(--sn-red)]/10 px-3 py-2 text-sm font-medium text-[var(--sn-red)] hover:bg-[var(--sn-red)]/15 active:scale-[0.98]"
+                    className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
                     onClick={() => {
                       if (!confirm("Clear all local history & outbox?")) return;
                       localStorage.clear(); location.reload();
-                    }}>
+                    }}
+                  >
                     Clear Local Data
                   </button>
           
