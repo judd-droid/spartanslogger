@@ -689,85 +689,111 @@
             <Section title="Local History">
               <div className="space-y-3">
                 {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
-                {history.map(r=>(
-                  <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-
-                    {/* Card header */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0 font-semibold text-lg leading-tight break-words">
-                        {r.prospect}
+                {history.map(r => {
+                  // what we actually have to show in the middle
+                  const hasBadges =
+                    r.factFinding === "Yes" ||
+                    r.appSubmitted === "Yes" ||
+                    r.casePaid === "Yes" ||
+                    r.caseApproved === "Yes";
+                
+                  const hasMoney = !!r.fyp || !!r.fyc;
+                  const hasProduct = !!r.product;
+                  const hasStats = hasMoney || hasProduct;
+                
+                  return (
+                    <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                      {/* Card header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 font-semibold text-lg leading-tight break-words">
+                          {r.prospect}
+                        </div>
+                        <div className="shrink-0 whitespace-nowrap text-xs text-slate-500">
+                          {r.date} {r.appointmentTime}
+                        </div>
                       </div>
-                      <div className="shrink-0 whitespace-nowrap text-xs text-slate-500">
-                        {r.date} {r.appointmentTime}
+                
+                      {/* meta: place + first/mtgs */}
+                      <div className="mt-1 text-xs text-slate-600 flex items-center gap-1">
+                        <span>{r.meetingPlace || "—"}</span>
+                        <span>•</span>
+                        <span className={r.firstMeeting === "Yes" ? "text-emerald-600" : ""}>
+                          {r.firstMeeting === "Yes"
+                            ? "First meeting"
+                            : (Number(r.noOfMeetings) > 0 ? `Mtgs: ${r.noOfMeetings}` : "—")}
+                        </span>
+                      </div>
+                
+                      {/* referrals on its own line (only when >0) */}
+                      {Number(r.referralsGiven) > 0 && (
+                        <div className="mt-1 text-xs text-slate-600">
+                          Referrals: {Number(r.referralsGiven)}
+                        </div>
+                      )}
+                
+                      {/* MIDDLE AREA (badges + sales) with smart dividers */}
+                      {!hasBadges && !hasStats ? (
+                        /* nothing to show → just one divider */
+                        <div className="my-3 h-px bg-slate-200"></div>
+                      ) : (
+                        <>
+                          {/* always a divider before the first visible section */}
+                          <div className="my-3 h-px bg-slate-200"></div>
+                
+                          {/* activity badges */}
+                          {hasBadges && (
+                            <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
+                              {r.factFinding === "Yes" && <Badge>KYC Done</Badge>}
+                              {r.appSubmitted === "Yes" && <Badge>Submitted</Badge>}
+                              {r.casePaid === "Yes" && <Badge>Paid</Badge>}
+                              {r.caseApproved === "Yes" && <Badge>Approved</Badge>}
+                            </div>
+                          )}
+                
+                          {/* only add a second divider if BOTH sections exist */}
+                          {hasBadges && hasStats && <div className="my-3 h-px bg-slate-200"></div>}
+                
+                          {/* Sales stats line 1: FYP + FYC */}
+                          {hasMoney && (
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                              {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                              {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                            </div>
+                          )}
+                
+                          {/* Sales stats line 2: product always on its own line */}
+                          {hasProduct && (
+                            <div className="mt-1 text-xs text-slate-600">
+                              {r.product}
+                            </div>
+                          )}
+                        </>
+                      )}
+                
+                      {/* footer actions */}
+                      <div className="mt-3 flex justify-end">
+                        <div className="flex gap-2">
+                          <button
+                            className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
+                            onClick={async () => {
+                              const ok = await sendToEndpoint(DEFAULT_ENDPOINT, r);
+                              alert(ok ? "Re-sent ✅" : "Send failed");
+                            }}
+                          >
+                            Re-send
+                          </button>
+                
+                          <button
+                            className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
+                            onClick={() => setHistory(h => h.filter(x => x.id !== r.id))}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* meta: place + first/mtgs */}
-                    <div className="mt-1 text-xs text-slate-600 flex items-center gap-1">
-                      <span>{r.meetingPlace || "—"}</span>
-                      <span>•</span>
-                      <span className={r.firstMeeting === "Yes" ? "text-emerald-600" : ""}>
-                        {r.firstMeeting === "Yes" ? "First meeting" :
-                          (Number(r.noOfMeetings) > 0 ? `Mtgs: ${r.noOfMeetings}` : "—")}
-                      </span>
-                    </div>
-                    
-                    {/* NEW: referrals on its own line (only when >0) */}
-                    {Number(r.referralsGiven) > 0 && (
-                      <div className="mt-1 text-xs text-slate-600">
-                        Referrals: {Number(r.referralsGiven)}
-                      </div>
-                    )}
-                    
-                    {/* divider above activity tags */}
-                    <div className="my-3 h-px bg-slate-200"></div>
-                    
-                    {/* activity tags with equal top/bottom spacing */}
-                    <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                      {r.factFinding === "Yes" && <Badge>KYC Done</Badge>}
-                      {r.appSubmitted === "Yes" && <Badge>Submitted</Badge>}
-                      {r.casePaid === "Yes" && <Badge>Paid</Badge>}
-                      {r.caseApproved === "Yes" && <Badge>Approved</Badge>}
-                    </div>
-                    
-                    {/* divider below activity tags */}
-                    <div className="my-3 h-px bg-slate-200"></div>
-                    
-                    {/* Sales stats line 1: FYP + FYC */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                      {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
-                    </div>
-                    
-                    {/* Sales stats line 2: Product always on a new line when present */}
-                    {r.product && (
-                      <div className="mt-1 text-xs text-slate-600">
-                        {r.product}
-                      </div>
-                    )}
-
-                    <div className="mt-3 flex justify-end">
-                      <div className="flex gap-2">
-                        <button
-                          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs hover:bg-slate-50"
-                          onClick={async () => {
-                            const ok = await sendToEndpoint(DEFAULT_ENDPOINT, r);
-                            alert(ok ? "Re-sent ✅" : "Send failed");
-                          }}
-                        >
-                          Re-send
-                        </button>
-                    
-                        <button
-                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 hover:bg-rose-100"
-                          onClick={() => setHistory(h => h.filter(x => x.id !== r.id))}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Section>
           )}
