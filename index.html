@@ -47,7 +47,8 @@
   <!-- App -->
   <script type="text/babel">
     const { useEffect, useMemo, useState } = React;
-    const SYNC_URL = "/api/sync";
+    const SYNC_URL = "/api/sync";   // ← our secure proxy
+
 
     const cls = (...xs) => xs.filter(Boolean).join(" ");
     const todayISODate = () => new Date().toISOString().slice(0,10);
@@ -72,7 +73,7 @@
     ];
     const getRandomQuote = () => QUOTES[Math.floor(Math.random()*QUOTES.length)];
 
-    const defaultSettings = { advisorName:"", unit:"" };
+    const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
       caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"" };
@@ -312,12 +313,16 @@
 
       // Pull updates from server since lastSyncAt for this advisor
       async function pullUpdates() {
-        if (!settings.advisorName) return;
+        if (!settings.advisorName || !settings.syncKey) return; // need both for secured sync
       
         const since = lastSyncAt || "1970-01-01T00:00:00Z";
       
         try {
-          const res = await fetch(`${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}`)
+          const res = await fetch(
+            `${SYNC_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(settings.advisorName)}&key=${encodeURIComponent(settings.syncKey)}`
+          );
+          if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings", type: "warn" }); return; }
+
           const json = await res.json().catch(() => ({}));
           if (!json || !json.ok) return;
       
@@ -464,6 +469,13 @@
                 </LabeledInput>
                 <LabeledInput label="Unit *">
                   <Select value={settings.unit} onChange={v=>setSettings(s=>({...s,unit:v}))} options={UNIT_OPTIONS} placeholder="-- Select Unit --"/>
+                </LabeledInput>
+                <LabeledInput label="Sync Key">
+                  <TextInput
+                    value={settings.syncKey}
+                    onChange={v => setSettings(s => ({ ...s, syncKey: v }))}
+                    placeholder="Paste the key from admin"
+                  />
                 </LabeledInput>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <button className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 active:scale-[0.98]"
