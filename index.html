@@ -353,6 +353,16 @@
         setToast({ t: 'Edit cancelled.', type: 'ok' });
       }
 
+      // Jump to a tab, but first cancel any edit and close Settings.
+      const goToTab = (dest) => {
+        if (openSettings) setOpenSettings(false);   // close Settings if open
+        if (editingId) {                             // cancel edit if active
+          setEditingId(null);
+          resetForm();
+        }
+        setTab(dest);
+      };
+
       const [showAdvanced, setShowAdvanced] = useState(false);
 
       // Merge server records into local history by id (fallback: entryID)
@@ -843,26 +853,7 @@
             </Section>
           )}
 
-          <FloatingTabBar
-            tab={tab}
-            onLogClick={() => {
-              // close Settings if open
-              if (openSettings) setOpenSettings(false);
-          
-              // if currently editing, cancel edit and clear the form
-              if (editingId) {
-                setEditingId(null);
-                resetForm();
-                setToast({ t: "Edit cancelled.", type: "ok" });
-              }
-          
-              setTab("log");
-            }}
-            onHistoryClick={() => {
-              if (openSettings) setOpenSettings(false);
-              setTab("history");
-            }}
-          />
+          <FloatingTabBar tab={tab} setTab={goToTab} />
           
           {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
         </Page>
