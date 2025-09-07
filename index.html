@@ -435,29 +435,37 @@
       );
 
       // Prospecting submit (POSTS to PROSPECT_URL)
-      const handleProspectingSubmit = async ({ dateISO, approaches, setAppointments }) => {
-        if (!settings.advisorName) { setToast({ t: "Set your name in Settings first", type: "warn" }); setOpenSettings(true); return; }
-        if (!settings.unit)        { setToast({ t: "Select your Unit in Settings", type: "warn" });   setOpenSettings(true); return; }
+      const handleProspectingSubmit = async () => {
+        if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
+        if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
       
-        const payload = {
+        const approaches = Number(prospecting.approaches) || 0;
+        const setApps    = Number(prospecting.setApps)    || 0;
+        if (approaches === 0 && setApps === 0) {
+          setToast({ t:"Nothing to submit.", type:"warn" });
+          return;
+        }
+      
+        const record = {
+          id: crypto.randomUUID?.() || String(Date.now()),
+          kind: "prospecting",
           advisor: settings.advisorName,
           unit: settings.unit,
-          weekEnding: dateISO,                 // any date from the intended week; GAS computes week-ending
-          approaches: Number(approaches || 0),
-          setAppointments: Number(setAppointments || 0),
+          weekEnding: prospecting.date,   // ISO yyyy-mm-dd
+          approaches,
+          setAppointments: setApps,
         };
       
-        try {
-          const res = await fetch(PROSPECT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },       // matches your proxy/GAS setup
-            body: JSON.stringify(payload),
-          });
-          const ok = res.ok || res.type === "opaque";
-          setToast({ t: ok ? "Prospecting saved!" : `Prospecting failed (${res.status||"net"})`, type: ok ? "ok" : "warn" });
-        } catch {
-          setToast({ t: "Prospecting failed (offline?)", type: "warn" });
+        const ok = await sendToEndpoint(PROSPECT_URL, record);
+        if (!ok) {
+          setOutbox(o => [record, ...o]);
+          setToast({ t:"Saved offline — will sync when online.", type:"warn" });
+        } else {
+          setToast({ t:"Prospecting submitted!", type:"ok" });
         }
+      
+        // keep date; reset counts
+        setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
       };
 
       // Merge server records into local history by id (fallback: entryID)
