@@ -1112,33 +1112,33 @@
                     onMinus={() => dec('setApps')}
                   />
                 </div>
-          
-                {/* Prospecting action bar (outside the white card) */}
-                {tab === "prospecting" && (
-                  <div className="mb-36 flex gap-3">
-                    <button
-                      onClick={() => {
-                        pauseTimer();                     // ← make sure this calls setTimerRunning(false)
-                        setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
-                      }}
-                      className={btnSecondary}
-                    >
-                      Clear
-                    </button>
-                
-                    <button
-                      onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
-                      className="flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99] bg-slate-900"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                )}
 
               </div>
             </Section>
           )}
-
+                    
+          {/* Prospecting action bar (outside the white card) */}
+          {tab === "prospecting" && (
+            <div className="mb-36 flex gap-3">
+              <button
+                onClick={() => {
+                  pauseTimer();                     // ← make sure this calls setTimerRunning(false)
+                  setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+                }}
+                className={btnSecondary}
+              >
+                Clear
+              </button>
+          
+              <button
+                onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
+                className="flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99] bg-slate-900"
+              >
+                Submit
+              </button>
+            </div>
+          )}
+          
           <FloatingTabBar tab={tab} setTab={goToTab} />
           
           {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
