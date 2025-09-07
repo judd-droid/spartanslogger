@@ -356,10 +356,18 @@
       // Jump to a tab, but first cancel any edit and close Settings.
       const goToTab = (dest) => {
         if (openSettings) setOpenSettings(false);   // close Settings if open
-        if (editingId) {                             // cancel edit if active
+      
+        if (editingId) {
           setEditingId(null);
           resetForm();
+          setToast({
+            t: dest === 'log'
+              ? 'Edit cancelled. Starting a new log.'
+              : 'Edit cancelled.',
+            type: 'ok'
+          });
         }
+      
         setTab(dest);
       };
 
