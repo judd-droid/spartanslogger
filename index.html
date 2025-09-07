@@ -1041,15 +1041,21 @@
                         <div className="my-3 h-px bg-slate-200"></div>
                         
                         {hasBadges && !hasStats && (
-                          // Case A: badges present, no money/product → badges and Edit share one row
-                          <div className="mt-2 flex items-center justify-between">
+                          {/* Case A: badges present, no money/product */}
+                          <div className="mt-2 flex justify-between items-start">
                             <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
                               {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
                               {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
                               {r.casePaid==="Yes" && <Badge>Paid</Badge>}
                               {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
                             </div>
-                            <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
+                          
+                            <button
+                              className={cls(btnSecondary, "self-start")}
+                              onClick={() => startEdit(r)}
+                            >
+                              Edit
+                            </button>
                           </div>
                         )}
                         
