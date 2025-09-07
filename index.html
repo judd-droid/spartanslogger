@@ -328,11 +328,18 @@
     );
 
     async function sendToEndpoint(url, record){
-      const endpoint=(url||"").trim(); if(!endpoint) return false;
+      const sameOrigin = url.startsWith('/') || url.startsWith(location.origin);
       try{
-        const res=await fetch(endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify(record)});
-        return res.ok || res.type==="opaque";
-      }catch{ return false; }
+        const res = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(record),
+          headers: { 'Content-Type': sameOrigin ? 'application/json' : 'text/plain' },
+          ...(sameOrigin ? {} : { mode: 'no-cors' }),
+        });
+        return sameOrigin ? res.ok : (res.ok || res.type === 'opaque');
+      } catch {
+        return false;
+      }
     }
 
     function App(){
@@ -456,7 +463,8 @@
           setAppointments: setApps,
         };
       
-        const ok = await sendToEndpoint(PROSPECT_URL, record);
+        const url = `${SYNC_URL}?path=prospecting&key=${encodeURIComponent(settings.syncKey || "")}`;
+        const ok = await sendToEndpoint(url, record);
         if (!ok) {
           setOutbox(o => [record, ...o]);
           setToast({ t:"Saved offline — will sync when online.", type:"warn" });
@@ -993,10 +1001,7 @@
                   >
                     Clear
                   </button>
-                  <button
-                    onClick={handleProspectingSubmit}
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
-                  >
+                  <button onClick={handleProspectingSubmit} className={btnSecondary}>
                     Submit
                   </button>
                 </div>
