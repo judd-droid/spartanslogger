@@ -356,13 +356,20 @@
       const [editingId,setEditingId]=useState(null);
 
       // --- Prospecting helpers ---
+      const toLocalISO = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+      
       const weekEndingSunday = (isoDate) => {
-        // compute the Sunday of that ISO date (sheet shows Sundays as "Week Ending")
-        const d = new Date(`${isoDate}T00:00:00`);
-        const day = d.getDay();            // 0=Sun ... 6=Sat
-        const add = (7 - day) % 7;         // days to next Sunday (0 if already Sunday)
-        d.setDate(d.getDate() + add);
-        return d.toISOString().slice(0,10);
+        // build Date in local time (not UTC)
+        const [y, m, d] = isoDate.split("-").map(Number);
+        const dt = new Date(y, m - 1, d);     // local
+        const add = (7 - dt.getDay()) % 7;    // days to next Sunday (0 if already Sun)
+        dt.setDate(dt.getDate() + add);
+        return toLocalISO(dt);                 // local yyyy-mm-dd
       };
 
       // --- maintenance helpers ---
@@ -990,7 +997,7 @@
                   Week ending (Sunday): <span className="font-semibold">{weekEnding}</span>
                 </div>
           
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <CounterCard
                     label="Approaches"
                     value={prospecting.approaches}
