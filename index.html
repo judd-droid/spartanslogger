@@ -484,7 +484,7 @@
           if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings.", type: "warn" }); return; }
           if (!res.ok)            { setToast({ t: `Proxy error (${res.status}).`, type: "warn" }); return; }
       
-          setToast({ t: "Prospecting submitted!", type: "ok" });
+          setToast({ t: "Prospecting activity submitted!", type: "ok" });
           setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
       
         } catch {
