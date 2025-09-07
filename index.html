@@ -331,7 +331,7 @@
         setHistory([]);
         setOutbox([]);
         setLastSyncAt("");
-        setToast({ t: "Cleared local history & outbox. You can sync again.", type: "ok" });
+        setToast({ t: "Cleared local history and outbox. You can sync again.", type: "ok" });
       }
       
       function forceFullSync() {
@@ -350,7 +350,7 @@
         setEditingId(null);     // stop editing
         resetForm();            // clear the edit form
         setTab('history');      // go back to History
-        setToast({ t: 'Edit canceled', type: 'ok' });
+        setToast({ t: 'Edit cancelled.', type: 'ok' });
       }
 
       const [showAdvanced, setShowAdvanced] = useState(false);
