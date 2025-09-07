@@ -355,6 +355,11 @@
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
 
+      // run once after mount
+      useEffect(() => {
+        setHistory(h => h.filter(rec => rec && rec.prospect && rec.kind !== "prospecting"));
+      }, []);
+
       // --- Prospecting helpers ---
       const toLocalISO = (d) => {
         const y = d.getFullYear();
@@ -595,17 +600,22 @@
 
       // A) Flush outbox when it changes, and when the device comes back online
       useEffect(() => {
+        // inside useEffect(() => { const flushOutbox = async () => { ... } }, [outbox])
         const flushOutbox = async () => {
           if (outbox.length === 0) return;
           let sent = 0;
           const remaining = [];
+        
           for (const item of outbox) {
-            const ok = await sendToEndpoint(DEFAULT_ENDPOINT, item);
+            // 👇 send prospecting items to the prospecting endpoint
+            const target = item && item.kind === "prospecting" ? PROSPECT_URL : DEFAULT_ENDPOINT;
+            const ok = await sendToEndpoint(target, item);
             if (ok) sent++; else remaining.push(item);
           }
+        
           if (remaining.length !== outbox.length) {
             setOutbox(remaining);
-            if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"}. ✅`, type: "ok" });
+            if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
           }
         };
       
