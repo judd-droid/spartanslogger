@@ -1081,11 +1081,7 @@
                 {/* Pomodoro timer */}
                 <div className="mt-2">
                   <div className="flex items-center justify-center gap-3 my-2">
-                    <Digit d={mm[0]} />
-                    <Digit d={mm[1]} />
-                    <div className="text-6xl font-black tabular-nums select-none">:</div>
-                    <Digit d={ss[0]} />
-                    <Digit d={ss[1]} />
+                    <TimerDisplay seconds={timerSec} />
                   </div>
                 
                   <div className="flex items-center justify-center gap-2 mb-3">
