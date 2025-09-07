@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Spartans Meeting Logger</title>
+  <title>Spartans Activity Logger</title>
   <style>
     :root{
       --sn-red:#DD467D; --sn-red-light:#F7B4CC; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
@@ -133,7 +133,7 @@
         <div className="flex items-center justify-between px-4 pt-2 pb-5">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
-            <h1 className="text-xl md:text-2xl font-bold leading-tight">Meeting Logger</h1>
+            <h1 className="text-xl md:text-2xl font-bold leading-tight">Activity Logger</h1>
           </div>
         </div>
     
@@ -459,14 +459,14 @@
       function DigitBox({ d }) {
         return (
           <div
-            className="
-              w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24
-              flex items-center justify-center
-              rounded-2xl shadow-sm
-              border border-emerald-300
-              bg-emerald-50 text-emerald-700
-              text-4xl sm:text-5xl md:text-6xl font-black tabular-nums select-none
-            "
+            className={cls(
+              "flex items-center justify-center select-none shadow-sm",
+              "border border-emerald-300 bg-emerald-50 text-emerald-700 font-black tabular-nums",
+              // responsive size (phone → desktop)
+              "w-[clamp(3.0rem,6vw,4.4rem)] h-[clamp(3.4rem,7vw,5.2rem)]",
+              "text-[clamp(1.9rem,5.5vw,3.2rem)]",
+              "rounded-2xl"
+            )}
           >
             {d}
           </div>
@@ -1076,35 +1076,41 @@
                   Week ending (Sunday): <span className="font-semibold">{weekEnding}</span>
                 </div>
 
-                {/* Pomodoro timer */}
+                {/* Pomodoro timer (25:00) */}
                 <div className="mt-2">
-                  {/* digits */}
-                  <div className="grid grid-cols-5 gap-2 justify-items-center my-2">
-                    <DigitBox d={mm[0]} />
-                    <DigitBox d={mm[1]} />
-                    <span className="text-4xl sm:text-5xl font-black tabular-nums text-emerald-700 select-none">:</span>
-                    <DigitBox d={ss[0]} />
-                    <DigitBox d={ss[1]} />
-                  </div>
+                  <div className="mx-auto w-full max-w-[740px]">
+                    {/* digits: minutes pair • colon • seconds pair */}
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-end justify-items-center gap-x-[clamp(0.5rem,2.5vw,1.25rem)] my-2">
+                      <div className="flex gap-[clamp(0.4rem,1.6vw,0.9rem)]">
+                        <DigitBox d={mm[0]} />
+                        <DigitBox d={mm[1]} />
+                      </div>
                 
-                  {/* buttons under each pair: Reset (left) • Start/Pause (right) */}
-                  <div className="grid grid-cols-5 gap-2 mb-3">
-                    <button
-                      onClick={resetTimer}
-                      className={cls(btnSecondary, "col-span-2 h-10 w-full")}
-                    >
-                      Reset
-                    </button>
+                      <span className="text-emerald-700 font-black select-none
+                                       text-[clamp(1.8rem,6vw,3.4rem)]">:</span>
                 
-                    {/* spacer under the colon */}
-                    <div />
+                      <div className="flex gap-[clamp(0.4rem,1.6vw,0.9rem)]">
+                        <DigitBox d={ss[0]} />
+                        <DigitBox d={ss[1]} />
+                      </div>
+                    </div>
                 
-                    <button
-                      onClick={() => (timerRunning ? pauseTimer() : startTimer())}
-                      className={cls(btnSecondary, "col-start-4 col-span-2 h-10 w-full")}
-                    >
-                      {timerRunning ? "Pause" : "Start"}
-                    </button>
+                    {/* buttons: Reset under minutes, Start/Pause under seconds */}
+                    <div className="grid grid-cols-2 gap-[clamp(0.5rem,2vw,1rem)] mb-3">
+                      <button
+                        onClick={resetTimer}
+                        className={cls(btnSecondary, "h-10 md:h-12 text-sm md:text-base w-full")}
+                      >
+                        Reset
+                      </button>
+                
+                      <button
+                        onClick={() => (timerRunning ? pauseTimer() : startTimer())}
+                        className={cls(btnSecondary, "h-10 md:h-12 text-sm md:text-base w-full")}
+                      >
+                        {timerRunning ? "Pause" : "Start"}
+                      </button>
+                    </div>
                   </div>
                 </div>
           
