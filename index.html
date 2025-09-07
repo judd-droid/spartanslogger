@@ -1040,74 +1040,77 @@
                         {/* divider under the header */}
                         <div className="my-3 h-px bg-slate-200"></div>
                         
-                        {hasBadges && !hasStats && (
-                          {/* Case A: badges present, no money/product */}
-                          <div className="mt-2 flex justify-between items-start">
-                            <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                              {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
-                              {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
-                              {r.casePaid==="Yes" && <Badge>Paid</Badge>}
-                              {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
-                            </div>
-                          
-                            <button
-                              className={cls(btnSecondary, "self-start")}
-                              onClick={() => startEdit(r)}
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        )}
-                        
-                        {hasBadges && hasStats && (
-                          // Case B: badges + sales → keep the two-row layout
-                          <>
-                            <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                              {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
-                              {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
-                              {r.casePaid==="Yes" && <Badge>Paid</Badge>}
-                              {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
-                            </div>
-                        
-                            <div className="my-3 h-px bg-slate-200"></div>
-                        
-                            <div className="mt-2 flex items-center justify-between">
-                              <div>
-                                {hasMoney && (
-                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                                    {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                                    {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
-                                  </div>
-                                )}
-                                {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
-                              </div>
-                              <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                            </div>
-                          </>
-                        )}
-                        
-                        {!hasBadges && hasStats && (
-                          // Case C: no badges, but has sales → just show sales row with Edit on the right
-                          <div className="mt-2 flex items-center justify-between">
-                            <div>
-                              {hasMoney && (
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                                  {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                                  {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                          {hasBadges && !hasStats && (
+                            <>
+                              {/* Case A: badges present, no money/product */}
+                              <div className="mt-2 flex justify-between items-start">
+                                <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
+                                  {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
+                                  {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
+                                  {r.casePaid==="Yes" && <Badge>Paid</Badge>}
+                                  {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
                                 </div>
-                              )}
-                              {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
-                            </div>
-                            <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                          </div>
-                        )}
-                        
-                        {!hasBadges && !hasStats && (
-                          // Case D: nothing else → a tight row with Edit aligned to the right
-                          <div className="mt-2 flex justify-end">
-                            <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                          </div>
-                        )}
+                          
+                                <button className={cls(btnSecondary, "self-start")} onClick={() => startEdit(r)}>
+                                  Edit
+                                </button>
+                              </div>
+                            </>
+                          )}
+                          
+                          {hasBadges && hasStats && (
+                            <>
+                              {/* Case B: badges + sales → keep the two-row layout */}
+                              <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
+                                {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
+                                {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
+                                {r.casePaid==="Yes" && <Badge>Paid</Badge>}
+                                {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
+                              </div>
+                          
+                              <div className="my-3 h-px bg-slate-200"></div>
+                          
+                              <div className="mt-2 flex items-center justify-between">
+                                <div>
+                                  {hasMoney && (
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                                      {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                                    </div>
+                                  )}
+                                  {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
+                                </div>
+                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
+                              </div>
+                            </>
+                          )}
+                          
+                          {!hasBadges && hasStats && (
+                            <>
+                              {/* Case C: no badges, but has sales → show sales row with Edit on the right */}
+                              <div className="mt-2 flex items-center justify-between">
+                                <div>
+                                  {hasMoney && (
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                                      {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                                    </div>
+                                  )}
+                                  {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
+                                </div>
+                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
+                              </div>
+                            </>
+                          )}
+                          
+                          {!hasBadges && !hasStats && (
+                            <>
+                              {/* Case D: nothing else → tight row with Edit aligned to the right */}
+                              <div className="mt-2 flex justify-end">
+                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
+                              </div>
+                            </>
+                          )}
 
                       </>
 
