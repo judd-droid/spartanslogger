@@ -451,7 +451,7 @@
           kind: "prospecting",
           advisor: settings.advisorName,
           unit: settings.unit,
-          weekEnding: prospecting.date,   // ISO yyyy-mm-dd
+          weekEnding,                     // <- the computed Sunday you already memoized
           approaches,
           setAppointments: setApps,
         };
@@ -994,13 +994,8 @@
                     Clear
                   </button>
                   <button
-                    onClick={() =>
-                      handleProspectingSubmit({
-                        dateISO: prospect.date,               // whatever variable holds the selected date
-                        approaches: prospect.approaches,      // your counter value
-                        setAppointments: prospect.setAppts,   // your counter value
-                      })
-                    }
+                    onClick={handleProspectingSubmit}
+                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]"
                   >
                     Submit
                   </button>
