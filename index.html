@@ -162,6 +162,25 @@
       </label>
     );
 
+    // Collapsible wrapper that slides down/up
+    const Slide = ({ open, children }) => (
+      <div
+        className={cls(
+          // grid trick: animate 0fr → 1fr without measuring height
+          "grid transition-all duration-300 ease-out",
+          open
+            ? "grid-rows-[1fr] opacity-100 translate-y-0"
+            : "grid-rows-[0fr] opacity-0 -translate-y-2 pointer-events-none"
+        )}
+        aria-hidden={!open}
+      >
+        {/* inner wrapper is the row that actually collapses */}
+        <div className="overflow-hidden">
+          {children}
+        </div>
+      </div>
+    );
+
     const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
       <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder} className={baseField}/>
     );
@@ -781,7 +800,7 @@
             setOpenSettings(v => !v);
           }} pendingCount={pendingCount} />
 
-          {openSettings && (
+          <Slide open={openSettings}>
             <Section title="SETTINGS">
               <div className="grid gap-4">
                 {/* 1) Basic settings */}
@@ -906,7 +925,7 @@
                 </div>
               </div>
             </Section>
-          )}
+          </Slide>
 
           {tab==="log" && (
             <>
