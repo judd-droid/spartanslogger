@@ -49,6 +49,11 @@
     const { useEffect, useMemo, useState } = React;
     const SYNC_URL = "/api/sync";   // ← our secure proxy
 
+    // Prospecting POST target (proxy forwards to GAS /prospecting)
+    const PROSPECT_URL = `${SYNC_URL}/prospecting`;
+    // If your proxy doesn’t support subpaths, use this instead:
+    // const PROSPECT_URL = `${SYNC_URL}?path=prospecting`;
+
     const btnSecondary =
       "rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold " +
       "text-slate-900 shadow-sm hover:bg-slate-50 active:scale-[0.98] " +
@@ -428,44 +433,32 @@
         () => weekEndingSunday(prospecting.date),
         [prospecting.date]
       );
-      
-      // Build the prospecting payload to send
-      const prospectingPayload = useMemo(() => ({
-        type: "prospecting",
-        advisor: settings.advisorName,
-        unit: settings.unit,
-        // srUnit is optional; include if you decide to capture it in Settings later
-        srUnit: "",
-        weekEnding,                            // Sunday ISO string
-        approaches: Number(prospecting.approaches) || 0,
-        setAppointments: Number(prospecting.setApps) || 0,
-        timestamp: new Date().toISOString()
-      }), [settings, weekEnding, prospecting]);
 
-      // Submit Handler
-      const submitProspecting = async () => {
-        if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
-        if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
-        if ((prospecting.approaches||0)===0 && (prospecting.setApps||0)===0) {
-          setToast({ t:"Nothing to submit.", type:"warn" });
-          return;
+      // Prospecting submit (POSTS to PROSPECT_URL)
+      const handleProspectingSubmit = async ({ dateISO, approaches, setAppointments }) => {
+        if (!settings.advisorName) { setToast({ t: "Set your name in Settings first", type: "warn" }); setOpenSettings(true); return; }
+        if (!settings.unit)        { setToast({ t: "Select your Unit in Settings", type: "warn" });   setOpenSettings(true); return; }
+      
+        const payload = {
+          advisor: settings.advisorName,
+          unit: settings.unit,
+          weekEnding: dateISO,                 // any date from the intended week; GAS computes week-ending
+          approaches: Number(approaches || 0),
+          setAppointments: Number(setAppointments || 0),
+        };
+      
+        try {
+          const res = await fetch(PROSPECT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },       // matches your proxy/GAS setup
+            body: JSON.stringify(payload),
+          });
+          const ok = res.ok || res.type === "opaque";
+          setToast({ t: ok ? "Prospecting saved!" : `Prospecting failed (${res.status||"net"})`, type: ok ? "ok" : "warn" });
+        } catch {
+          setToast({ t: "Prospecting failed (offline?)", type: "warn" });
         }
-      
-        const id = crypto.randomUUID?.() || String(Date.now());
-        const record = { id, ...prospectingPayload };
-      
-        const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
-        if (!ok) {
-          setOutbox(o => [record, ...o]);
-          setToast({ t:"Saved offline — will sync when online.", type:"warn" });
-        } else {
-          setToast({ t:"Prospecting submitted!", type:"ok" });
-        }
-      
-        // keep date; reset counts
-        setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
       };
-
 
       // Merge server records into local history by id (fallback: entryID)
       function mergeServerUpdates(updates) {
@@ -993,8 +986,13 @@
                     Clear
                   </button>
                   <button
-                    onClick={submitProspecting}
-                    className="flex-1 h-12 rounded-2xl bg-slate-900 px-4 text-base font-semibold text-white active:scale-[0.99] hover:opacity-95"
+                    onClick={() =>
+                      handleProspectingSubmit({
+                        dateISO: prospect.date,               // whatever variable holds the selected date
+                        approaches: prospect.approaches,      // your counter value
+                        setAppointments: prospect.setAppts,   // your counter value
+                      })
+                    }
                   >
                     Submit
                   </button>
