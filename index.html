@@ -441,7 +441,7 @@
         [prospecting.date]
       );
 
-      // Prospecting submit (POSTS to PROSPECT_URL)
+      // Prospecting submit (POSTS to /api/sync?path=prospecting)
       const handleProspectingSubmit = async () => {
         if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
         if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
@@ -458,22 +458,33 @@
           kind: "prospecting",
           advisor: settings.advisorName,
           unit: settings.unit,
-          weekEnding,                     // <- the computed Sunday you already memoized
+          weekEnding,               // your memoized Sunday
           approaches,
           setAppointments: setApps,
         };
       
-        const url = `${SYNC_URL}?path=prospecting&key=${encodeURIComponent(settings.syncKey || "")}`;
-        const ok = await sendToEndpoint(url, record);
-        if (!ok) {
-          setOutbox(o => [record, ...o]);
-          setToast({ t:"Saved offline — will sync when online.", type:"warn" });
-        } else {
-          setToast({ t:"Prospecting submitted!", type:"ok" });
-        }
+        try {
+          // --- Option A (recommended): send key in Authorization header
+          const res = await fetch(`${SYNC_URL}?path=prospecting`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${settings.syncKey || ""}`,
+            },
+            body: JSON.stringify(record),
+          });
       
-        // keep date; reset counts
-        setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+          if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings.", type: "warn" }); return; }
+          if (!res.ok)            { setToast({ t: `Proxy error (${res.status}).`, type: "warn" }); return; }
+      
+          setToast({ t: "Prospecting submitted!", type: "ok" });
+          setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+      
+        } catch {
+          // Network/CORS/offline → queue it
+          setOutbox(o => [record, ...o]);
+          setToast({ t: "Saved offline — will sync when online.", type: "warn" });
+        }
       };
 
       // Merge server records into local history by id (fallback: entryID)
