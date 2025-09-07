@@ -50,7 +50,7 @@
     const SYNC_URL = "/api/sync";   // ← our secure proxy
 
     // Prospecting POST target (proxy forwards to GAS /prospecting)
-    const PROSPECT_URL = `${SYNC_URL}/prospecting`;
+    const PROSPECT_URL = `${SYNC_URL}?path=prospecting`;
     // If your proxy doesn’t support subpaths, use this instead:
     // const PROSPECT_URL = `${SYNC_URL}?path=prospecting`;
 
