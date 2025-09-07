@@ -333,6 +333,13 @@
         location.reload();
       }
 
+      function cancelEdit() {
+        setEditingId(null);     // stop editing
+        resetForm();            // clear the edit form
+        setTab('history');      // go back to History
+        setToast({ t: 'Edit canceled', type: 'ok' });
+      }
+
       const [showAdvanced, setShowAdvanced] = useState(false);
 
       // Merge server records into local history by id (fallback: entryID)
@@ -729,12 +736,27 @@
               </Section>
 
               <div className="mb-36 flex gap-3">
-                <button onClick={resetForm} className="flex-1 h-12 rounded-2xl border border-slate-300 bg-white px-4 text-base font-semibold hover:bg-slate-50">Clear</button>
+                {editingId && (
+                  <button onClick={cancelEdit}
+                    className={btnSecondary}>
+                    Cancel
+                  </button>
+                )}
+              
+                <button onClick={resetForm}
+                  className={btnSecondary}>
+                  Clear
+                </button>
+              
                 <button onClick={handleSubmit} disabled={isSending}
-                  className={cls("flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]", isSending?"bg-slate-400 cursor-not-allowed":"bg-slate-900")}>
+                  className={cls(
+                    "flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]",
+                    isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900"
+                  )}>
                   {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
                 </button>
               </div>
+
             </>
           )}
 
@@ -778,13 +800,26 @@
                             </div>
                           )}
                           {hasBadges && hasStats && <div className="my-3 h-px bg-slate-200"></div>}
-                          {hasMoney && (
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                              {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                              {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <div>
+                              {hasMoney && (
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+                                  {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                                  {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                                </div>
+                              )}
+                              {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
                             </div>
-                          )}
-                          {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
+                          
+                            <button
+                              className={btnSecondary}
+                              onClick={() => startEdit(r)}
+                            >
+                              Edit
+                            </button>
+                          </div>
+
                         </>
                       )}
 
@@ -804,7 +839,10 @@
             </Section>
           )}
 
-          <FloatingTabBar tab={tab} setTab={setTab}/>
+          <FloatingTabBar
+            tab={tab}
+            setTab={(t) => { setOpenSettings(false); setTab(t); }}
+          />
           {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
         </Page>
       );
