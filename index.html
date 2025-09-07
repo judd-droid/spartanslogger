@@ -224,16 +224,16 @@
       </div>
     );
     
-    const FloatingTabBar = ({ tab, onLogClick, onHistoryClick }) => (
+    const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[30rem]">
         <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-2 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
           <button
-            onClick={onLogClick}
+            onClick={() => setTab('log')}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab==="log" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
+              tab === "log" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
             )}
-            aria-pressed={tab==="log"}
+            aria-pressed={tab === "log"}
             aria-label="Log New Meeting"
           >
             <div className="flex flex-col items-center leading-tight pt-1 pb-1">
@@ -243,12 +243,12 @@
           </button>
     
           <button
-            onClick={onHistoryClick}
+            onClick={() => setTab('history')}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
-              tab==="history" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
+              tab === "history" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
             )}
-            aria-pressed={tab==="history"}
+            aria-pressed={tab === "history"}
             aria-label="History"
           >
             <div className="flex flex-col items-center leading-tight pt-1 pb-1">
