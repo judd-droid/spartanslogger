@@ -384,11 +384,6 @@
       
       const mm = String(Math.floor(timerSec / 60)).padStart(2, "0");
       const ss = String(timerSec % 60).padStart(2, "0");
-      const Digit = ({ d }) => (
-        <div className="w-20 h-28 rounded-2xl border border-slate-300 flex items-center justify-center text-6xl font-black tabular-nums select-none">
-          {d}
-        </div>
-      );
 
       // run once after mount
       useEffect(() => {
@@ -463,14 +458,16 @@
 
       function DigitBox({ d }) {
         return (
-          <div className="
-            w-16 h-20 md:w-20 md:h-24
-            flex items-center justify-center
-            rounded-2xl shadow-sm
-            border border-emerald-300
-            bg-emerald-50 text-emerald-700
-            text-5xl md:text-6xl font-black tabular-nums
-          ">
+          <div
+            className="
+              w-14 h-16 sm:w-16 sm:h-20 md:w-20 md:h-24
+              flex items-center justify-center
+              rounded-2xl shadow-sm
+              border border-emerald-300
+              bg-emerald-50 text-emerald-700
+              text-4xl sm:text-5xl md:text-6xl font-black tabular-nums select-none
+            "
+          >
             {d}
           </div>
         );
@@ -1082,31 +1079,31 @@
                 {/* Pomodoro timer */}
                 <div className="mt-2">
                   {/* digits */}
-                  <div className="grid grid-cols-5 gap-3 justify-items-center my-2">
-                    <Digit d={mm[0]} />
-                    <Digit d={mm[1]} />
-                    <div className="text-6xl font-black tabular-nums select-none text-emerald-700">:</div>
-                    <Digit d={ss[0]} />
-                    <Digit d={ss[1]} />
+                  <div className="grid grid-cols-5 gap-2 justify-items-center my-2">
+                    <DigitBox d={mm[0]} />
+                    <DigitBox d={mm[1]} />
+                    <span className="text-4xl sm:text-5xl font-black tabular-nums text-emerald-700 select-none">:</span>
+                    <DigitBox d={ss[0]} />
+                    <DigitBox d={ss[1]} />
                   </div>
                 
-                  {/* controls aligned under the digit pairs */}
-                  <div className="grid grid-cols-5 gap-3 mb-3">
+                  {/* buttons under each pair: Reset (left) • Start/Pause (right) */}
+                  <div className="grid grid-cols-5 gap-2 mb-3">
                     <button
-                      onClick={() => (timerRunning ? pauseTimer() : startTimer())}
-                      className={cls(btnSecondary, "col-start-1 col-span-2 h-10 w-full")}
+                      onClick={resetTimer}
+                      className={cls(btnSecondary, "col-span-2 h-10 w-full")}
                     >
-                      {timerRunning ? "Pause" : "Start"}
+                      Reset
                     </button>
                 
                     {/* spacer under the colon */}
                     <div />
                 
                     <button
-                      onClick={resetTimer}
+                      onClick={() => (timerRunning ? pauseTimer() : startTimer())}
                       className={cls(btnSecondary, "col-start-4 col-span-2 h-10 w-full")}
                     >
-                      Reset
+                      {timerRunning ? "Pause" : "Start"}
                     </button>
                   </div>
                 </div>
