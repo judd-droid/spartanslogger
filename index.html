@@ -278,7 +278,8 @@
             aria-label="Prospecting"
           >
             <div className="flex flex-col items-center leading-tight pt-1 pb-1">
-              <span className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 text-xl" aria-hidden="true">⏱️</span>
+              <img src="countdown.svg" alt="" aria-hidden="true"
+                   className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 object-contain" />
               <span className="text-[13px]">Prospecting</span>
             </div>
           </button>
@@ -1080,18 +1081,33 @@
 
                 {/* Pomodoro timer */}
                 <div className="mt-2">
-                  <div className="flex items-center justify-center gap-3 my-2">
-                    <TimerDisplay seconds={timerSec} />
+                  {/* digits */}
+                  <div className="grid grid-cols-5 gap-3 justify-items-center my-2">
+                    <Digit d={mm[0]} />
+                    <Digit d={mm[1]} />
+                    <div className="text-6xl font-black tabular-nums select-none text-emerald-700">:</div>
+                    <Digit d={ss[0]} />
+                    <Digit d={ss[1]} />
                   </div>
                 
-                  <div className="flex items-center justify-center gap-2 mb-3">
+                  {/* controls aligned under the digit pairs */}
+                  <div className="grid grid-cols-5 gap-3 mb-3">
                     <button
                       onClick={() => (timerRunning ? pauseTimer() : startTimer())}
-                      className={btnSecondary}
+                      className={cls(btnSecondary, "col-start-1 col-span-2 h-10 w-full")}
                     >
                       {timerRunning ? "Pause" : "Start"}
                     </button>
-                    <button onClick={resetTimer} className={btnSecondary}>Reset</button>
+                
+                    {/* spacer under the colon */}
+                    <div />
+                
+                    <button
+                      onClick={resetTimer}
+                      className={cls(btnSecondary, "col-start-4 col-span-2 h-10 w-full")}
+                    >
+                      Reset
+                    </button>
                   </div>
                 </div>
           
