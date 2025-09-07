@@ -407,17 +407,17 @@
           const res = await fetch(`${SYNC_URL}?${qs.toString()}`);
       
           if (!res.ok) {
-            setToast({ t: `Sync failed (${res.status})`, type: "warn" });
+            setToast({ t: `Sync failed (${res.status}).`, type: "warn" });
             return;
           }
           if (res.status === 401) {
-            setToast({ t: "Invalid sync key — check Settings", type: "warn" });
+            setToast({ t: "Invalid sync key — check Settings.", type: "warn" });
             return;
           }
       
           const json = await res.json().catch(() => null);
           if (!json || json.ok !== true) {
-            setToast({ t: "Sync failed (bad response)", type: "warn" });
+            setToast({ t: "Sync failed (bad response).", type: "warn" });
             return;
           }
       
@@ -427,14 +427,14 @@
             setToast({ t: `Pulled ${updates.length} update${updates.length > 1 ? "s" : ""} 🔄`, type: "ok" });
           } else {
             // This is the important feedback when nothing changed
-            setToast({ t: "Sync: No new changes found", type: "ok" });
+            setToast({ t: "Sync: No new changes found.", type: "ok" });
           }
       
           const nowIso = new Date().toISOString();
           setLastSyncAt(nowIso);
           writeLS(LS_SYNC.last, nowIso);
         } catch (e) {
-          setToast({ t: "Sync failed (offline?)", type: "warn" });
+          setToast({ t: "Sync failed (offline?).", type: "warn" });
         }
       }
 
@@ -466,7 +466,7 @@
           }
           if (remaining.length !== outbox.length) {
             setOutbox(remaining);
-            if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"} ✅`, type: "ok" });
+            if (sent > 0) setToast({ t: `Synced ${sent} queued ${sent === 1 ? "item" : "items"}. ✅`, type: "ok" });
           }
         };
       
@@ -518,7 +518,7 @@
       }
       function startEdit(rec){
         setOpenSettings(false); setEditingId(rec.id); setForm(recordToForm(rec)); setTab("log");
-        setToast({ t:"Loaded for editing ✍️", type:"ok" });
+        setToast({ t:"Loaded for editing.", type:"ok" });
         try{ window.scrollTo({top:0,behavior:"smooth"}); }catch{}
       }
 
@@ -540,9 +540,9 @@
       const [isSending,setIsSending]=useState(false);
       const handleSubmit = async ()=>{
         if(isSending) return;
-        if(!settings.advisorName){ setToast({t:"Set your name in Settings first",type:"warn"}); setOpenSettings(true); return; }
-        if(!settings.unit){ setToast({t:"Select your Unit in Settings",type:"warn"}); setOpenSettings(true); return; }
-        if(!form.prospectName){ setToast({t:"Prospect name is required",type:"warn"}); return; }
+        if(!settings.advisorName){ setToast({t:"Set your name in Settings first.",type:"warn"}); setOpenSettings(true); return; }
+        if(!settings.unit){ setToast({t:"Select your Unit in Settings.",type:"warn"}); setOpenSettings(true); return; }
+        if(!form.prospectName){ setToast({t:"Prospect name is required.",type:"warn"}); return; }
 
         setIsSending(true);
         const id = editingId || (crypto.randomUUID?.() || String(Date.now()));
@@ -550,8 +550,8 @@
         setHistory(h => editingId ? h.map(x => x.id===editingId ? record : x) : [record, ...h].slice(0,200));
 
         const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
-        if(!ok){ setOutbox(o=>[record,...o]); setToast({ t:"Saved offline — will sync when online", type:"warn" }); }
-        else{ setToast({ t: editingId ? "Updated" : "Submitted", quote:getRandomQuote(), type:"ok" }); }
+        if(!ok){ setOutbox(o=>[record,...o]); setToast({ t:"Saved offline — will sync when online.", type:"warn" }); }
+        else{ setToast({ t: editingId ? "Updated!" : "Submitted!", quote:getRandomQuote(), type:"ok" }); }
 
         setEditingId(null); resetForm(); setIsSending(false);
       };
@@ -853,7 +853,7 @@
               if (editingId) {
                 setEditingId(null);
                 resetForm();
-                setToast({ t: "Edit canceled — ready to log a new meeting", type: "ok" });
+                setToast({ t: "Edit cancelled.", type: "ok" });
               }
           
               setTab("log");
