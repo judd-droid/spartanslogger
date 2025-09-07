@@ -226,9 +226,11 @@
     
     const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[30rem]">
-        <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-2 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
+        <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-2 grid grid-cols-3 gap-2 shadow-xl ring-1 ring-black/10 backdrop-blur">
+    
+          {/* Log New Meeting */}
           <button
-            onClick={() => setTab('log')}
+            onClick={() => setTab("log")}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
               tab === "log" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
@@ -242,8 +244,9 @@
             </div>
           </button>
     
+          {/* History */}
           <button
-            onClick={() => setTab('history')}
+            onClick={() => setTab("history")}
             className={cls(
               "h-16 rounded-xl font-semibold transition flex items-center justify-center",
               tab === "history" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
@@ -256,6 +259,23 @@
               <span className="text-[13px]">History</span>
             </div>
           </button>
+    
+          {/* Prospecting */}
+          <button
+            onClick={() => setTab("prospecting")}
+            className={cls(
+              "h-16 rounded-xl font-semibold transition flex items-center justify-center",
+              tab === "prospecting" ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
+            )}
+            aria-pressed={tab === "prospecting"}
+            aria-label="Prospecting"
+          >
+            <div className="flex flex-col items-center leading-tight pt-1 pb-1">
+              <span className="w-7 h-7 sm:w-8 sm:h-8 mb-1.5 opacity-90 text-xl" aria-hidden="true">⏱️</span>
+              <span className="text-[13px]">Prospecting</span>
+            </div>
+          </button>
+    
         </div>
       </div>
     );
@@ -323,6 +343,16 @@
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
 
+      // --- Prospecting helpers ---
+      const weekEndingSunday = (isoDate) => {
+        // compute the Sunday of that ISO date (sheet shows Sundays as "Week Ending")
+        const d = new Date(`${isoDate}T00:00:00`);
+        const day = d.getDay();            // 0=Sun ... 6=Sat
+        const add = (7 - day) % 7;         // days to next Sunday (0 if already Sunday)
+        d.setDate(d.getDate() + add);
+        return d.toISOString().slice(0,10);
+      };
+
       // --- maintenance helpers ---
       function clearHistoryAndOutbox() {
         localStorage.removeItem(LS.history);
@@ -356,7 +386,6 @@
       // Jump to a tab, but first cancel any edit and close Settings.
       const goToTab = (dest) => {
         if (openSettings) setOpenSettings(false);   // close Settings if open
-      
         if (editingId) {
           setEditingId(null);
           resetForm();
@@ -367,11 +396,76 @@
             type: 'ok'
           });
         }
-      
         setTab(dest);
       };
 
       const [showAdvanced, setShowAdvanced] = useState(false);
+
+      const CounterCard = ({ label, value, onPlus, onMinus }) => (
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="text-center text-[13px] font-medium text-slate-600 mb-2">{label}</div>
+          <div className="flex items-center justify-between gap-3">
+            <button onClick={onMinus} className="h-12 w-12 rounded-xl border border-slate-300 bg-white text-xl font-bold hover:bg-slate-50">–</button>
+            <div className="text-5xl font-black tabular-nums select-none">{value}</div>
+            <button onClick={onPlus} className="h-12 w-12 rounded-xl border border-slate-300 bg-white text-xl font-bold hover:bg-slate-50">+</button>
+          </div>
+        </div>
+      );
+
+      // Increment/decrement helpers
+      const inc = (k) => setProspecting(p => ({ ...p, [k]: (p[k] || 0) + 1 }));
+      const dec = (k) => setProspecting(p => ({ ...p, [k]: Math.max(0, (p[k] || 0) - 1) }));
+
+      // Prospecting tab state
+      const [prospecting, setProspecting] = useState({
+        date: todayISODate(),
+        approaches: 0,
+        setApps: 0
+      });
+      
+      // Derived week-ending for sheet
+      const weekEnding = useMemo(
+        () => weekEndingSunday(prospecting.date),
+        [prospecting.date]
+      );
+      
+      // Build the prospecting payload to send
+      const prospectingPayload = useMemo(() => ({
+        type: "prospecting",
+        advisor: settings.advisorName,
+        unit: settings.unit,
+        // srUnit is optional; include if you decide to capture it in Settings later
+        srUnit: "",
+        weekEnding,                            // Sunday ISO string
+        approaches: Number(prospecting.approaches) || 0,
+        setAppointments: Number(prospecting.setApps) || 0,
+        timestamp: new Date().toISOString()
+      }), [settings, weekEnding, prospecting]);
+
+      // Submit Handler
+      const submitProspecting = async () => {
+        if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
+        if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
+        if ((prospecting.approaches||0)===0 && (prospecting.setApps||0)===0) {
+          setToast({ t:"Nothing to submit.", type:"warn" });
+          return;
+        }
+      
+        const id = crypto.randomUUID?.() || String(Date.now());
+        const record = { id, ...prospectingPayload };
+      
+        const ok = await sendToEndpoint(DEFAULT_ENDPOINT, record);
+        if (!ok) {
+          setOutbox(o => [record, ...o]);
+          setToast({ t:"Saved offline — will sync when online.", type:"warn" });
+        } else {
+          setToast({ t:"Prospecting submitted!", type:"ok" });
+        }
+      
+        // keep date; reset counts
+        setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+      };
+
 
       // Merge server records into local history by id (fallback: entryID)
       function mergeServerUpdates(updates) {
@@ -857,6 +951,54 @@
                     </div>
                   );
                 })}
+              </div>
+            </Section>
+          )}
+
+          {tab==="prospecting" && (
+            <Section title="Prospecting">
+              <div className="grid gap-3">
+                <LabeledInput label="Date">
+                  <TextInput
+                    type="date"
+                    value={prospecting.date}
+                    onChange={v => setProspecting(p => ({ ...p, date: v }))}
+                  />
+                </LabeledInput>
+          
+                <div className="text-xs text-slate-500 -mt-2 mb-1">
+                  Week ending (Sunday): <span className="font-semibold">{weekEnding}</span>
+                </div>
+          
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <CounterCard
+                    label="Approaches"
+                    value={prospecting.approaches}
+                    onPlus={() => inc('approaches')}
+                    onMinus={() => dec('approaches')}
+                  />
+                  <CounterCard
+                    label="Set Appointments"
+                    value={prospecting.setApps}
+                    onPlus={() => inc('setApps')}
+                    onMinus={() => dec('setApps')}
+                  />
+                </div>
+          
+                <div className="mt-2 flex gap-3">
+                  <button
+                    onClick={() => setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }))}
+                    className={btnSecondary}
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={submitProspecting}
+                    className="flex-1 h-12 rounded-2xl bg-slate-900 px-4 text-base font-semibold text-white active:scale-[0.99] hover:opacity-95"
+                  >
+                    Submit
+                  </button>
+                </div>
               </div>
             </Section>
           )}
