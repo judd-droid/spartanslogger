@@ -355,6 +355,38 @@
       const [toast,setToast]=useState(null);
       const [editingId,setEditingId]=useState(null);
 
+      // ---- Pomodoro (25:00) ----
+      const POMO_SECONDS = 25 * 60;
+      const [timerSec, setTimerSec] = useState(POMO_SECONDS);
+      const [timerRunning, setTimerRunning] = useState(false);
+      
+      useEffect(() => {
+        if (!timerRunning) return;
+        const id = setInterval(() => {
+          setTimerSec(s => (s > 0 ? s - 1 : 0));
+        }, 1000);
+        return () => clearInterval(id);
+      }, [timerRunning]);
+      
+      useEffect(() => {
+        if (timerSec === 0 && timerRunning) {
+          setTimerRunning(false);
+          setToast({ t: "Time’s up! ⏱️", type: "ok" });
+        }
+      }, [timerSec, timerRunning]);
+      
+      const pauseTimer  = () => setTimerRunning(false);
+      const startTimer  = () => setTimerRunning(true);
+      const resetTimer  = () => { setTimerRunning(false); setTimerSec(POMO_SECONDS); };
+      
+      const mm = String(Math.floor(timerSec / 60)).padStart(2, "0");
+      const ss = String(timerSec % 60).padStart(2, "0");
+      const Digit = ({ d }) => (
+        <div className="w-20 h-28 rounded-2xl border border-slate-300 flex items-center justify-center text-6xl font-black tabular-nums select-none">
+          {d}
+        </div>
+      );
+
       // run once after mount
       useEffect(() => {
         setHistory(h => h.filter(rec => rec && rec.prospect && rec.kind !== "prospecting"));
@@ -409,6 +441,7 @@
 
       // Jump to a tab, but first cancel any edit and close Settings.
       const goToTab = (dest) => {
+        pauseTimer();                         // PAUSE on New Meeting/History/Prospecting switch
         if (openSettings) setOpenSettings(false);   // close Settings if open
         if (editingId) {
           setEditingId(null);
@@ -455,6 +488,7 @@
 
       // Prospecting submit (POSTS to /api/sync?path=prospecting)
       const handleProspectingSubmit = async () => {
+        pauseTimer();                         // PAUSE on Submit
         if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
         if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
       
@@ -710,7 +744,10 @@
       
       return (
         <Page>
-          <TopBar settingsOpen={openSettings} onToggleSettings={() => setOpenSettings(v => !v)} pendingCount={pendingCount} />
+          <TopBar settingsOpen={openSettings} onToggleSettings={() => {
+            pauseTimer();                       // PAUSE on Settings
+            setOpenSettings(v => !v);
+          }} pendingCount={pendingCount} />
 
           {openSettings && (
             <Section title="SETTINGS">
@@ -1006,6 +1043,27 @@
                 <div className="text-xs text-slate-500 -mt-2 mb-1">
                   Week ending (Sunday): <span className="font-semibold">{weekEnding}</span>
                 </div>
+
+                {/* Pomodoro timer */}
+                <div className="mt-2">
+                  <div className="flex items-center justify-center gap-3 my-2">
+                    <Digit d={mm[0]} />
+                    <Digit d={mm[1]} />
+                    <div className="text-6xl font-black tabular-nums select-none">:</div>
+                    <Digit d={ss[0]} />
+                    <Digit d={ss[1]} />
+                  </div>
+                
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <button
+                      onClick={() => (timerRunning ? pauseTimer() : startTimer())}
+                      className={btnSecondary}
+                    >
+                      {timerRunning ? "Pause" : "Start"}
+                    </button>
+                    <button onClick={resetTimer} className={btnSecondary}>Reset</button>
+                  </div>
+                </div>
           
                 <div className="grid grid-cols-1 gap-3">
                   <CounterCard
@@ -1024,7 +1082,10 @@
           
                 <div className="mt-2 flex gap-3">
                   <button
-                    onClick={() => setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }))}
+                    onClick={() => {
+                      pauseTimer();                       // PAUSE on Clear
+                      setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+                    }}
                     className={btnSecondary}
                   >
                     Clear
