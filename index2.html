@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Quick Financial Safety Check</title>
+<meta name="theme-color" content="#111827">
+<style>
+/* ========== DESIGN TOKENS (Supernova look) ========== */
+:root{
+  --sn-red:#DD467D; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
+  --bg:#f8fafc; --card:#ffffff; --line:#e5e7eb; --rec-bg:#f9fafb;
+  --ok:#0ea5e9; --yes:#16a34a; --no:#e11d48;
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color:var(--sn-black);
+  background:linear-gradient(180deg,#fff,#f5f7fb);
+}
+
+/* ========== LAYOUT ========== */
+.app{max-width:720px;margin:0 auto;padding:12px 16px 96px}
+header{
+  position:sticky; top:0; z-index:10; background:var(--card);
+  border-bottom:1px solid var(--line); padding:14px 16px; display:flex;
+  align-items:center; justify-content:space-between; gap:12px;
+}
+.brand{display:flex; align-items:center; gap:10px; font-weight:700}
+.brand .dot{width:10px;height:10px;border-radius:999px;background:var(--sn-red);box-shadow:0 0 0 3px #ffd4e5 inset}
+header .title{font-size:18px}
+.btn-icon{border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; cursor:pointer}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:0 8px 32px rgba(17,24,39,.05); padding:16px; margin:16px 0;
+}
+.card h3{margin:0 0 12px; font-size:15px; letter-spacing:.2px; color:#0f172a}
+.row{display:grid; gap:10px}
+.grid-2{grid-template-columns:1fr 1fr}
+.grid-3{grid-template-columns:1fr 1fr 1fr}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:720px){ .grid-3,.grid-4{grid-template-columns:1fr 1fr} }
+
+/* ========== INPUTS ========== */
+.input, select{
+  width:100%; padding:14px 12px; border:1px solid var(--line); border-radius:12px;
+  background:#fff; font-size:16px;
+}
+textarea.input{min-height:110px; resize:vertical}
+.label{font-size:13px; color:var(--sn-gray); margin-bottom:6px}
+.opt{
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  padding:14px 10px; background:#fff; border:1.5px solid var(--line);
+  border-radius:14px; cursor:pointer; user-select:none; font-weight:600;
+  min-height:56px; line-height:1.2;
+}
+.opt.small{font-weight:500; min-height:48px}
+.opt[data-selected="true"]{border-color:var(--sn-red); box-shadow:0 0 0 3px rgba(221,70,125,.12); background:#fff}
+.opt[data-variant="dark"][data-selected="true"]{background:var(--sn-black); color:#fff; border-color:var(--sn-black)}
+.badge{font-size:12px; padding:2px 6px; border-radius:999px; background:#eef2ff; color:#3730a3; margin-left:6px}
+
+/* ========== CTAs ========== */
+.actions{display:flex; gap:12px; align-items:center; justify-content:space-between}
+.button{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:14px 18px; border-radius:14px; font-weight:700; cursor:pointer; border:0;
+}
+.button.primary{background:#0f172a; color:#fff}
+.button.ghost{background:#fff; border:1px solid var(--line); color:#0f172a}
+.button.warn{background:var(--sn-red); color:#fff}
+.button.full{width:100%}
+.help{font-size:12px; color:var(--sn-gray)}
+
+/* ========== TAB NAV (bottom) ========== */
+.nav{
+  position:fixed; left:0; right:0; bottom:0; background:rgba(255,255,255,.95);
+  border-top:1px solid var(--line); backdrop-filter:saturate(180%) blur(6px);
+  padding:10px 12px; display:flex; gap:12px; justify-content:center;
+}
+.tab{flex:1; border:2px solid #ffd1e2; background:#ffe3ee; color:#111;
+  border-radius:18px; padding:10px 12px; font-weight:700; text-align:center; cursor:pointer}
+.tab[data-active="true"]{background:#fbd1e3}
+.hide{display:none}
+
+/* ========== RESULT PRINT VIEW ========== */
+#resultView .kv{display:grid; grid-template-columns:170px 1fr; gap:6px; margin:6px 0}
+#resultView h2{margin:0 0 10px}
+.mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+
+/* ========== PRINT STYLES ========== */
+@media print{
+  body{background:#fff}
+  header,.nav,.no-print{display:none !important}
+  .app{padding:0}
+  .card{border:none; box-shadow:none; margin:0; padding:0}
+  #resultToPrint{display:block !important}
+  @page{size:A4; margin:14mm}
+}
+#resultToPrint{display:none}
+.hr{height:1px;background:var(--line);margin:10px 0}
+.small{font-size:12px;color:var(--sn-gray)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div class="title">Quick Financial Safety Check</div>
+  </div>
+  <button id="btnSettingsOpen" class="btn-icon">Settings</button>
+</header>
+
+<main class="app">
+  <!-- NEW CHECKUP -->
+  <section id="tab-new">
+    <!-- Client -->
+    <div class="card">
+      <h3>Client</h3>
+      <div class="row grid-2">
+        <div>
+          <div class="label">Name</div>
+          <input id="clientName" class="input" placeholder="e.g., Juan Dela Cruz" />
+        </div>
+        <div>
+          <div class="label">Mobile</div>
+          <input id="clientMobile" class="input" inputmode="tel" placeholder="09xxxxxxxxx" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Q1 -->
+    <div class="card">
+      <h3>1) Who are you today?</h3>
+      <div class="row grid-2" data-group="role">
+        <div class="opt" data-value="Staff">Staff</div>
+        <div class="opt" data-value="Patient/Visitor">Patient/Visitor</div>
+      </div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="card">
+      <h3>2) Are you the breadwinner?</h3>
+      <div class="row grid-3" data-group="breadwinner">
+        <div class="opt" data-value="Yes">Yes</div>
+        <div class="opt" data-value="Shared">Shared</div>
+        <div class="opt" data-value="No">No</div>
+      </div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="card">
+      <h3>3) Priority <span class="badge">pick one</span></h3>
+      <div class="row grid-2" data-group="priority">
+        <div class="opt" data-value="Income protection">Income protection</div>
+        <div class="opt" data-value="Critical illness">Critical illness</div>
+        <div class="opt" data-value="Savings/Wealth">Savings/Wealth</div>
+        <div class="opt" data-value="Hospital income">Hospital income</div>
+        <div class="opt" data-value="Child education">Child education</div>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="card">
+      <h3>4) Current cover</h3>
+      <div class="row grid-2" data-group="cover">
+        <div class="opt" data-value="HMO only">HMO only</div>
+        <div class="opt" data-value="HMO + Insurance">HMO + Insurance</div>
+        <div class="opt" data-value="Insurance only">Insurance only</div>
+        <div class="opt" data-value="None / Not sure">None / Not sure</div>
+      </div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="card">
+      <h3>5) Comfortable budget</h3>
+      <div class="row grid-2" data-group="budget">
+        <div class="opt" data-value="₱20–₱40/day">₱20–₱40/day</div>
+        <div class="opt" data-value="₱50–₱80/day">₱50–₱80/day</div>
+        <div class="opt" data-value="₱100+/day">₱100+/day</div>
+        <div class="opt" data-value="Not sure">Not sure</div>
+      </div>
+      <div class="help">Tip: 30 days ≈ monthly. Example: ₱20/day ≈ ₱600/month.</div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="card">
+      <h3>6) Book a 15-min checkup</h3>
+      <div class="row grid-3" data-group="slot">
+        <div class="opt" data-value="Before I leave / Lunch">Before I leave / Lunch</div>
+        <div class="opt" data-value="Later today / After shift">Later today / After shift</div>
+        <div class="opt" data-value="Tonight (Zoom)">Tonight (Zoom)</div>
+      </div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="card">
+      <h3>7) Where should we send your Quick Result?</h3>
+      <div class="row">
+        <div id="consentQuick" class="opt" data-variant="dark" data-toggle="true">Yes—text me my Quick Result + 1–2 right-fit options. <span class="small">(Max 3 helpful messages, no spam. Stop anytime.)</span></div>
+      </div>
+      <div class="row grid-2" data-group="channels" data-multi="true">
+        <div class="opt small" data-value="SMS">SMS</div>
+        <div class="opt small" data-value="Viber">Viber</div>
+      </div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="card">
+      <h3>8) Consent</h3>
+      <div class="row">
+        <div id="consentBook" class="opt" data-variant="dark" data-toggle="true">Required to book: Contact me about my 15-min checkup</div>
+        <div id="consentPromo" class="opt" data-toggle="true">Optional: Send occasional tips & promos (≤1/month)</div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+      <h3>Advisor notes (optional)</h3>
+      <textarea id="notes" class="input" placeholder="Any context or special requests…"></textarea>
+    </div>
+
+    <div class="actions no-print">
+      <button id="btnClear" class="button ghost">Clear</button>
+      <button id="btnSubmit" class="button primary">Submit</button>
+    </div>
+    <div class="small no-print" id="validation"></div>
+  </section>
+
+  <!-- RESULT VIEW -->
+  <section id="tab-result" class="hide">
+    <div class="card" id="resultView">
+      <h2>Quick Result</h2>
+      <div class="small" id="resultMeta"></div>
+      <div class="hr"></div>
+
+      <div class="kv"><div class="small">Client</div><div id="r-client"></div></div>
+      <div class="kv"><div class="small">Role</div><div id="r-role"></div></div>
+      <div class="kv"><div class="small">Breadwinner</div><div id="r-bw"></div></div>
+      <div class="kv"><div class="small">Priority</div><div id="r-prio"></div></div>
+      <div class="kv"><div class="small">Current Cover</div><div id="r-cover"></div></div>
+      <div class="kv"><div class="small">Budget Guide</div><div id="r-budget"></div></div>
+      <div class="kv"><div class="small">Next Step</div><div id="r-slot"></div></div>
+      <div class="kv"><div class="small">Send via</div><div id="r-send"></div></div>
+      <div class="kv"><div class="small">Advisor Notes</div><div id="r-notes"></div></div>
+
+      <div class="hr"></div>
+      <div style="font-weight:700">Suggested Direction</div>
+      <div id="r-suggestion" style="margin-top:6px"></div>
+    </div>
+
+    <div class="actions no-print" style="margin-top:12px">
+      <button id="btnPrint" class="button ghost">Print Result (PDF)</button>
+      <button id="btnShare" class="button ghost">Share</button>
+      <button id="btnNew" class="button warn">New Checkup</button>
+    </div>
+
+    <!-- print-only body -->
+    <div id="resultToPrint">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-weight:800;font-size:18px">Quick Financial Safety Check</div>
+          <div class="small" id="printMeta"></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:700" id="orgName">Supernova Financial</div>
+          <div class="small" id="advisorLine"></div>
+        </div>
+      </div>
+      <hr style="margin:10px 0;border:0;border-top:1px solid #e5e7eb">
+      <div id="printBody"></div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" class="hide">
+    <div class="card">
+      <h3>History</h3>
+      <div id="historyList" class="row"></div>
+      <div class="small">Stored locally on this device.</div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="hide">
+    <div class="card">
+      <h3>Settings</h3>
+      <div class="row grid-2">
+        <div>
+          <div class="label">Advisor name</div>
+          <input id="s-advisor" class="input" placeholder="Your name" />
+        </div>
+        <div>
+          <div class="label">Advisor mobile</div>
+          <input id="s-advisorPhone" class="input" placeholder="09xxxxxxxxx" />
+        </div>
+        <div>
+          <div class="label">Organization / Booth</div>
+          <input id="s-org" class="input" placeholder="Supernova Financial – Medicard booth" />
+        </div>
+        <div>
+          <div class="label">Location (optional)</div>
+          <input id="s-location" class="input" placeholder="Hospital / Mall / Event" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSaveSettings" class="button primary">Save Settings</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom nav -->
+<nav class="nav no-print">
+  <div class="tab" id="nav-new" data-active="true">New Checkup</div>
+  <div class="tab" id="nav-history">History</div>
+  <div class="tab" id="nav-settings">Settings</div>
+</nav>
+
+<script>
+/* ===== Utility ===== */
+const $ = (s, d=document)=>d.querySelector(s);
+const $$ = (s, d=document)=>Array.from(d.querySelectorAll(s));
+const fmtDateTime = (d)=> new Date(d).toLocaleString([], {year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const toMonthly = (label)=>{
+  if(label.includes('₱20')) return '≈ ₱600–₱1,200 / month';
+  if(label.includes('₱50')) return '≈ ₱1,500–₱2,400 / month';
+  if(label.includes('₱100')) return '≈ ₱3,000+ / month';
+  return 'We’ll compute together based on your goals.';
+};
+const suggestByPriority=(p)=>{
+  switch(p){
+    case 'Income protection': return 'Start with income replacement (~10× annual income) using a term/VUL life plan. Add waiver-of-premium and accidental riders as needed.';
+    case 'Critical illness': return 'Build a lump-sum CI cover for major illnesses + recovery time. Consider early-stage CI rider and income benefit.';
+    case 'Savings/Wealth': return 'Use a disciplined savings/wealth plan (VUL or endowment) matched to your timeframe. Automate contributions; review yearly.';
+    case 'Hospital income': return 'Add a daily hospital income plan as cash buffer (works with HMO). Target ≥ 2–3× daily room rate.';
+    case 'Child education': return 'Create a college fund schedule (target tuition x years). Use education/endowment plan + protection on the payer.';
+    default: return 'We’ll tailor a right-fit mix based on your answers.';
+  }
+};
+
+/* ===== State ===== */
+let state = {
+  name:'', mobile:'', role:'', breadwinner:'', priority:'', cover:'', budget:'', slot:'',
+  consentQuick:false, consentBook:false, consentPromo:false, channels:[], notes:''
+};
+const STORAGE_KEY='qfs_surveys_v1';
+const SETTINGS_KEY='qfs_settings_v1';
+
+/* ===== Option groups ===== */
+function initOptionGroups(){
+  // Single-select groups
+  ['role','breadwinner','priority','cover','budget','slot'].forEach(group=>{
+    const box = document.querySelector(`[data-group="${group}"]`);
+    box && box.addEventListener('click', (e)=>{
+      const opt = e.target.closest('.opt'); if(!opt) return;
+      $$('.opt', box).forEach(x=>x.dataset.selected="false");
+      opt.dataset.selected="true";
+      state[group] = opt.dataset.value;
+    });
+  });
+  // Multi-select (channels)
+  const ch = document.querySelector('[data-group="channels"]');
+  ch.addEventListener('click', (e)=>{
+    const opt = e.target.closest('.opt'); if(!opt) return;
+    const v = opt.dataset.value;
+    const selected = opt.dataset.selected==="true";
+    opt.dataset.selected = selected ? "false" : "true";
+    if(selected){ state.channels = state.channels.filter(x=>x!==v); }
+    else{ state.channels = [...new Set([...state.channels, v])]; }
+  });
+  // Toggles
+  $('#consentQuick').addEventListener('click', e=>{
+    const el = e.currentTarget;
+    const on = el.dataset.selected==="true";
+    el.dataset.selected = on?"false":"true";
+    state.consentQuick = !on;
+  });
+  $('#consentBook').addEventListener('click', e=>{
+    const el = e.currentTarget;
+    const on = el.dataset.selected==="true";
+    el.dataset.selected = on?"false":"true";
+    state.consentBook = !on;
+  });
+  $('#consentPromo').addEventListener('click', e=>{
+    const el = e.currentTarget;
+    const on = el.dataset.selected==="true";
+    el.dataset.selected = on?"false":"true";
+    state.consentPromo = !on;
+  });
+}
+initOptionGroups();
+
+/* ===== Tabs ===== */
+function showTab(key){
+  ['new','history','settings','result'].forEach(k=>{
+    const sec = $(`#tab-${k}`);
+    if(sec) sec.classList.toggle('hide', k!==key);
+    const tab = $(`#nav-${k}`);
+    if(tab) tab.dataset.active = (k===key);
+  });
+  if(key==='history') renderHistory();
+}
+$('#nav-new').onclick = ()=>showTab('new');
+$('#nav-history').onclick = ()=>showTab('history');
+$('#nav-settings').onclick = ()=>showTab('settings');
+$('#btnSettingsOpen').onclick = ()=>showTab('settings');
+
+/* ===== Settings ===== */
+function loadSettings(){
+  const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+  $('#s-advisor').value = s.advisor || '';
+  $('#s-advisorPhone').value = s.advisorPhone || '';
+  $('#s-org').value = s.org || 'Supernova Financial – Medicard booth';
+  $('#s-location').value = s.location || '';
+}
+function getSettings(){
+  return {
+    advisor: $('#s-advisor').value.trim(),
+    advisorPhone: $('#s-advisorPhone').value.trim(),
+    org: $('#s-org').value.trim() || 'Supernova Financial',
+    location: $('#s-location').value.trim()
+  };
+}
+$('#btnSaveSettings').onclick = ()=>{
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(getSettings()));
+  alert('Settings saved.');
+};
+loadSettings();
+
+/* ===== Form ===== */
+function clearForm(){
+  state = {name:'', mobile:'', role:'', breadwinner:'', priority:'', cover:'', budget:'', slot:'',
+           consentQuick:false, consentBook:false, consentPromo:false, channels:[], notes:''};
+  $('#clientName').value=''; $('#clientMobile').value=''; $('#notes').value='';
+  $$('[data-group]').forEach(g=>$$('.opt', g).forEach(o=>o.dataset.selected="false"));
+  ['consentQuick','consentBook','consentPromo'].forEach(id=>$('#'+id).dataset.selected="false");
+  $('#validation').textContent='';
+}
+$('#btnClear').onclick = clearForm;
+
+function readFormBasics(){
+  state.name = $('#clientName').value.trim();
+  state.mobile = $('#clientMobile').value.trim();
+  state.notes = $('#notes').value.trim();
+}
+
+function validate(){
+  readFormBasics();
+  const errors=[];
+  if(!state.name) errors.push('Please enter the client name.');
+  if(!state.priority) errors.push('Select a priority.');
+  if(state.consentQuick && !state.mobile) errors.push('Mobile number is required if sending result.');
+  if(state.consentQuick && state.channels.length===0) errors.push('Pick at least one channel (SMS / Viber).');
+  if(state.consentBook===false) errors.push('Booking consent is required.');
+  $('#validation').textContent = errors.join(' ');
+  return errors.length===0;
+}
+
+$('#btnSubmit').onclick = ()=>{
+  if(!validate()) return;
+  const now = new Date();
+  const id = 'QFS-'+now.getTime();
+  const record = {...state, id, createdAt: now.toISOString(), settings:getSettings()};
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  all.unshift(record);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  renderResult(record);
+  showTab('result');
+};
+
+function renderHistory(){
+  const wrap = $('#historyList'); wrap.innerHTML='';
+  const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  if(all.length===0){ wrap.innerHTML = '<div class="small">No records yet.</div>'; return; }
+  all.forEach(rec=>{
+    const el = document.createElement('div');
+    el.className='opt'; el.style.justifyContent='space-between'; el.style.alignItems='flex-start';
+    el.innerHTML = `
+      <div>
+        <div><strong>${rec.name || '(No name)'}</strong> · <span class="small">${rec.priority||'-'}</span></div>
+        <div class="small">${fmtDateTime(rec.createdAt)} · ${rec.budget||''}</div>
+      </div>
+      <div><button class="button ghost" data-id="${rec.id}">View</button></div>
+    `;
+    el.querySelector('button').onclick = ()=>{ renderResult(rec); showTab('result'); };
+    wrap.appendChild(el);
+  });
+}
+
+/* ===== Result & Print ===== */
+function renderResult(rec){
+  $('#resultMeta').textContent = `${fmtDateTime(rec.createdAt)} • ${rec.settings.org}`;
+  $('#r-client').textContent = `${rec.name} ${rec.mobile ? '• '+rec.mobile : ''}`;
+  $('#r-role').textContent = rec.role || '-';
+  $('#r-bw').textContent = rec.breadwinner || '-';
+  $('#r-prio').textContent = rec.priority || '-';
+  $('#r-cover').textContent = rec.cover || '-';
+  $('#r-budget').textContent = (rec.budget||'-') + '  ·  ' + toMonthly(rec.budget||'');
+  $('#r-slot').textContent = rec.slot || '-';
+  $('#r-send').textContent = rec.consentQuick ? (rec.channels.join(', ') || '-') : '— not requested';
+  $('#r-notes').textContent = rec.notes || '—';
+  $('#r-suggestion').textContent = suggestByPriority(rec.priority||'');
+
+  // print payload
+  const s = rec.settings || {};
+  $('#printMeta').textContent = `${fmtDateTime(rec.createdAt)} · ${s.location || s.org || ''}`;
+  $('#orgName').textContent = s.org || 'Supernova Financial';
+  $('#advisorLine').textContent = [s.advisor, s.advisorPhone].filter(Boolean).join(' · ');
+
+  $('#printBody').innerHTML = `
+    <div style="margin:6px 0"><strong>Client:</strong> ${rec.name} ${rec.mobile? '· '+rec.mobile: ''}</div>
+    <div style="margin:6px 0"><strong>Role:</strong> ${rec.role||'-'} · <strong>Breadwinner:</strong> ${rec.breadwinner||'-'}</div>
+    <div style="margin:6px 0"><strong>Priority:</strong> ${rec.priority||'-'}</div>
+    <div style="margin:6px 0"><strong>Current Cover:</strong> ${rec.cover||'-'}</div>
+    <div style="margin:6px 0"><strong>Budget Guide:</strong> ${rec.budget||'-'} (${toMonthly(rec.budget||'')})</div>
+    <div style="margin:6px 0"><strong>Next Step:</strong> ${rec.slot||'-'}</div>
+    <div style="margin:6px 0"><strong>Send via:</strong> ${rec.consentQuick ? (rec.channels.join(', ')||'-') : 'not requested'}</div>
+    <div style="margin:6px 0"><strong>Advisor Notes:</strong> ${rec.notes||'—'}</div>
+    <hr style="border:0;border-top:1px solid #e5e7eb;margin:12px 0">
+    <div><strong>Suggested Direction:</strong> ${suggestByPriority(rec.priority||'')}</div>
+  `;
+}
+
+// print/share/new
+$('#btnPrint').onclick = ()=>window.print();
+$('#btnNew').onclick = ()=>{ clearForm(); showTab('new'); };
+$('#btnShare').onclick = async ()=>{
+  const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')[0];
+  const text = `Quick Result for ${s.name} (${fmtDateTime(s.createdAt)}): ${s.priority}. Budget ${s.budget}. Next step: ${s.slot}.`;
+  try{
+    if(navigator.share) await navigator.share({title:'Quick Result', text});
+    else{
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard.');
+    }
+  }catch(e){}
+};
+</script>
+</body>
+</html>
