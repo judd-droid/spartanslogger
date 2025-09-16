@@ -683,6 +683,13 @@
         else if(n===1 && !form.firstMeeting) setForm(f=>({...f,firstMeeting:true}));
       },[form.meetingCount]);
 
+      // If Paid is unchecked, clear amounts and product
+      useEffect(() => {
+        if (!form.casePaid) {
+          setForm(f => ({ ...f, fyp: "", fyc: "", product: "" }));
+        }
+      }, [form.casePaid]);
+
       // A) Flush outbox when it changes, and when the device comes back online
       useEffect(() => {
         // inside useEffect(() => { const flushOutbox = async () => { ... } }, [outbox])
