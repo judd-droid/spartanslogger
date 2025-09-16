@@ -798,7 +798,7 @@
       };
 
       const pendingCount = outbox.length;
-      const canEditAmounts = !!(form.appSubmitted || form.casePaid || form.caseApproved);
+      const canEditAmounts = !!form.casePaid;
       
       return (
         <Page>
