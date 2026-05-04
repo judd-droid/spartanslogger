@@ -102,7 +102,53 @@
     const LOGO_SRC = "./supernova-wordmark.png";
     
     // replace the whole TopBar component with this:
-    const TopBar = ({ settingsOpen, onToggleSettings, pendingCount }) => (
+    const WeeklyAppointmentGoal = ({ slots }) => (
+      <div
+        className="mt-3 grid gap-1.5"
+        style={{ gridTemplateColumns: "repeat(15, minmax(0, 1fr))" }}
+        aria-label={`${slots.filter(slot => slot !== "empty").length} of 15 appointments logged this week`}
+      >
+        {slots.map((slot, index) => {
+          const isPaid = slot === "paid";
+          const isMeeting = slot === "meeting" || isPaid;
+          return (
+            <span
+              key={index}
+              title={
+                isPaid
+                  ? `Appointment ${index + 1}: paid sale`
+                  : isMeeting
+                    ? `Appointment ${index + 1}: meeting`
+                    : `Appointment ${index + 1}: open`
+              }
+              className={cls(
+                "relative flex h-4 w-full min-w-0 items-center justify-center rounded-[4px] border shadow-sm",
+                isMeeting
+                  ? "border-emerald-700 bg-emerald-600"
+                  : "border-slate-300 bg-white"
+              )}
+            >
+              {isPaid && (
+                <svg
+                  viewBox="0 0 12 10"
+                  className="h-3 w-3 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M1.5 5.1 4.4 8 10.5 1.5" />
+                </svg>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    );
+
+    const TopBar = ({ settingsOpen, onToggleSettings, pendingCount, weeklyGoalSlots }) => (
       <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 rounded-b-2xl shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-4">
           <img src={LOGO_SRC} alt="Supernova Financial" className="h-12 md:h-14 select-none" />
@@ -131,9 +177,12 @@
         </div>
     
         <div className="flex items-center justify-between px-4 pt-2 pb-5">
-          <div className="flex items-center gap-2">
-            <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
-            <h1 className="text-xl md:text-2xl font-bold leading-tight">Appointment 15 Logger</h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
+              <h1 className="text-xl md:text-2xl font-bold leading-tight">Appointment 15 Logger</h1>
+            </div>
+            <WeeklyAppointmentGoal slots={weeklyGoalSlots} />
           </div>
         </div>
     
@@ -797,6 +846,32 @@
         setEditingId(null); resetForm(); setIsSending(false);
       };
 
+      const weeklyGoalSlots = useMemo(() => {
+        const today = new Date();
+        const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const daysSinceMonday = (monday.getDay() + 6) % 7;
+        monday.setDate(monday.getDate() - daysSinceMonday);
+
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const weekStart = toLocalISO(monday);
+        const weekEnd = toLocalISO(sunday);
+        const paidValues = new Set(["Yes", "yes", "true", true]);
+
+        const meetingsThisWeek = history
+          .filter(r => r && r.kind !== "prospecting" && r.date >= weekStart && r.date <= weekEnd)
+          .slice()
+          .sort((a, b) => `${a.date || ""} ${a.appointmentTime || ""}`.localeCompare(`${b.date || ""} ${b.appointmentTime || ""}`))
+          .slice(0, 15);
+
+        return Array.from({ length: 15 }, (_, index) => {
+          const meeting = meetingsThisWeek[index];
+          if (!meeting) return "empty";
+          return paidValues.has(meeting.casePaid) ? "paid" : "meeting";
+        });
+      }, [history]);
+
       const pendingCount = outbox.length;
       const canEditAmounts = !!form.casePaid;
       
@@ -805,7 +880,7 @@
           <TopBar settingsOpen={openSettings} onToggleSettings={() => {
             pauseTimer();                       // PAUSE on Settings
             setOpenSettings(v => !v);
-          }} pendingCount={pendingCount} />
+          }} pendingCount={pendingCount} weeklyGoalSlots={weeklyGoalSlots} />
 
           <Slide open={openSettings}>
             <Section title="SETTINGS">
