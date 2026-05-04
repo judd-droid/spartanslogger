@@ -888,7 +888,7 @@
         const meetingsThisWeek = history
           .filter(r => r && r.kind !== "prospecting" && r.date >= weekStart && r.date <= weekEnd)
           .slice()
-          .sort((a, b) => `${b.date || ""} ${b.appointmentTime || ""}`.localeCompare(`${a.date || ""} ${a.appointmentTime || ""}`))
+          .sort((a, b) => `${a.date || ""} ${a.appointmentTime || ""}`.localeCompare(`${b.date || ""} ${b.appointmentTime || ""}`))
           .slice(0, 15);
 
         return Array.from({ length: 15 }, (_, index) => {
