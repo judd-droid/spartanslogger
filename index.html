@@ -793,6 +793,30 @@
         }
       }, [settings.advisorName, settings.syncKey]);
 
+      // Big Board MTD numbers
+      const [bbStats, setBbStats] = useState({ loading:false, fyc:null, cases:null, error:"" });
+      const fetchBbStats = async () => {
+        if (!settings.advisorName || !settings.syncKey) return;
+        setBbStats(s => ({ ...s, loading:true, error:"" }));
+        try {
+          const url = `/api/sync?path=bigboard&advisor=${encodeURIComponent(settings.advisorName)}&key=${encodeURIComponent(settings.syncKey)}`;
+          const r = await fetch(url);
+          const j = await r.json().catch(()=>({}));
+          if (!r.ok || j.ok === false) {
+            setBbStats({ loading:false, fyc:null, cases:null, error: j.error || `HTTP ${r.status}` });
+            return;
+          }
+          setBbStats({ loading:false, fyc:Number(j.fyc||0), cases:Number(j.cases||0), error:"" });
+        } catch (e) {
+          setBbStats({ loading:false, fyc:null, cases:null, error: String(e) });
+        }
+      };
+      useEffect(() => { fetchBbStats(); }, [settings.advisorName, settings.syncKey]);
+      const monthYearLabel = useMemo(() => {
+        const d = new Date();
+        return `${d.toLocaleString("en-US",{month:"long"})} ${d.getFullYear()} Numbers`;
+      }, []);
+
       // Fire a one-off pull when name or key becomes valid
       useEffect(() => {
         if (settings.advisorName && settings.syncKey) {
@@ -1040,6 +1064,39 @@
 
           {tab==="log" && (
             <>
+              <Section
+                title={monthYearLabel}
+                right={
+                  <button
+                    type="button"
+                    onClick={fetchBbStats}
+                    className="text-xs font-medium text-slate-500 hover:text-slate-800"
+                    disabled={bbStats.loading}
+                  >
+                    {bbStats.loading ? "Refreshing…" : "Refresh"}
+                  </button>
+                }
+              >
+                {bbStats.error ? (
+                  <div className="text-sm text-rose-600">Couldn't load: {bbStats.error}</div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-slate-50 p-3 text-center">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">FYC</div>
+                      <div className="mt-1 text-2xl font-bold text-slate-900">
+                        {bbStats.fyc == null ? "—" : `₱${bbStats.fyc.toLocaleString("en-PH",{maximumFractionDigits:0})}`}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3 text-center">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cases</div>
+                      <div className="mt-1 text-2xl font-bold text-slate-900">
+                        {bbStats.cases == null ? "—" : bbStats.cases}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Section>
+
               <Section title="Prospect">
                 <LabeledInput label="Prospect Name *">
                   <TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Juan Dela Cruz"/>
