@@ -58,14 +58,6 @@ module.exports = async (req, res) => {
         if (!BB_URL || !BB_KEY) {
           return res.status(500).json({ ok:false, error:"Missing BIGBOARD_API_URL or LOGGER_API_KEY" });
         }
-        if (req.query.debug === "1") {
-          return res.status(200).json({
-            BB_URL,
-            BB_KEY_length: BB_KEY.length,
-            BB_KEY_first6: BB_KEY.slice(0, 6),
-            BB_KEY_last6: BB_KEY.slice(-6),
-          });
-        }
 
         const resolveUrl = `${GAS_URL}?path=resolveAdvisor&advisor=${encodeURIComponent(canonical)}`;
         const rr = await fetch(resolveUrl);
