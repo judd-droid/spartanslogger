@@ -50,6 +50,29 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === "GET") {
+      const path = (req.query.path || "").toString();
+
+      if (path === "bigboard") {
+        const BB_URL = process.env.BIGBOARD_API_URL;
+        const BB_KEY = process.env.LOGGER_API_KEY;
+        if (!BB_URL || !BB_KEY) {
+          return res.status(500).json({ ok:false, error:"Missing BIGBOARD_API_URL or LOGGER_API_KEY" });
+        }
+
+        const resolveUrl = `${GAS_URL}?path=resolveAdvisor&advisor=${encodeURIComponent(canonical)}`;
+        const rr = await fetch(resolveUrl);
+        const resolved = await rr.json().catch(() => ({}));
+        const fullName = resolved && resolved.fullName;
+        if (!fullName) return res.status(404).json({ ok:false, error:"No Logger Name match in Roster" });
+
+        const bbUrl = `${BB_URL.replace(/\/$/, "")}/api/logger/summary?advisor=${encodeURIComponent(fullName)}`;
+        const br = await fetch(bbUrl, { headers: { Authorization: `Bearer ${BB_KEY}` } });
+        const text = await br.text();
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(br.ok ? 200 : br.status || 502).send(text);
+      }
+
       // forward pulls
       const since = (req.query.since || "").toString();
       const url = `${GAS_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(canonical)}`;
