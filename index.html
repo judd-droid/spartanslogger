@@ -1067,14 +1067,9 @@
               <Section
                 title={monthYearLabel}
                 right={
-                  <button
-                    type="button"
-                    onClick={fetchBbStats}
-                    className="text-xs font-medium text-slate-500 hover:text-slate-800"
-                    disabled={bbStats.loading}
-                  >
-                    {bbStats.loading ? "Refreshing…" : "Refresh"}
-                  </button>
+                  bbStats.loading ? (
+                    <span className="text-xs font-medium text-slate-500">Loading…</span>
+                  ) : null
                 }
               >
                 {bbStats.error ? (
