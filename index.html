@@ -423,10 +423,6 @@
         </div>
       );
     };
-    const Badge = ({children}) => (
-      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-[1px] text-[11px] font-semibold leading-tight text-emerald-700">{children}</span>
-    );
-
     async function sendToEndpoint(url, record){
       const sameOrigin = url.startsWith('/') || url.startsWith(location.origin);
       try{
@@ -1185,19 +1181,24 @@
 
           {tab==="history" && (
             <Section title="Local History">
-              <div className="space-y-2">
+              <div className="divide-y divide-slate-200">
                 {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
                 {history.map(r=>{
-                  const hasBadges = r.factFinding==="Yes"||r.appSubmitted==="Yes"||r.casePaid==="Yes"||r.caseApproved==="Yes";
                   const hasMoney = !!r.fyp || !!r.fyc;
                   const hasProduct = !!r.product;
                   const hasStats = hasMoney || hasProduct;
+                  const steps = [
+                    r.factFinding==="Yes" && "KYC Done",
+                    r.appSubmitted==="Yes" && "Submitted",
+                    r.casePaid==="Yes" && "Paid",
+                    r.caseApproved==="Yes" && "Approved",
+                  ].filter(Boolean);
                   const metaBits = [
                     r.meetingPlace||"—",
                     r.firstMeeting==="Yes" ? "First meeting" : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—"),
                   ];
                   return (
-                    <div key={r.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                    <div key={r.id} className="py-3 first:pt-0">
                       {/* header: name + date/time */}
                       <div className="flex items-baseline justify-between gap-2">
                         <div className="flex-1 min-w-0 font-semibold text-base leading-tight break-words">{r.prospect}</div>
@@ -1214,20 +1215,18 @@
                         )}
                       </div>
 
-                      {/* body: badges + stats on the left, Edit on the right */}
-                      {(hasBadges || hasStats) && <div className="my-2 h-px bg-slate-100"></div>}
+                      {/* steps done as plain text */}
+                      {steps.length>0 && (
+                        <div className="mt-1 text-[11px] font-medium text-emerald-700 leading-tight">
+                          {steps.join("  ·  ")}
+                        </div>
+                      )}
+
+                      {/* stats + Edit */}
                       <div className="mt-1 flex items-end justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          {hasBadges && (
-                            <div className="flex flex-wrap gap-1">
-                              {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
-                              {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
-                              {r.casePaid==="Yes" && <Badge>Paid</Badge>}
-                              {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
-                            </div>
-                          )}
+                        <div className="min-w-0 flex-1 text-[11px] text-slate-600 leading-tight">
                           {hasStats && (
-                            <div className={cls("flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-600 leading-tight", hasBadges && "mt-1.5")}>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                               {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
                               {r.fyc && <span className="text-slate-400">•</span>}
                               {r.fyc && <span>FYC ₱{Number(r.fyc).toLocaleString()}</span>}
