@@ -424,7 +424,7 @@
       );
     };
     const Badge = ({children}) => (
-      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{children}</span>
+      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2 py-[1px] text-[11px] font-semibold leading-tight text-emerald-700">{children}</span>
     );
 
     async function sendToEndpoint(url, record){
@@ -1185,108 +1185,64 @@
 
           {tab==="history" && (
             <Section title="Local History">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
                 {history.map(r=>{
                   const hasBadges = r.factFinding==="Yes"||r.appSubmitted==="Yes"||r.casePaid==="Yes"||r.caseApproved==="Yes";
                   const hasMoney = !!r.fyp || !!r.fyc;
                   const hasProduct = !!r.product;
                   const hasStats = hasMoney || hasProduct;
+                  const metaBits = [
+                    r.meetingPlace||"—",
+                    r.firstMeeting==="Yes" ? "First meeting" : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—"),
+                  ];
                   return (
-                    <div key={r.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0 font-semibold text-lg leading-tight break-words">{r.prospect}</div>
-                        <div className="shrink-0 flex items-center gap-2">
-                          <div className="whitespace-nowrap text-xs text-slate-500">{r.date} {r.appointmentTime}</div>
+                    <div key={r.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                      {/* header: name + date/time */}
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex-1 min-w-0 font-semibold text-base leading-tight break-words">{r.prospect}</div>
+                        <div className="shrink-0 whitespace-nowrap text-[11px] text-slate-500">{r.date} {r.appointmentTime}</div>
+                      </div>
+
+                      {/* meta: place • meeting • referrals */}
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate-600 leading-tight">
+                        <span>{metaBits[0]}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className={r.firstMeeting==="Yes"?"text-emerald-600":""}>{metaBits[1]}</span>
+                        {Number(r.referralsGiven)>0 && (
+                          <><span className="text-slate-300">•</span><span>Referrals: {Number(r.referralsGiven)}</span></>
+                        )}
+                      </div>
+
+                      {/* body: badges + stats on the left, Edit on the right */}
+                      {(hasBadges || hasStats) && <div className="my-2 h-px bg-slate-100"></div>}
+                      <div className="mt-1 flex items-end justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          {hasBadges && (
+                            <div className="flex flex-wrap gap-1">
+                              {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
+                              {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
+                              {r.casePaid==="Yes" && <Badge>Paid</Badge>}
+                              {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
+                            </div>
+                          )}
+                          {hasStats && (
+                            <div className={cls("flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-600 leading-tight", hasBadges && "mt-1.5")}>
+                              {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
+                              {r.fyc && <span className="text-slate-400">•</span>}
+                              {r.fyc && <span>FYC ₱{Number(r.fyc).toLocaleString()}</span>}
+                              {hasProduct && hasMoney && <span className="text-slate-300">·</span>}
+                              {hasProduct && <span>{r.product}</span>}
+                            </div>
+                          )}
                         </div>
+                        <button
+                          className="shrink-0 self-end rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-50 active:scale-[0.98]"
+                          onClick={() => startEdit(r)}
+                        >
+                          Edit
+                        </button>
                       </div>
-
-                      <div className="mt-1 text-xs text-slate-600 flex items-center gap-1">
-                        <span>{r.meetingPlace||"—"}</span><span>•</span>
-                        <span className={r.firstMeeting==="Yes"?"text-emerald-600":""}>
-                          {r.firstMeeting==="Yes" ? "First meeting" : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—")}
-                        </span>
-                      </div>
-                      {Number(r.referralsGiven)>0 && <div className="mt-1 text-xs text-slate-600">Referrals: {Number(r.referralsGiven)}</div>}
-
-                      <>
-                        {/* divider under the header */}
-                        <div className="my-3 h-px bg-slate-200"></div>
-                        
-                          {hasBadges && !hasStats && (
-                            <>
-                              {/* Case A: badges present, no money/product */}
-                              <div className="mt-2 flex justify-between items-start">
-                                <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                                  {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
-                                  {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
-                                  {r.casePaid==="Yes" && <Badge>Paid</Badge>}
-                                  {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
-                                </div>
-                          
-                                <button className={cls(btnSecondary, "self-start")} onClick={() => startEdit(r)}>
-                                  Edit
-                                </button>
-                              </div>
-                            </>
-                          )}
-                          
-                          {hasBadges && hasStats && (
-                            <>
-                              {/* Case B: badges + sales → keep the two-row layout */}
-                              <div className="flex flex-wrap gap-2 text-[11px] sm:text-xs">
-                                {r.factFinding==="Yes" && <Badge>KYC Done</Badge>}
-                                {r.appSubmitted==="Yes" && <Badge>Submitted</Badge>}
-                                {r.casePaid==="Yes" && <Badge>Paid</Badge>}
-                                {r.caseApproved==="Yes" && <Badge>Approved</Badge>}
-                              </div>
-                          
-                              <div className="my-3 h-px bg-slate-200"></div>
-                          
-                              <div className="mt-2 flex items-center justify-between">
-                                <div>
-                                  {hasMoney && (
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                                      {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
-                                    </div>
-                                  )}
-                                  {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
-                                </div>
-                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                              </div>
-                            </>
-                          )}
-                          
-                          {!hasBadges && hasStats && (
-                            <>
-                              {/* Case C: no badges, but has sales → show sales row with Edit on the right */}
-                              <div className="mt-2 flex items-center justify-between">
-                                <div>
-                                  {hasMoney && (
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
-                                      {r.fyp && <span>FYP ₱{Number(r.fyp).toLocaleString()}</span>}
-                                      {r.fyc && <span>• FYC ₱{Number(r.fyc).toLocaleString()}</span>}
-                                    </div>
-                                  )}
-                                  {hasProduct && <div className="mt-1 text-xs text-slate-600">{r.product}</div>}
-                                </div>
-                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                              </div>
-                            </>
-                          )}
-                          
-                          {!hasBadges && !hasStats && (
-                            <>
-                              {/* Case D: nothing else → tight row with Edit aligned to the right */}
-                              <div className="mt-2 flex justify-end">
-                                <button className={btnSecondary} onClick={() => startEdit(r)}>Edit</button>
-                              </div>
-                            </>
-                          )}
-
-                      </>
-
                     </div>
                   );
                 })}
