@@ -76,6 +76,30 @@
     const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
     const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:"long"});
 
+    // --- History identity / de-duplication ---
+    // A stable content signature so the same appointment is recognised across
+    // devices/syncs even when the server row carries no (or a different) id.
+    const histNorm = (v) => (v==null?"":String(v)).trim().toLowerCase();
+    const histSig = (r) => [histNorm(r.advisor), histNorm(r.prospect), histNorm(r.date), histNorm(r.appointmentTime)].join("|");
+    // Collapse identical appointments, keeping the first seen and back-filling
+    // any fields it is missing from later copies.
+    const dedupeHistory = (list) => {
+      const seen = new Map();   // signature -> index in out
+      const out = [];
+      for (const r of Array.isArray(list) ? list : []) {
+        if (!r) continue;
+        const sig = histSig(r);
+        if (histNorm(r.prospect) && seen.has(sig)) {
+          const i = seen.get(sig);
+          out[i] = { ...r, ...out[i] };   // existing wins; fill blanks from r
+          continue;
+        }
+        seen.set(sig, out.length);
+        out.push(r);
+      }
+      return out;
+    };
+
     const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1" };
     const LS_SYNC = { last: "sn.meet.lastsync.v1" };
 
@@ -499,7 +523,7 @@
 
       // run once after mount
       useEffect(() => {
-        setHistory(h => h.filter(rec => rec && rec.prospect && rec.kind !== "prospecting"));
+        setHistory(h => dedupeHistory(h.filter(rec => rec && rec.prospect && rec.kind !== "prospecting")));
       }, []);
 
       // --- Prospecting helpers ---
@@ -682,32 +706,53 @@
         if (!Array.isArray(updates) || updates.length === 0) return;
       
         setHistory(h => {
-          const byId = new Map(h.map((r, i) => [r.id, i]));
-          const byEntry = new Map(h.map((r, i) => [r.entryID, i]).filter(([k]) => !!k));
-          const next = h.slice();
-      
+          // Clone so we can safely mutate matched records in place.
+          const list = h.map(r => ({ ...r }));
+          const byId = new Map();
+          const byEntry = new Map();
+          const bySig = new Map();
+          for (const r of list) {
+            if (r.id != null) byId.set(String(r.id), r);
+            if (r.entryID) byEntry.set(String(r.entryID), r);
+            if (histNorm(r.prospect)) bySig.set(histSig(r), r);
+          }
+
+          const prepend = [];   // records genuinely new to this device
           for (const u of updates) {
-            const keyId = u.id != null ? String(u.id) : null;
-            const keyEntry = u.entryID != null ? String(u.entryID) : null;
-      
-            let idx = (keyId && byId.has(keyId)) ? byId.get(keyId) :
-                      (keyEntry && byEntry.has(keyEntry)) ? byEntry.get(keyEntry) : -1;
-      
             // Normalize a few fields so the UI stays consistent
             if (u.firstMeeting != null && (u.firstMeeting === true || u.firstMeeting === "true")) u.firstMeeting = "Yes";
             if (u.factFinding != null && (u.factFinding === true || u.factFinding === "true")) u.factFinding = "Yes";
             if (u.appSubmitted != null && (u.appSubmitted === true || u.appSubmitted === "true")) u.appSubmitted = "Yes";
             if (u.casePaid != null && (u.casePaid === true || u.casePaid === "true")) u.casePaid = "Yes";
             if (u.caseApproved != null && (u.caseApproved === true || u.caseApproved === "true")) u.caseApproved = "Yes";
-      
-            if (idx >= 0) {
-              next[idx] = { ...next[idx], ...u };     // overwrite with admin-edited version
+
+            const keyId = u.id != null ? String(u.id) : null;
+            const keyEntry = (u.entryID != null && u.entryID !== "") ? String(u.entryID) : null;
+            const sig = histSig(u);
+
+            // Match by id, then server entryID, then content signature.
+            const target =
+              (keyId && byId.get(keyId)) ||
+              (keyEntry && byEntry.get(keyEntry)) ||
+              (histNorm(u.prospect) && bySig.get(sig)) ||
+              null;
+
+            if (target) {
+              Object.assign(target, u);               // overwrite with admin-edited version
+              if (keyId) byId.set(keyId, target);
+              if (keyEntry) byEntry.set(keyEntry, target);
+              if (histNorm(target.prospect)) bySig.set(histSig(target), target);
             } else {
-              // new to this device; append at top
-              next.unshift({ id: keyId || crypto.randomUUID?.() || String(Date.now()), ...u });
+              // Deterministic id (from content) when the server sends none, so
+              // repeated pulls of the same row match instead of piling up.
+              const rec = { ...u, id: keyId || ("srv:" + sig) };
+              prepend.unshift(rec);                    // newest server rows on top
+              byId.set(String(rec.id), rec);
+              if (keyEntry) byEntry.set(keyEntry, rec);
+              if (histNorm(rec.prospect)) bySig.set(sig, rec);
             }
           }
-          return next;
+          return dedupeHistory([...prepend, ...list]);
         });
       
         // If any of the updates match outbox ids, remove them (server has them already)
