@@ -80,7 +80,11 @@
     // A stable content signature so the same appointment is recognised across
     // devices/syncs even when the server row carries no (or a different) id.
     const histNorm = (v) => (v==null?"":String(v)).trim().toLowerCase();
-    const histSig = (r) => [histNorm(r.advisor), histNorm(r.prospect), histNorm(r.date), histNorm(r.appointmentTime)].join("|");
+    // Identify an appointment by prospect + date + time. Advisor is deliberately
+    // excluded: history is single-advisor per device, and the server sometimes
+    // returns rows with a missing/differently-cased advisor, which would
+    // otherwise stop a local copy and its synced copy from collapsing.
+    const histSig = (r) => [histNorm(r.prospect), histNorm(r.date), histNorm(r.appointmentTime)].join("|");
     // Collapse identical appointments, keeping the first seen and back-filling
     // any fields it is missing from later copies.
     const dedupeHistory = (list) => {
