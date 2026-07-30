@@ -383,10 +383,10 @@
       </div>
     );
     const ChoiceGrid = ({ options, value, onChange }) => {
-      const cols = 2;
+      const cols = 3;
       const lastRowStart = (Math.ceil(options.length / cols) - 1) * cols;
       return (
-        <div className="grid grid-cols-2 overflow-hidden rounded-md border border-neutral-200">
+        <div className="grid grid-cols-3 overflow-hidden rounded-md border border-neutral-200">
           {options.map((opt, i)=>(
             <button key={opt} type="button" onClick={()=>onChange(opt)}
               className={cls("h-14 text-sm font-medium transition active:scale-[0.99] border-neutral-200",
@@ -1336,11 +1336,11 @@
               </Section>
 
               <Section title="Meeting Details" right={<span className="text-xs text-slate-500">{dayName(form.date)}</span>}>
-                <LabeledInput label="Meeting Place">
+                <LabeledInput label="Venue">
                   <ChoiceGrid options={MEETING_PLACES} value={form.meetingPlace} onChange={(v)=>setForm(f=>({...f,meetingPlace:v}))}/>
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
-                  <LabeledInput label="# of Meetings (so far)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
+                  <LabeledInput label="Meeting # (1, 2, 3…)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
                   <LabeledInput label="Referrals Given (count)"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
                 </div>
               </Section>
