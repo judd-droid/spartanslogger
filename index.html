@@ -9,15 +9,18 @@
       /* Supernova accent (kept as an accent, no longer the dominant colour) */
       --sn-red:#DD467D; --sn-red-light:#F7B4CC; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
       /* shadcn "neutral" design tokens (adopted from the Appt 5 Logger) */
-      --background:#ffffff; --foreground:#0a0a0a;
+      --background:#ffffff; --foreground:#171A2B;
       --card:#ffffff; --card-foreground:#0a0a0a;
       --muted:#f5f5f5; --muted-foreground:#737373;
       --border:#e5e5e5; --input:#e5e5e5; --ring:#0a0a0a;
       --primary:#171717; --primary-foreground:#fafafa;
-      --page:#f1f3f5;
+      --page:#F6F6FB;
       --emerald:#059669;
       --line:#e5e7eb;
       --radius:0.5rem;
+      /* Nova palette anchors */
+      --brand:#DD467D; --brand-deep:#C2356A;
+      --ink:#171A2B;
     }
     @supports (color: color-mix(in srgb, black, white)) {
       :root{ --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white); }
@@ -42,7 +45,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     window.tailwind = window.tailwind || {};
-    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','Helvetica','Arial','sans-serif'] } } } };
+    tailwind.config = { theme: { extend: {
+      fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','Helvetica','Arial','sans-serif'] },
+      colors: {
+        // Nova palette — magenta brand + navy ink (indigo/emerald/amber/rose come from Tailwind defaults)
+        brand: { 50:'#FCE7F0', 500:'#DD467D', 600:'#DD467D', 700:'#C2356A' },
+        ink: '#171A2B',
+      },
+    } } };
   </script>
   <link rel="preload" href="./supernova-wordmark.png" as="image">
 
@@ -79,8 +89,8 @@
 
     // ---- shadcn-style class tokens (adopted from the Appt 5 Logger) ----
     const btnPrimary =
-      "inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium " +
-      "text-white shadow-sm transition [@media(hover:hover)]:hover:bg-emerald-700 active:scale-[0.98] " +
+      "inline-flex items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium " +
+      "text-white shadow-sm transition [@media(hover:hover)]:hover:bg-brand-700 active:scale-[0.98] " +
       "disabled:opacity-50 disabled:pointer-events-none";
     const btnSecondary =
       "inline-flex items-center justify-center rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium " +
@@ -133,7 +143,7 @@
     const baseField =
       "flex w-full h-12 rounded-md border border-neutral-200 bg-white px-3 text-[16px] leading-none " +
       "shadow-sm outline-none transition placeholder:text-neutral-400 " +
-      "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1";
+      "focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1";
 
     const UNIT_OPTIONS = ["Supernova Direct","Aquila Direct","Stellar Direct","Aurora","Alphara"];
     const PRODUCT_OPTIONS = ["A+ Signature","ACP 100","ACP Plus","AHIP","AJCP","Ascend","Family Secure","Future Builder","Future Scholar","Goals Protect","Guardian 1","Guardian 5","Guardian 65","Health Achieve","Max Protect","Money Tree","Platinum Secure","Other"];
@@ -207,10 +217,12 @@
               onFocus={() => setHoveredSlotIndex(index)}
               onBlur={() => setHoveredSlotIndex(null)}
               className={cls(
-                "relative flex h-4 w-full min-w-0 items-center justify-center rounded-[3px] border shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-emerald-500",
-                isMeeting
+                "relative flex h-4 w-full min-w-0 items-center justify-center rounded-[3px] border shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-sky-500",
+                isPaid
                   ? "border-emerald-600 bg-emerald-600"
-                  : "border-neutral-300 bg-white"
+                  : isMeeting
+                    ? "border-indigo-600 bg-indigo-500"
+                    : "border-neutral-300 bg-white"
               )}
             >
               {isPaid && (
@@ -261,7 +273,7 @@
               className={cls(
                 "ml-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-sm transition",
                 settingsOpen
-                  ? "border-neutral-900 bg-neutral-900 text-neutral-50"
+                  ? "border-ink bg-ink text-neutral-50"
                   : "border-neutral-200 bg-white text-neutral-700 [@media(hover:hover)]:hover:bg-neutral-100"
               )}
             >
@@ -379,7 +391,7 @@
                 (i % cols !== cols - 1) && "border-r",
                 (i < lastRowStart) && "border-b",
                 value===opt
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-indigo-500 text-white"
                   : "bg-white text-neutral-800 [@media(hover:hover)]:hover:bg-neutral-50")}>
               {opt}
             </button>
@@ -466,7 +478,7 @@
         onClick={() => setTab(id)}
         className={cls(
           "h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
-          active ? "bg-emerald-600 text-white" : "text-neutral-600 [@media(hover:hover)]:hover:bg-neutral-100"
+          active ? "bg-brand-600 text-white" : "text-neutral-600 [@media(hover:hover)]:hover:bg-neutral-100"
         )}
         aria-pressed={active}
         aria-label={ariaLabel || label}
@@ -504,7 +516,7 @@
                   (i % cols !== cols - 1) && "border-r",
                   (i < lastRowStart) && "border-b",
                   value
-                    ? "bg-emerald-600 text-white"
+                    ? "bg-indigo-500 text-white"
                     : "bg-white text-neutral-700 [@media(hover:hover)]:hover:bg-neutral-50")}>
                 <span className="text-left">{it.label}</span>
                 <span className={cls("text-sm font-semibold tracking-wide", value ? "text-white" : "text-neutral-400")}>{value?"YES":"NO"}</span>
@@ -517,11 +529,11 @@
 
     const Toast = ({ text, quote, type="ok", onClose }) => {
       React.useEffect(()=>{ const t=setTimeout(onClose,3000); navigator.vibrate?.(40); return ()=>clearTimeout(t); },[onClose]);
-      const accent = type==="ok" ? "bg-emerald-500" : type==="warn" ? "bg-amber-500" : "bg-red-500";
+      const accent = type==="ok" ? "bg-emerald-500" : type==="warn" ? "bg-amber-500" : "bg-rose-500";
       return (
         <div className="fixed inset-0 z-[120] flex items-start justify-center pointer-events-none" role="status" aria-live="polite">
           <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out] w-[min(92vw,26rem)]">
-            <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 text-neutral-50 shadow-2xl">
+            <div className="overflow-hidden rounded-lg border border-ink bg-ink text-neutral-50 shadow-2xl">
               <div className="flex items-center gap-3 px-4 py-3">
                 <span className={cls("h-2.5 w-2.5 shrink-0 rounded-full", accent)} />
                 <div className="min-w-0">
@@ -696,7 +708,7 @@
           <div
             className={cls(
               "flex items-center justify-center select-none shadow-sm",
-              "border border-emerald-300 bg-emerald-50 text-emerald-700 font-black tabular-nums",
+              "border border-indigo-300 bg-indigo-50 text-indigo-700 font-black tabular-nums",
               // responsive size (phone → desktop)
               "w-[clamp(3.0rem,6vw,4.4rem)] h-[clamp(3.4rem,7vw,5.2rem)]",
               "text-[clamp(1.9rem,5.5vw,3.2rem)]",
@@ -718,7 +730,7 @@
           <div className="flex items-center justify-center gap-3 select-none">
             <DigitBox d={m1} />
             <DigitBox d={m2} />
-            <span className="text-4xl md:text-5xl font-black text-emerald-700">:</span>
+            <span className="text-4xl md:text-5xl font-black text-indigo-700">:</span>
             <DigitBox d={s1} />
             <DigitBox d={s2} />
           </div>
@@ -1331,7 +1343,7 @@
                 <button onClick={handleSubmit} disabled={isSending}
                   className={cls(
                     "flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98]",
-                    isSending ? "bg-emerald-600/60 cursor-not-allowed" : "bg-emerald-600 [@media(hover:hover)]:hover:bg-emerald-700"
+                    isSending ? "bg-brand-600/60 cursor-not-allowed" : "bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
                   )}>
                   {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
                 </button>
@@ -1352,7 +1364,7 @@
                     onChange={(e)=>setHistoryQuery(e.target.value)}
                     type="text"
                     placeholder="Search name, place, product…"
-                    className="w-full h-11 rounded-md border border-neutral-200 bg-white pl-9 pr-9 text-[14px] leading-none shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                    className="w-full h-11 rounded-md border border-neutral-200 bg-white pl-9 pr-9 text-[14px] leading-none shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
                   />
                   {historyQuery && (
                     <button
@@ -1397,7 +1409,7 @@
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate-600 leading-tight">
                         <span>{metaBits[0]}</span>
                         <span className="text-slate-300">•</span>
-                        <span className={r.firstMeeting==="Yes"?"text-emerald-600":""}>{metaBits[1]}</span>
+                        <span className={r.firstMeeting==="Yes"?"text-indigo-600":""}>{metaBits[1]}</span>
                         {Number(r.referralsGiven)>0 && (
                           <><span className="text-slate-300">•</span><span>Referrals: {Number(r.referralsGiven)}</span></>
                         )}
@@ -1463,7 +1475,7 @@
                         <DigitBox d={mm[1]} />
                       </div>
                 
-                      <span className="text-emerald-700 font-black select-none
+                      <span className="text-indigo-700 font-black select-none
                                        text-[clamp(1.8rem,6vw,3.4rem)]">:</span>
                 
                       <div className="flex gap-[clamp(0.4rem,1.6vw,0.9rem)]">
@@ -1525,7 +1537,7 @@
           
               <button
                 onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
-                className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-emerald-600 [@media(hover:hover)]:hover:bg-emerald-700"
+                className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
               >
                 Submit
               </button>
