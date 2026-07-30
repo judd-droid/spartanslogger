@@ -295,11 +295,13 @@
       );
     };
         
-    const Section = ({title,children,right}) => (
-      <section className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+    const Section = ({title,children,right,muted=false}) => (
+      <section className={cls("mb-4 rounded-lg border border-neutral-200 p-4 shadow-sm transition-colors",
+        muted ? "bg-neutral-100" : "bg-white")}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>{right}
-        </div>{children}
+          <h2 className={cls("text-sm font-semibold", muted ? "text-neutral-400" : "text-neutral-900")}>{title}</h2>{right}
+        </div>
+        <div className={cls(muted && "pointer-events-none opacity-50")}>{children}</div>
       </section>
     );
     const LabeledInput = ({label,children}) => (
@@ -1016,6 +1018,33 @@
         {key:"caseApproved",label:"Approved?"},
       ],[]);
 
+      const normName = (s)=>(s||"").trim().toLowerCase();
+
+      // Prospect matches for the typeahead: shown once 3+ letters are typed.
+      // Each entry carries how many meetings are already logged for that name.
+      const [showMatches,setShowMatches] = useState(false);
+      const prospectMatches = useMemo(()=>{
+        const q = normName(form.prospectName);
+        if(q.length<3) return [];
+        const byName = new Map();
+        for(const r of history){
+          if(r.id===editingId) continue;
+          const k = normName(r.prospect);
+          if(!k || !k.includes(q)) continue;
+          const cur = byName.get(k) || { name:(r.prospect||"").trim(), count:0, last:null, lastStamp:"" };
+          cur.count++;
+          const stamp = `${r.date} ${r.appointmentTime||""}`;
+          if(stamp>cur.lastStamp){ cur.lastStamp=stamp; cur.last={date:r.date, place:r.meetingPlace}; }
+          byName.set(k, cur);
+        }
+        return [...byName.values()].sort((a,b)=>a.name.localeCompare(b.name)).slice(0,8);
+      },[history, form.prospectName, editingId]);
+
+      function pickProspect(m){
+        setForm(f=>({...f, prospectName:m.name, meetingCount:m.count+1, firstMeeting:false}));
+        setShowMatches(false);
+      }
+
       function recordToForm(r){
         return {
           prospectName:r.prospect||"", date:r.date||todayISODate(), time:r.appointmentTime||nowHM(),
@@ -1273,7 +1302,32 @@
 
               <Section title="Prospect">
                 <LabeledInput label="Prospect Name *">
-                  <TextInput value={form.prospectName} onChange={v=>setForm(f=>({...f,prospectName:v}))} placeholder="e.g., Juan Dela Cruz"/>
+                  <div className="relative">
+                    <input
+                      value={form.prospectName}
+                      onChange={(e)=>{ setForm(f=>({...f,prospectName:e.target.value})); setShowMatches(true); }}
+                      onFocus={()=>setShowMatches(true)}
+                      onBlur={()=>setTimeout(()=>setShowMatches(false),150)}
+                      placeholder="e.g., Juan Dela Cruz"
+                      autoComplete="off"
+                      className={baseField}
+                    />
+                    {showMatches && prospectMatches.length>0 && (
+                      <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-200 bg-white shadow-lg">
+                        {prospectMatches.map(m=>(
+                          <li key={m.name}>
+                            <button type="button" onMouseDown={(e)=>e.preventDefault()} onClick={()=>pickProspect(m)}
+                              className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm [@media(hover:hover)]:hover:bg-neutral-100">
+                              <span className="min-w-0 truncate font-medium text-neutral-800">{m.name}</span>
+                              <span className="shrink-0 text-xs text-neutral-500">
+                                {m.count===1?"1 meeting":`${m.count} meetings`}{m.last?` · last ${m.last.date}`:""}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="Date"><TextInput type="date" value={form.date} onChange={v=>setForm(f=>({...f,date:v}))}/></LabeledInput>
@@ -1291,11 +1345,12 @@
                 </div>
               </Section>
 
-              <Section title="What happened? (tap to toggle)">
+              <Section title="What Happened">
                 <YesNoGrid items={yesNoItems} form={form} setForm={setForm}/>
               </Section>
 
-              <Section title="Amounts & Product (optional)">
+              <Section title="Amounts & Product" muted={!canEditAmounts}
+                right={<span className={cls("text-xs", canEditAmounts ? "text-emerald-700" : "text-neutral-400")}>{canEditAmounts ? "Required" : "Set Paid to Yes"}</span>}>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="FYP (₱)">
                     <MoneyInput
