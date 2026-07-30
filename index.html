@@ -557,6 +557,15 @@
 
       // Jump to a tab, but first cancel any edit and close Settings.
       const goToTab = (dest) => {
+        // Morning Meeting Tracker is an external MS Form — open it in the
+        // user's default browser (new tab/window) instead of an in-app view.
+        // The logger stays open in its own window, so returning is just a
+        // matter of switching back to it.
+        if (dest === "morning") {
+          pauseTimer();
+          window.open(MORNING_FORM_URL, "_blank", "noopener,noreferrer");
+          return;                             // don't change the active tab
+        }
         pauseTimer();                         // PAUSE on New Meeting/History/Prospecting switch
         if (openSettings) setOpenSettings(false);   // close Settings if open
         if (editingId) {
@@ -1417,49 +1426,6 @@
             </div>
           )}
           
-          {tab==="morning" && (
-            <Section
-              title="Morning Meeting Tracker"
-              right={
-                <button
-                  type="button"
-                  onClick={() => goToTab("log")}
-                  className={btnSecondary}
-                >
-                  ← Back to Logger
-                </button>
-              }
-            >
-              <p className="mb-3 text-sm text-slate-600">
-                Fill out today’s Morning Meeting Tracker below. When you’re done, tap
-                <span className="font-semibold"> “← Back to Logger”</span> above (or use the nav bar)
-                to return to the app.
-              </p>
-
-              {/* Embedded MS Form. If it can’t be embedded, use the button below. */}
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <iframe
-                  src={MORNING_FORM_URL}
-                  title="Morning Meeting Tracker"
-                  className="w-full"
-                  style={{ height: "70vh", border: "0" }}
-                  allowFullScreen
-                />
-              </div>
-
-              <div className="mt-3 text-center">
-                <a
-                  href={MORNING_FORM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-semibold text-[var(--sn-red)] underline"
-                >
-                  Form not loading? Open in a new tab
-                </a>
-              </div>
-            </Section>
-          )}
-
           {tab==="recruit" && (
             <Section title="Recruit">
               <div className="flex flex-col items-center justify-center py-10 text-center">
