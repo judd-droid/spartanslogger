@@ -495,7 +495,7 @@
 
     const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
-        <div className="pointer-events-auto rounded-xl border border-neutral-300 bg-neutral-200 p-1.5 grid grid-cols-5 gap-1 shadow-lg">
+        <div className="pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-5 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
