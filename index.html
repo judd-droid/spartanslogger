@@ -6,34 +6,44 @@
   <title>Appointment 15 Logger</title>
   <style>
     :root{
+      /* Supernova accent (kept as an accent, no longer the dominant colour) */
       --sn-red:#DD467D; --sn-red-light:#F7B4CC; --sn-black:#111827; --sn-gray:#6b7280; --sn-orange:#ea580c;
-      --rec-bg:#f9fafb; --bg:#f8fafc; --card:#ffffff; --line:#e5e7eb;
-      --steel-0:#f3f6fb; --steel-1:#e5ecf5; --steel-2:#cfd9e6; --steel-3:#aebbd0;
+      /* shadcn "neutral" design tokens (adopted from the Appt 5 Logger) */
+      --background:#ffffff; --foreground:#0a0a0a;
+      --card:#ffffff; --card-foreground:#0a0a0a;
+      --muted:#f5f5f5; --muted-foreground:#737373;
+      --border:#e5e5e5; --input:#e5e5e5; --ring:#0a0a0a;
+      --primary:#171717; --primary-foreground:#fafafa;
+      --page:#f1f3f5;
+      --emerald:#059669;
+      --line:#e5e7eb;
+      --radius:0.5rem;
     }
     @supports (color: color-mix(in srgb, black, white)) {
       :root{ --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white); }
     }
     html,body{min-height:100%}
     body{
-      background-color:var(--steel-1);
+      background-color:var(--page);
+      color:var(--foreground);
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    }
-    @supports (height:100dvh){ body::before{height:100dvh} }
-    body::before{
-      content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-      background:
-        radial-gradient(1100px 700px at 0% 0%, rgba(99,102,241,.10), transparent 60%),
-        radial-gradient(900px 600px at 100% 0%, rgba(14,165,233,.10), transparent 55%),
-        linear-gradient(145deg, var(--steel-0) 0%, var(--steel-1) 32%, var(--steel-2) 66%, var(--steel-3) 100%);
+      font-family:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
     @keyframes toastIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
     @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
     input,select,button,textarea{font:inherit;font-size:16px}
     input[type="date"],input[type="time"]{
-      -webkit-appearance:none;appearance:none;height:3rem;line-height:3rem;padding:0 1rem;font-size:16px;font-variant-numeric:tabular-nums;
+      -webkit-appearance:none;appearance:none;height:3rem;line-height:3rem;padding:0 .75rem;font-size:16px;font-variant-numeric:tabular-nums;
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','-apple-system','Segoe UI','Roboto','Helvetica','Arial','sans-serif'] } } } };
+  </script>
   <link rel="preload" href="./supernova-wordmark.png" as="image">
 
   <!-- Favicon (desktop browsers, bookmarks, tabs) -->
@@ -67,12 +77,20 @@
     // If your proxy doesn’t support subpaths, use this instead:
     // const PROSPECT_URL = `${SYNC_URL}?path=prospecting`;
 
+    // ---- shadcn-style class tokens (adopted from the Appt 5 Logger) ----
+    const btnPrimary =
+      "inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium " +
+      "text-white shadow-sm transition [@media(hover:hover)]:hover:bg-emerald-700 active:scale-[0.98] " +
+      "disabled:opacity-50 disabled:pointer-events-none";
     const btnSecondary =
-      "rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold " +
-      "text-slate-900 shadow-sm hover:bg-slate-50 active:scale-[0.98] " +
-      "disabled:opacity-60 disabled:cursor-not-allowed";
+      "inline-flex items-center justify-center rounded-md border border-neutral-200 bg-white px-4 py-2 text-sm font-medium " +
+      "text-neutral-900 shadow-sm transition [@media(hover:hover)]:hover:bg-neutral-100 active:scale-[0.98] " +
+      "disabled:opacity-50 disabled:pointer-events-none";
+    const btnDestructive =
+      "inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium " +
+      "text-red-600 shadow-sm transition [@media(hover:hover)]:hover:bg-red-50 active:scale-[0.98]";
 
-    const pillGreen = "rounded-2xl border border-emerald-300 bg-emerald-50 text-emerald-700";
+    const pillGreen = "rounded-md border border-emerald-300 bg-emerald-50 text-emerald-700";
     
     const cls = (...xs) => xs.filter(Boolean).join(" ");
     const todayISODate = () => new Date().toISOString().slice(0,10);
@@ -112,7 +130,10 @@
 
     const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
 
-    const baseField = "w-full h-14 rounded-2xl border border-slate-300 bg-white px-3 text-[16px] leading-none shadow-sm outline-none focus:border-slate-400";
+    const baseField =
+      "flex w-full h-12 rounded-md border border-neutral-200 bg-white px-3 text-[16px] leading-none " +
+      "shadow-sm outline-none transition placeholder:text-neutral-400 " +
+      "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1";
 
     const UNIT_OPTIONS = ["Supernova Direct","Aquila Direct","Stellar Direct","Aurora","Alphara"];
     const PRODUCT_OPTIONS = ["A+ Signature","ACP 100","ACP Plus","AHIP","AJCP","Ascend","Family Secure","Future Builder","Future Scholar","Goals Protect","Guardian 1","Guardian 5","Guardian 65","Health Achieve","Max Protect","Money Tree","Platinum Secure","Other"];
@@ -141,7 +162,17 @@
 
     // put near the top of your script (you already have this line)
     const LOGO_SRC = "./supernova-wordmark.png";
-    
+
+    // --- inline lucide-style icons (adopted from the Appt 5 Logger) ---
+    const IconSettings = ({ className="h-5 w-5" }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className={className} aria-hidden="true">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    );
+
     // replace the whole TopBar component with this:
     const WeeklyAppointmentGoal = ({ slots }) => {
       const [activeSlotIndex, setActiveSlotIndex] = useState(null);
@@ -176,10 +207,10 @@
               onFocus={() => setHoveredSlotIndex(index)}
               onBlur={() => setHoveredSlotIndex(null)}
               className={cls(
-                "relative flex h-4 w-full min-w-0 items-center justify-center rounded-[4px] border shadow-sm outline-none focus:ring-2 focus:ring-emerald-200",
+                "relative flex h-4 w-full min-w-0 items-center justify-center rounded-[3px] border shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-emerald-500",
                 isMeeting
-                  ? "border-emerald-700 bg-emerald-600"
-                  : "border-slate-300 bg-white"
+                  ? "border-emerald-600 bg-emerald-600"
+                  : "border-neutral-300 bg-white"
               )}
             >
               {isPaid && (
@@ -197,7 +228,7 @@
                 </svg>
               )}
               {showTooltip && (
-                <span className={cls("pointer-events-none absolute top-full z-30 mt-2 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white shadow-lg", tooltipAlign)}>
+                <span className={cls("pointer-events-none absolute top-full z-30 mt-2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-[11px] font-medium text-neutral-50 shadow-lg", tooltipAlign)}>
                   {tooltipText}
                 </span>
               )}
@@ -208,65 +239,60 @@
       );
     };
 
-    const TopBar = ({ settingsOpen, onToggleSettings, pendingCount, weeklyGoalSlots }) => (
-      <header className="sticky top-0 z-50 mb-4 bg-white/90 backdrop-blur border-b border-slate-200 rounded-b-2xl shadow-sm overflow-visible">
-        <div className="flex items-center justify-between px-4 pt-4">
-          <img src={LOGO_SRC} alt="Supernova Financial" className="h-12 md:h-14 select-none" />
-          <button
-            onClick={onToggleSettings}
-            aria-pressed={settingsOpen}
-            aria-expanded={settingsOpen}
-            className={
-              "rounded-2xl border px-3 py-1.5 text-sm transition shadow-sm " +
-              (settingsOpen
-                ? "bg-slate-900 text-white border-slate-900 shadow-inner translate-y-[1px]"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 active:scale-[0.98]")
-            }
-          >
-            <span
-              className={
-                "mr-1 inline-block transition-transform duration-200 " +
-                (settingsOpen ? "rotate-90" : "")
-              }
-              aria-hidden="true"
-            >
-              ⚙️
-            </span>
-            Settings
-          </button>
-        </div>
-    
-        <div className="flex items-center justify-between px-4 pt-2 pb-5">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
-              <h1 className="text-xl md:text-2xl font-bold leading-tight">Appointment 15 Logger</h1>
+    const TopBar = ({ settingsOpen, onToggleSettings, pendingCount, weeklyGoalSlots }) => {
+      const done = weeklyGoalSlots.filter(s => s.status !== "empty").length;
+      return (
+      <header className="sticky top-0 z-50 mb-4 border-b border-neutral-200 bg-white/80 backdrop-blur overflow-visible">
+        <div className="px-4 pt-4 pb-4">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0">
+              <img src={LOGO_SRC} alt="Supernova Financial" className="mb-2 h-12 md:h-14 select-none" />
+              <div className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
+                <h1 className="text-lg font-semibold leading-tight tracking-tight">Appointment 15 Logger</h1>
+              </div>
+              <p className="mt-0.5 text-sm text-neutral-500">{done} of 15 meetings this week</p>
             </div>
-            <WeeklyAppointmentGoal slots={weeklyGoalSlots} />
+            <button
+              onClick={onToggleSettings}
+              aria-pressed={settingsOpen}
+              aria-expanded={settingsOpen}
+              title="Settings"
+              className={cls(
+                "ml-3 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border shadow-sm transition",
+                settingsOpen
+                  ? "border-neutral-900 bg-neutral-900 text-neutral-50"
+                  : "border-neutral-200 bg-white text-neutral-700 [@media(hover:hover)]:hover:bg-neutral-100"
+              )}
+            >
+              <IconSettings className={cls("h-5 w-5 transition-transform", settingsOpen && "rotate-45")} />
+            </button>
           </div>
+          <WeeklyAppointmentGoal slots={weeklyGoalSlots} />
         </div>
-    
+
         {pendingCount > 0 && (
           <div className="px-4 pb-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-amber-200/70 text-amber-900 text-xs font-semibold px-3 py-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-600" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
               {pendingCount} queued — will sync when online
             </span>
           </div>
         )}
       </header>
-    );
+      );
+    };
         
     const Section = ({title,children,right}) => (
-      <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold tracking-wide text-slate-600 uppercase">{title}</h2>{right}
+          <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>{right}
         </div>{children}
       </section>
     );
     const LabeledInput = ({label,children}) => (
       <label className="mb-4 block">
-        <div className="mb-2 text-[13px] font-medium text-slate-600">{label}</div>
+        <div className="mb-2 text-sm font-medium text-neutral-700">{label}</div>
         {children}
       </label>
     );
@@ -310,12 +336,7 @@
             onChange(digits === "" ? "" : Number(digits));
           }}
           disabled={disabled}
-          className={cls(
-            "w-full rounded-xl px-3 py-3 text-base shadow-sm outline-none border",
-            disabled
-              ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-              : "bg-white border-slate-300 focus:border-slate-400"
-          )}
+          className={cls(baseField, disabled && "bg-neutral-100 text-neutral-400 cursor-not-allowed")}
         />
       );
     };
@@ -328,7 +349,7 @@
           className={cls(
             baseField,
             "appearance-none pr-10",
-            disabled && "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+            disabled && "bg-neutral-100 text-neutral-400 cursor-not-allowed"
           )}
         >
           <option value="" disabled hidden>{placeholder || "-- Select --"}</option>
@@ -336,8 +357,8 @@
         </select>
         <svg
           className={cls(
-            "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5",
-            disabled ? "text-slate-300" : "text-slate-400"
+            "pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4",
+            disabled ? "text-neutral-300" : "text-neutral-500"
           )}
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -347,17 +368,25 @@
         </svg>
       </div>
     );
-    const ChoiceGrid = ({ options, value, onChange }) => (
-      <div className="grid grid-cols-2 gap-3">
-        {options.map(opt=>(
-          <button key={opt} type="button" onClick={()=>onChange(opt)}
-            className={cls("h-16 rounded-2xl border text-base font-semibold transition active:scale-[0.99]",
-              value===opt ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-800 border-slate-300")}>
-            {opt}
-          </button>
-        ))}
-      </div>
-    );
+    const ChoiceGrid = ({ options, value, onChange }) => {
+      const cols = 2;
+      const lastRowStart = (Math.ceil(options.length / cols) - 1) * cols;
+      return (
+        <div className="grid grid-cols-2 overflow-hidden rounded-md border border-neutral-200">
+          {options.map((opt, i)=>(
+            <button key={opt} type="button" onClick={()=>onChange(opt)}
+              className={cls("h-14 text-sm font-medium transition active:scale-[0.99] border-neutral-200",
+                (i % cols !== cols - 1) && "border-r",
+                (i < lastRowStart) && "border-b",
+                value===opt
+                  ? "bg-emerald-600 text-white"
+                  : "bg-white text-neutral-800 [@media(hover:hover)]:hover:bg-neutral-50")}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      );
+    };
     
     // Shared wrapper so every nav icon is drawn identically:
     // same 24×24 grid, same stroke weight, monochromatic (uses currentColor).
@@ -430,14 +459,16 @@
     };
 
     // A single nav button. `icon` is a React node (see ICONS).
-    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel }) => (
+    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel }) => {
+      const active = tab === id;
+      return (
       <button
         onClick={() => setTab(id)}
         className={cls(
-          "h-14 rounded-lg font-semibold transition flex items-center justify-center px-0.5",
-          tab === id ? "bg-[var(--sn-red-light)] text-[var(--sn-black)]" : "bg-white text-[var(--sn-black)]"
+          "h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
+          active ? "bg-emerald-600 text-white" : "text-neutral-600 [@media(hover:hover)]:hover:bg-neutral-100"
         )}
-        aria-pressed={tab === id}
+        aria-pressed={active}
         aria-label={ariaLabel || label}
       >
         <div className="flex flex-col items-center leading-[1.05] pt-1 pb-1">
@@ -445,11 +476,12 @@
           <span className="flex h-[1.9em] items-center justify-center text-center text-[9px] sm:text-[10px] leading-[1.05]">{label}</span>
         </div>
       </button>
-    );
+      );
+    };
 
     const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
-        <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-1.5 grid grid-cols-5 gap-1.5 shadow-xl ring-1 ring-black/10 backdrop-blur">
+        <div className="pointer-events-auto rounded-xl border border-neutral-200 bg-white p-1.5 grid grid-cols-5 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
@@ -459,39 +491,47 @@
       </div>
     );
 
-    const YesNoCard = ({ label, value, onChange }) => (
-      <button type="button" onClick={()=>onChange(!value)}
-        className={cls("flex h-16 w-full items-center justify-between rounded-2xl border text-lg font-semibold shadow-sm px-4 active:scale-[0.99] transition",
-          value ? "bg-emerald-500 border-emerald-300 text-white" : "text-white")}
-        style={ value ? undefined : { backgroundColor:"var(--sn-red)", borderColor:"var(--sn-red)" } }>
-        <span className="text-left text-sm font-medium opacity-90">{label}</span>
-        <span className="text-xl tracking-wide">{value?"YES":"NO"}</span>
-      </button>
-    );
-    const YesNoGrid = ({ items, form, setForm }) => (
-      <div className="grid grid-cols-2 gap-3">
-        {items.map(it=>(
-          <YesNoCard key={it.key} label={it.label} value={!!form[it.key]} onChange={(v)=>setForm(f=>({...f,[it.key]:v}))}/>
-        ))}
-      </div>
-    );
+    const YesNoGrid = ({ items, form, setForm }) => {
+      const cols = 2;
+      const lastRowStart = (Math.ceil(items.length / cols) - 1) * cols;
+      return (
+        <div className="grid grid-cols-2 overflow-hidden rounded-md border border-neutral-200">
+          {items.map((it, i)=>{
+            const value = !!form[it.key];
+            return (
+              <button key={it.key} type="button" onClick={()=>setForm(f=>({...f,[it.key]:!value}))}
+                className={cls("flex h-14 w-full items-center justify-between px-4 text-sm font-medium transition active:scale-[0.99] border-neutral-200",
+                  (i % cols !== cols - 1) && "border-r",
+                  (i < lastRowStart) && "border-b",
+                  value
+                    ? "bg-emerald-600 text-white"
+                    : "bg-white text-neutral-700 [@media(hover:hover)]:hover:bg-neutral-50")}>
+                <span className="text-left">{it.label}</span>
+                <span className={cls("text-sm font-semibold tracking-wide", value ? "text-white" : "text-neutral-400")}>{value?"YES":"NO"}</span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    };
 
     const Toast = ({ text, quote, type="ok", onClose }) => {
       React.useEffect(()=>{ const t=setTimeout(onClose,3000); navigator.vibrate?.(40); return ()=>clearTimeout(t); },[onClose]);
-      const bg = type==="ok" ? "bg-emerald-600" : type==="warn" ? "bg-amber-500" : "bg-[var(--sn-red)]";
-      const icon = type==="ok" ? "✅" : type==="warn" ? "⚠️" : "✖️";
+      const accent = type==="ok" ? "bg-emerald-500" : type==="warn" ? "bg-amber-500" : "bg-red-500";
       return (
         <div className="fixed inset-0 z-[120] flex items-start justify-center pointer-events-none" role="status" aria-live="polite">
-          <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out]">
-            <div className={`rounded-2xl px-5 py-3 text-white shadow-2xl ring-1 ring-black/10 backdrop-blur ${bg}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-lg md:text-xl font-bold">{text}</div>
-                <span className="text-2xl leading-none">{icon}</span>
+          <div className="mt-16 md:mt-24 pointer-events-auto animate-[toastIn_.18s_ease-out] w-[min(92vw,26rem)]">
+            <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 text-neutral-50 shadow-2xl">
+              <div className="flex items-center gap-3 px-4 py-3">
+                <span className={cls("h-2.5 w-2.5 shrink-0 rounded-full", accent)} />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{text}</div>
+                  {quote && <div className="mt-0.5 text-[13px] text-neutral-300">{quote}</div>}
+                </div>
               </div>
-              {quote && <div className="mt-1 text-[13px] md:text-sm opacity-90">{quote}</div>}
-            </div>
-            <div className="h-1 rounded-b-2xl overflow-hidden bg-white/30">
-              <div className="h-full bg-white/90 origin-left animate-[toastBar_3s_linear]" />
+              <div className="h-0.5 bg-neutral-700">
+                <div className={cls("h-full origin-left animate-[toastBar_3s_linear]", accent)} />
+              </div>
             </div>
           </div>
         </div>
@@ -660,7 +700,7 @@
               // responsive size (phone → desktop)
               "w-[clamp(3.0rem,6vw,4.4rem)] h-[clamp(3.4rem,7vw,5.2rem)]",
               "text-[clamp(1.9rem,5.5vw,3.2rem)]",
-              "rounded-2xl"
+              "rounded-lg"
             )}
           >
             {d}
@@ -686,12 +726,12 @@
       }
 
       const CounterCard = ({ label, value, onPlus, onMinus }) => (
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="text-center text-[13px] font-medium text-slate-600 mb-2">{label}</div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
+          <div className="text-center text-[13px] font-medium text-neutral-600 mb-2">{label}</div>
           <div className="flex items-center justify-between gap-3">
-            <button onClick={onMinus} className="h-12 w-12 rounded-xl border border-slate-300 bg-white text-xl font-bold hover:bg-slate-50">–</button>
+            <button onClick={onMinus} className="h-12 w-12 rounded-md border border-neutral-200 bg-white text-xl font-bold transition [@media(hover:hover)]:hover:bg-neutral-100 active:scale-[0.98]">–</button>
             <div className="text-5xl font-black tabular-nums select-none">{value}</div>
-            <button onClick={onPlus} className="h-12 w-12 rounded-xl border border-slate-300 bg-white text-xl font-bold hover:bg-slate-50">+</button>
+            <button onClick={onPlus} className="h-12 w-12 rounded-md border border-neutral-200 bg-white text-xl font-bold transition [@media(hover:hover)]:hover:bg-neutral-100 active:scale-[0.98]">+</button>
           </div>
         </div>
       );
@@ -1094,11 +1134,11 @@
                 </LabeledInput>
           
                 {/* 2) Sync area */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-700">Sync</div>
-                      <div className="text-xs text-slate-600 truncate">
+                      <div className="text-sm font-semibold text-neutral-700">Sync</div>
+                      <div className="text-xs text-neutral-600 truncate">
                         Last sync: {lastSyncAt ? new Date(lastSyncAt).toLocaleString() : "Never"}
                       </div>
                     </div>
@@ -1108,10 +1148,8 @@
                     onClick={() => pullUpdates({ quietIfNone: false })}
                     disabled={!settings.advisorName || !settings.syncKey}
                     className={cls(
-                      // match "Done" exactly when enabled
-                      "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-95 active:scale-[0.98]",
-                      // subtle disabled look (same color, just dimmed)
-                      (!settings.advisorName || !settings.syncKey) && "opacity-50 cursor-not-allowed hover:opacity-50"
+                      btnPrimary,
+                      (!settings.advisorName || !settings.syncKey) && "opacity-50 cursor-not-allowed pointer-events-none"
                     )}
                     title={
                       !settings.advisorName || !settings.syncKey
@@ -1137,7 +1175,7 @@
                       <button
                         type="button"
                         onClick={clearHistoryAndOutbox}
-                        className="rounded-xl border border-rose-300 bg-rose-600/10 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-600/20 active:scale-[0.98]"
+                        className={btnDestructive}
                       >
                         🧹 Clear on This Phone
                       </button>
@@ -1154,7 +1192,7 @@
                       <button
                         type="button"
                         onClick={nukeEverything}
-                        className="rounded-xl border border-rose-300 bg-rose-600/10 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-600/20 active:scale-[0.98]"
+                        className={btnDestructive}
                       >
                          ↺ Reset App on Phone
                       </button>
@@ -1205,15 +1243,15 @@
                   <div className="text-sm text-rose-600">Couldn't load: {bbStats.error}</div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-slate-50 p-3 text-center">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">FYC</div>
-                      <div className="mt-1 text-2xl font-bold text-slate-900">
+                    <div className="rounded-md bg-neutral-100 p-3 text-center">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">FYC</div>
+                      <div className="mt-1 text-2xl font-bold text-neutral-900">
                         {bbStats.fyc == null ? "—" : `₱${bbStats.fyc.toLocaleString("en-PH",{maximumFractionDigits:0})}`}
                       </div>
                     </div>
-                    <div className="rounded-xl bg-slate-50 p-3 text-center">
-                      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cases</div>
-                      <div className="mt-1 text-2xl font-bold text-slate-900">
+                    <div className="rounded-md bg-neutral-100 p-3 text-center">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Cases</div>
+                      <div className="mt-1 text-2xl font-bold text-neutral-900">
                         {bbStats.cases == null ? "—" : bbStats.cases}
                       </div>
                     </div>
@@ -1292,8 +1330,8 @@
               
                 <button onClick={handleSubmit} disabled={isSending}
                   className={cls(
-                    "flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99]",
-                    isSending ? "bg-slate-400 cursor-not-allowed" : "bg-slate-900"
+                    "flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98]",
+                    isSending ? "bg-emerald-600/60 cursor-not-allowed" : "bg-emerald-600 [@media(hover:hover)]:hover:bg-emerald-700"
                   )}>
                   {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
                 </button>
@@ -1314,7 +1352,7 @@
                     onChange={(e)=>setHistoryQuery(e.target.value)}
                     type="text"
                     placeholder="Search name, place, product…"
-                    className="w-full h-11 rounded-2xl border border-slate-300 bg-white pl-9 pr-9 text-[14px] leading-none shadow-sm outline-none focus:border-slate-400"
+                    className="w-full h-11 rounded-md border border-neutral-200 bg-white pl-9 pr-9 text-[14px] leading-none shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                   />
                   {historyQuery && (
                     <button
@@ -1487,7 +1525,7 @@
           
               <button
                 onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
-                className="flex-1 h-12 rounded-2xl px-4 text-base font-semibold text-white active:scale-[0.99] bg-slate-900"
+                className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-emerald-600 [@media(hover:hover)]:hover:bg-emerald-700"
               >
                 Submit
               </button>
