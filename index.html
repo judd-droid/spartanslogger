@@ -1341,7 +1341,7 @@
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="Meeting # (1, 2, 3…)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
-                  <LabeledInput label="Referrals Given (count)"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
+                  <LabeledInput label="# of Referrals"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
                 </div>
               </Section>
 
