@@ -598,6 +598,39 @@
         });
       }, [history, historyQuery]);
 
+      // --- Compact history: newest-first, grouped by month, rendered a window at a time ---
+      const HISTORY_PAGE = 40;
+      const [expandedIds, setExpandedIds] = useState(() => new Set());
+      const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE);
+      // Reset the window (and open rows) whenever the search changes.
+      useEffect(() => { setVisibleCount(HISTORY_PAGE); setExpandedIds(new Set()); }, [historyQuery]);
+
+      const toggleExpanded = (id) => setExpandedIds(prev => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+      });
+
+      const monthKeyOf = (iso) => (iso || "").slice(0, 7); // YYYY-MM ("" sorts last)
+      const monthLabelOf = (key) => {
+        if (!key) return "No date";
+        const [y, m] = key.split("-").map(Number);
+        return new Date(y, (m || 1) - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+      };
+
+      const sortedHistory = useMemo(() =>
+        filteredHistory.slice().sort((a, b) =>
+          `${b.date || ""} ${b.appointmentTime || ""}`.localeCompare(`${a.date || ""} ${a.appointmentTime || ""}`)),
+        [filteredHistory]);
+
+      // Total meetings per month across the full (filtered) set, so a month
+      // header can show its true count even when the window cuts it off.
+      const monthTotals = useMemo(() => {
+        const t = {};
+        for (const r of sortedHistory) { const k = monthKeyOf(r.date); t[k] = (t[k] || 0) + 1; }
+        return t;
+      }, [sortedHistory]);
+
       // ---- Pomodoro (25:00) ----
       const POMO_SECONDS = 25 * 60;
       const [timerSec, setTimerSec] = useState(POMO_SECONDS);
@@ -1438,69 +1471,107 @@
                 {history.length>0 && filteredHistory.length===0 && (
                   <div className="text-sm text-slate-500">No matches for “{historyQuery}”.</div>
                 )}
-                {filteredHistory.map(r=>{
-                  const hasMoney = !!r.fyp || !!r.fyc;
-                  const hasProduct = !!r.product;
-                  const hasStats = hasMoney || hasProduct;
-                  const steps = [
-                    r.factFinding==="Yes" && "KYC Done",
-                    r.appSubmitted==="Yes" && "Submitted",
-                    r.casePaid==="Yes" && "Paid",
-                    r.caseApproved==="Yes" && "Approved",
-                  ].filter(Boolean);
-                  const metaBits = [
-                    r.meetingPlace||"—",
-                    r.firstMeeting==="Yes" ? "First meeting" : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—"),
-                  ];
-                  return (
-                    <div key={r.id} className="pt-3 first:pt-0">
-                      {/* header: name + date/time */}
-                      <div className="flex items-baseline justify-between gap-2">
-                        <div className="flex-1 min-w-0 font-semibold text-sm leading-tight break-words">{r.prospect}</div>
-                        <div className="shrink-0 whitespace-nowrap text-[11px] text-slate-500">{r.date} {r.appointmentTime}</div>
+
+                {(()=>{
+                  const shown = sortedHistory.slice(0, visibleCount);
+                  // Split the visible window into consecutive month groups.
+                  const groups = [];
+                  let cur = null;
+                  for (const r of shown) {
+                    const k = monthKeyOf(r.date);
+                    if (!cur || cur.key !== k) { cur = { key: k, items: [] }; groups.push(cur); }
+                    cur.items.push(r);
+                  }
+                  return groups.map(g => (
+                    <div key={g.key || "no-date"} className="mb-4 last:mb-0">
+                      {/* month header with the month's true total */}
+                      <div className="mb-1 flex items-baseline justify-between border-b border-neutral-200 pb-1">
+                        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{monthLabelOf(g.key)}</h3>
+                        <span className="text-[11px] font-medium text-slate-400 tabular-nums">{monthTotals[g.key]} {monthTotals[g.key]===1?"meeting":"meetings"}</span>
                       </div>
 
-                      {/* meta: place • meeting • referrals */}
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate-600 leading-tight">
-                        <span>{metaBits[0]}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className={r.firstMeeting==="Yes"?"text-indigo-600":""}>{metaBits[1]}</span>
-                        {Number(r.referralsGiven)>0 && (
-                          <><span className="text-slate-300">•</span><span>Referrals: {Number(r.referralsGiven)}</span></>
-                        )}
-                      </div>
+                      <div className="divide-y divide-neutral-100">
+                        {g.items.map(r=>{
+                          const open = expandedIds.has(r.id);
+                          const hasMoney = !!r.fyp || !!r.fyc;
+                          const hasProduct = !!r.product;
+                          const paid = r.casePaid==="Yes";
+                          const anyStep = paid || r.appSubmitted==="Yes" || r.factFinding==="Yes" || r.caseApproved==="Yes";
+                          const dot = paid ? "bg-emerald-500" : anyStep ? "bg-indigo-500" : "bg-neutral-300";
+                          const steps = [
+                            r.factFinding==="Yes" && "KYC Done",
+                            r.appSubmitted==="Yes" && "Submitted",
+                            r.casePaid==="Yes" && "Paid",
+                            r.caseApproved==="Yes" && "Approved",
+                          ].filter(Boolean);
+                          const meetingLabel = r.firstMeeting==="Yes" ? "First meeting"
+                            : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—");
+                          return (
+                            <div key={r.id}>
+                              {/* compact row — tap to expand */}
+                              <button type="button" onClick={()=>toggleExpanded(r.id)} aria-expanded={open}
+                                className="flex w-full items-center gap-2.5 py-2 text-left transition [@media(hover:hover)]:hover:bg-neutral-50">
+                                <span className={cls("h-2 w-2 shrink-0 rounded-full", dot)} aria-hidden="true" />
+                                <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{r.prospect || "—"}</span>
+                                {paid && hasMoney && (
+                                  <span className="shrink-0 text-[11px] font-semibold text-emerald-700 tabular-nums">
+                                    ₱{Number(r.fyc || r.fyp).toLocaleString()}
+                                  </span>
+                                )}
+                                <span className="shrink-0 whitespace-nowrap text-[11px] text-slate-400 tabular-nums">{r.date}</span>
+                                <svg className={cls("h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform", open && "rotate-180")}
+                                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.27a.75.75 0 0 1 .02-1.06z" clipRule="evenodd"/>
+                                </svg>
+                              </button>
 
-                      {/* steps done as plain text */}
-                      {steps.length>0 && (
-                        <div className="mt-1 text-[11px] font-medium text-emerald-700 leading-tight">
-                          {steps.join("  ·  ")}
-                        </div>
-                      )}
+                              {/* expanded detail */}
+                              {open && (
+                                <div className="pb-3 pl-[18px] pr-1">
+                                  <div className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate-600 leading-tight">
+                                    <span>{r.meetingPlace || "—"}</span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="whitespace-nowrap">{r.appointmentTime || "—"}</span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className={r.firstMeeting==="Yes"?"text-indigo-600":""}>{meetingLabel}</span>
+                                    {Number(r.referralsGiven)>0 && (
+                                      <><span className="text-slate-300">•</span><span>Referrals: {Number(r.referralsGiven)}</span></>
+                                    )}
+                                  </div>
 
-                      {/* results + Edit, enclosed in a footer box */}
-                      <div className="mt-2 flex items-stretch justify-between overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                        <div className="min-w-0 flex-1 flex items-center px-3 py-1">
-                          {hasStats ? (
-                            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                              {r.fyp && <span className="text-[11px] font-bold text-slate-900">FYP <span className="tabular-nums">₱{Number(r.fyp).toLocaleString()}</span></span>}
-                              {r.fyc && <span className="text-[11px] font-bold text-slate-900">FYC <span className="tabular-nums">₱{Number(r.fyc).toLocaleString()}</span></span>}
-                              {hasProduct && <span className="text-[11px] font-medium text-slate-500">{r.product}</span>}
+                                  {steps.length>0 && (
+                                    <div className="mt-1 text-[11px] font-medium text-emerald-700 leading-tight">
+                                      {steps.join("  ·  ")}
+                                    </div>
+                                  )}
+
+                                  {(hasMoney || hasProduct) && (
+                                    <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-md bg-neutral-100 px-3 py-2">
+                                      {r.fyp && <span className="text-[11px] font-bold text-slate-900">FYP <span className="tabular-nums">₱{Number(r.fyp).toLocaleString()}</span></span>}
+                                      {r.fyc && <span className="text-[11px] font-bold text-slate-900">FYC <span className="tabular-nums">₱{Number(r.fyc).toLocaleString()}</span></span>}
+                                      {hasProduct && <span className="text-[11px] font-medium text-slate-500">{r.product}</span>}
+                                    </div>
+                                  )}
+
+                                  <div className="mt-2">
+                                    <button className={cls(btnSecondary, "h-8 px-3 text-xs")} onClick={()=>startEdit(r)}>Edit</button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-[11px] text-slate-400">No sales recorded</span>
-                          )}
-                        </div>
-                        <button
-                          className="shrink-0 flex items-center justify-center border-l border-slate-300 bg-white px-4 font-semibold text-slate-900 hover:bg-slate-50 active:bg-slate-100"
-                          style={{ fontSize: "11px" }}
-                          onClick={() => startEdit(r)}
-                        >
-                          Edit
-                        </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })}
+                  ));
+                })()}
+
+                {sortedHistory.length > visibleCount && (
+                  <button type="button" onClick={()=>setVisibleCount(c=>c+HISTORY_PAGE)}
+                    className={cls(btnSecondary, "mt-3 w-full")}>
+                    Show more ({sortedHistory.length - visibleCount} left)
+                  </button>
+                )}
               </div>
             </Section>
           )}
