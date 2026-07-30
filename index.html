@@ -382,10 +382,10 @@
     const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
         <div className="pointer-events-auto rounded-2xl bg-[var(--sn-red)] p-1.5 grid grid-cols-5 gap-1.5 shadow-xl ring-1 ring-black/10 backdrop-blur">
-          <TabButton id="log"         tab={tab} setTab={setTab} label="New Meeting"  iconSrc="log.svg"       ariaLabel="Log New Meeting" />
+          <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     iconSrc="log.svg"       ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      iconSrc="history.svg" />
-          <TabButton id="prospecting" tab={tab} setTab={setTab} label="Prospecting"  iconSrc="countdown.svg" />
-          <TabButton id="morning"     tab={tab} setTab={setTab} label="Morning Mtg"  emoji="🌅" ariaLabel="Morning Meeting Tracker" />
+          <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     iconSrc="countdown.svg" />
+          <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} emoji="🌅" ariaLabel="Morning Meeting Tracker" />
           <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      emoji="🎯" />
         </div>
       </div>
