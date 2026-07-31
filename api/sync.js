@@ -73,6 +73,16 @@ module.exports = async (req, res) => {
         return res.status(br.ok ? 200 : br.status || 502).send(text);
       }
 
+      // Recruit page: list BOP events, or this advisor's BOP guests.
+      if (path === "bops" || path === "bopguests") {
+        const url = `${GAS_URL}?path=${encodeURIComponent(path)}&advisor=${encodeURIComponent(canonical)}`;
+        const r = await fetch(url, { method: "GET" });
+        const text = await r.text();
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(r.ok ? 200 : r.status || 502).send(text);
+      }
+
       // forward pulls
       const since = (req.query.since || "").toString();
       const url = `${GAS_URL}?since=${encodeURIComponent(since)}&advisor=${encodeURIComponent(canonical)}`;
