@@ -1783,9 +1783,14 @@
             // Only show BOPs from one month back to one month ahead.
             const winLo = new Date(); winLo.setHours(0,0,0,0); winLo.setMonth(winLo.getMonth() - 1);
             const winHi = new Date(); winHi.setHours(23,59,59,999); winHi.setMonth(winHi.getMonth() + 1);
-            const inWindow = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) && d >= winLo && d <= winHi; };
+            // A blank or unparseable date must NOT hide an event — only apply
+            // the window to events whose date we can actually read, so anything
+            // listed on the sheet stays selectable.
+            const parseDate = (iso) => { const d = iso ? new Date(iso) : null; return d && !isNaN(d) ? d : null; };
+            const inWindow = (iso) => { const d = parseDate(iso); return !d || (d >= winLo && d <= winHi); };
             const visibleEvents = bopEvents.filter(ev =>
               inWindow(ev.eventDate) || `${ev.eventName}||${ev.eventDate}` === recruit.eventKey);
+            const hiddenByWindow = bopEvents.length - visibleEvents.length;
             return (
               <Section title="Recruit — BOP Guests" right={
                 <button type="button" onClick={()=>pullBops(true)} className="text-xs font-medium text-brand-600 underline">Refresh</button>
@@ -1817,7 +1822,15 @@
 
                   {settings.advisorName && settings.syncKey && visibleEvents.length===0 && (
                     <div className="-mt-1 text-xs text-neutral-500">
-                      No events around this month. Tap Refresh to check again.
+                      {bopEvents.length===0
+                        ? "No events on the list yet. Tap Refresh to check again."
+                        : `All ${bopEvents.length} event${bopEvents.length===1?"":"s"} are dated outside this month. Tap Refresh to check again.`}
+                    </div>
+                  )}
+
+                  {settings.advisorName && settings.syncKey && visibleEvents.length>0 && hiddenByWindow>0 && (
+                    <div className="-mt-1 text-xs text-neutral-500">
+                      {hiddenByWindow} more event{hiddenByWindow===1?"":"s"} dated outside this month {hiddenByWindow===1?"is":"are"} hidden.
                     </div>
                   )}
 
