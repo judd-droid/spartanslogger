@@ -73,8 +73,9 @@ module.exports = async (req, res) => {
         return res.status(br.ok ? 200 : br.status || 502).send(text);
       }
 
+      // Calendar page: list agency events (read-only, same for everyone).
       // Recruit page: list BOP events, or this advisor's BOP guests.
-      if (path === "bops" || path === "bopguests") {
+      if (path === "bops" || path === "bopguests" || path === "calendar") {
         const url = `${GAS_URL}?path=${encodeURIComponent(path)}&advisor=${encodeURIComponent(canonical)}`;
         const r = await fetch(url, { method: "GET" });
         const text = await r.text();

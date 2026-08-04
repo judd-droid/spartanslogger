@@ -135,7 +135,16 @@
       return out;
     };
 
-    const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1", bopEvents:"sn.meet.bopevents.v1", bopGuests:"sn.meet.bopguests.v1" };
+    const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1", bopEvents:"sn.meet.bopevents.v1", bopGuests:"sn.meet.bopguests.v1", calEvents:"sn.meet.calevents.v1" };
+
+    // Calendar event "Type" → color treatment. Two agency-wide buckets:
+    //   Agency (internal Supernova events) → purple
+    //   AIA    (AIA / company events)      → pink-red (rose)
+    const CAL_TYPES = {
+      agency: { label:"Agency", dot:"bg-purple-500", chip:"border-purple-200 bg-purple-50 text-purple-700", ring:"ring-purple-400" },
+      aia:    { label:"AIA",    dot:"bg-rose-500",   chip:"border-rose-200 bg-rose-50 text-rose-700",       ring:"ring-rose-400" },
+    };
+    const calType = (t) => (String(t||"").trim().toLowerCase().startsWith("aia") ? "aia" : "agency");
     const LS_SYNC = { last: "sn.meet.lastsync.v1" };
 
     const DEFAULT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyIvFrqE7DwV7TgOx9L3tfDz14F8j9_ePSfhAmpTOB2Mt-LdkLq3h4bFKHQjQUUpZc0UQ/exec";
@@ -461,6 +470,17 @@
           <path d="M2 22h20" />
         </NavIcon>
       ),
+      // Calendar — grid with a dot (agency events)
+      calendar: (
+        <NavIcon>
+          <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+          <path d="M3 9h18" />
+          <path d="M8 2.5v4" />
+          <path d="M16 2.5v4" />
+          <circle cx="8.5" cy="13.5" r="1.3" fill="currentColor" stroke="none" />
+          <circle cx="15.5" cy="13.5" r="1.3" fill="currentColor" stroke="none" />
+        </NavIcon>
+      ),
       // Recruit — add a person
       recruit: (
         <NavIcon>
@@ -495,12 +515,13 @@
 
     const FloatingTabBar = ({ tab, setTab }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
-        <div className="pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-5 gap-1 shadow-lg">
+        <div className="pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-6 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
           <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
           <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      icon={ICONS.recruit} />
+          <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" />
         </div>
       </div>
     );
@@ -586,6 +607,14 @@
       const [recruit, setRecruit] = useState({ eventKey: "", guestName: "" });
       useEffect(() => writeLS(LS.bopEvents, bopEvents), [bopEvents]);
       useEffect(() => writeLS(LS.bopGuests, bopGuests), [bopGuests]);
+
+      // Calendar: read-only agency events (from the 'Calendar' tab). Cached so
+      // the month/agenda render instantly offline. `calMonth` is the visible
+      // month (YYYY-MM); `calDay` is the selected day (YYYY-MM-DD) or "".
+      const [calEvents, setCalEvents] = useState(() => readLS(LS.calEvents, []));
+      const [calMonth, setCalMonth] = useState(() => todayISODate().slice(0, 7));
+      const [calDay, setCalDay] = useState("");
+      useEffect(() => writeLS(LS.calEvents, calEvents), [calEvents]);
 
       const filteredHistory = useMemo(() => {
         const q = historyQuery.trim().toLowerCase();
@@ -883,6 +912,30 @@
         }
       }
 
+      // --- Calendar (read-only agency events) -------------------------------
+      // Pull the 'Calendar' tab through the proxy. announce=true (manual
+      // Refresh) reports the outcome via a toast.
+      async function pullCalendar(announce = false) {
+        if (!settings.advisorName || !settings.syncKey) return;
+        const qs = new URLSearchParams({ path: "calendar", advisor: settings.advisorName, key: settings.syncKey }).toString();
+        try {
+          const res = await fetch(`${SYNC_URL}?${qs}`);
+          const json = await res.json().catch(() => null);
+          const got = !!(json && json.ok && Array.isArray(json.events));
+          if (got) setCalEvents(json.events);
+          if (announce) {
+            if (got) {
+              const n = json.events.length;
+              setToast({ t: n ? `Loaded ${n} event${n === 1 ? "" : "s"} ✅` : "No events on the calendar yet.", type: "ok" });
+            } else {
+              setToast({ t: "Couldn't load the calendar — try again shortly.", type: "warn" });
+            }
+          }
+        } catch {
+          if (announce) setToast({ t: "Couldn't reach the server (offline?).", type: "warn" });
+        }
+      }
+
       // Upsert a single BOP guest row (registration/attendance) via the proxy.
       async function submitBopGuest(rec) {
         try {
@@ -1124,6 +1177,15 @@
       // Refresh BOP events/guests each time the Recruit tab is opened.
       useEffect(() => {
         if (tab === "recruit" && settings.advisorName && settings.syncKey) pullBops();
+      }, [tab]);
+
+      // Load the agency calendar once credentials exist, and refresh it each
+      // time the Calendar tab is opened.
+      useEffect(() => {
+        if (settings.advisorName && settings.syncKey) pullCalendar();
+      }, [settings.advisorName, settings.syncKey]);
+      useEffect(() => {
+        if (tab === "calendar" && settings.advisorName && settings.syncKey) pullCalendar();
       }, [tab]);
 
       // scroll to top when opening settings
@@ -1871,6 +1933,149 @@
                     </>
                   )}
                 </div>
+              </Section>
+            );
+          })()}
+
+          {tab==="calendar" && (()=>{
+            // ---- date helpers (local, no timezone drift) ----
+            const pad = (n) => String(n).padStart(2, "0");
+            const isoOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+            const parseISO = (s) => {
+              const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ""));
+              return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+            };
+            const fmtLong = (iso) => {
+              const d = parseISO(iso);
+              return d ? d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" }) : iso;
+            };
+
+            // Normalise events → { name, type, start, end, startTime, endTime, location, details }
+            const events = (calEvents || []).map(ev => {
+              const start = String(ev.startDate || ev.date || "").slice(0, 10);
+              const end = String(ev.endDate || start).slice(0, 10) || start;
+              return {
+                name: ev.eventName || ev.name || "Untitled event",
+                type: calType(ev.type),
+                start, end: end < start ? start : end,
+                startTime: ev.startTime || "", endTime: ev.endTime || "",
+                location: ev.location || "", details: ev.details || ev.remarks || "",
+              };
+            }).filter(e => e.start);
+
+            // Does an event cover this ISO day? (inclusive of multi-day spans)
+            const coversDay = (e, iso) => e.start <= iso && iso <= e.end;
+
+            // Visible month grid: 6 weeks starting on Sunday.
+            const [vy, vm] = calMonth.split("-").map(Number);
+            const first = new Date(vy, vm - 1, 1);
+            const gridStart = new Date(first);
+            gridStart.setDate(1 - first.getDay());
+            const todayISO = todayISODate();
+            const monthLabel = first.toLocaleDateString(undefined, { month:"long", year:"numeric" });
+            const shiftMonth = (delta) => {
+              const d = new Date(vy, vm - 1 + delta, 1);
+              setCalMonth(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+              setCalDay("");
+            };
+
+            // Agenda: a chosen day's events, else everything from today forward.
+            const agenda = (calDay
+              ? events.filter(e => coversDay(e, calDay))
+              : events.filter(e => e.end >= todayISO)
+            ).sort((a, b) => (a.start + (a.startTime||"")).localeCompare(b.start + (b.startTime||"")));
+
+            const cells = Array.from({ length: 42 }, (_, i) => {
+              const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
+              const iso = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
+              const dayEvents = events.filter(e => coversDay(e, iso));
+              const types = [...new Set(dayEvents.map(e => e.type))];
+              return { iso, day:d.getDate(), inMonth:d.getMonth() === vm - 1, isToday: iso===todayISO, types };
+            });
+
+            const EventCard = ({ e, i }) => {
+              const t = CAL_TYPES[e.type];
+              return (
+                <div key={i} className="rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-neutral-900">{e.name}</div>
+                      <div className="mt-0.5 text-xs text-neutral-500">
+                        {fmtLong(e.start)}{e.end!==e.start ? ` – ${fmtLong(e.end)}` : ""}
+                        {e.startTime ? ` · ${e.startTime}${e.endTime?`–${e.endTime}`:""}` : ""}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </div>
+                    </div>
+                    <span className={cls("shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold", t.chip)}>{t.label}</span>
+                  </div>
+                  {e.details && <div className="mt-1.5 whitespace-pre-line text-xs text-neutral-600">{e.details}</div>}
+                </div>
+              );
+            };
+
+            return (
+              <Section title="Agency Calendar" right={
+                <button type="button" onClick={()=>pullCalendar(true)} className="text-xs font-medium text-brand-600 underline">Refresh</button>
+              }>
+                {(!settings.advisorName || !settings.syncKey) ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    Set your name, unit, and sync key in Settings to load the calendar.
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {/* Legend */}
+                    <div className="flex items-center gap-4 text-xs text-neutral-600">
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.agency.dot)} />Agency</span>
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.aia.dot)} />AIA</span>
+                    </div>
+
+                    {/* Month header */}
+                    <div className="flex items-center justify-between">
+                      <button type="button" onClick={()=>shiftMonth(-1)} aria-label="Previous month" className={cls(btnSecondary, "h-9 w-9 px-0")}>‹</button>
+                      <div className="text-sm font-semibold text-neutral-900">{monthLabel}</div>
+                      <button type="button" onClick={()=>shiftMonth(1)} aria-label="Next month" className={cls(btnSecondary, "h-9 w-9 px-0")}>›</button>
+                    </div>
+
+                    {/* Month grid */}
+                    <div>
+                      <div className="grid grid-cols-7 text-center text-[10px] font-medium text-neutral-400">
+                        {["S","M","T","W","T","F","S"].map((d,i)=><div key={i} className="py-1">{d}</div>)}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {cells.map(c=>{
+                          const selected = c.iso===calDay;
+                          return (
+                            <button key={c.iso} type="button"
+                              onClick={()=>setCalDay(d=>d===c.iso?"":c.iso)}
+                              className={cls(
+                                "flex h-11 flex-col items-center justify-start rounded-md border pt-1 text-xs transition",
+                                selected ? "border-brand-500 bg-brand-50" : "border-transparent [@media(hover:hover)]:hover:bg-neutral-50",
+                                c.inMonth ? "text-neutral-800" : "text-neutral-300")}>
+                              <span className={cls("flex h-5 w-5 items-center justify-center rounded-full",
+                                c.isToday && "bg-ink text-white font-semibold")}>{c.day}</span>
+                              <span className="mt-0.5 flex gap-0.5">
+                                {c.types.map(t=><span key={t} className={cls("h-1.5 w-1.5 rounded-full", CAL_TYPES[t].dot)} />)}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Agenda */}
+                    <div className="grid gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+                          {calDay ? fmtLong(calDay) : "Upcoming"}
+                        </div>
+                        {calDay && <button type="button" onClick={()=>setCalDay("")} className="text-xs font-medium text-brand-600 underline">Show upcoming</button>}
+                      </div>
+                      {agenda.length===0
+                        ? <div className="text-sm text-neutral-500">{calDay ? "No events on this day." : "No upcoming events."}</div>
+                        : agenda.map((e,i)=><EventCard key={i} e={e} i={i} />)}
+                    </div>
+                  </div>
+                )}
               </Section>
             );
           })()}
