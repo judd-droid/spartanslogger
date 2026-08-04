@@ -36,6 +36,11 @@ var CAL_SPREADSHEET_ID = '';
 
 var CAL_SHEET = 'Calendar';
 
+// Event entries in the Sheet are authored in Philippine time. Format date/time
+// cells in this zone explicitly so the output never drifts with whatever the
+// Apps Script project's timezone happens to be set to.
+var CAL_TZ = 'Asia/Manila';
+
 var CAL_HEADERS = [
   'Event Name', 'Start Date', 'End Date', 'Start Time', 'End Time',
   'Type', 'Location', 'Audience', 'Details',
@@ -66,8 +71,7 @@ function cal_headerInfo_(sh) {
 
 function cal_fmtDateISO_(v) {
   if (v instanceof Date && !isNaN(v)) {
-    var tz = Session.getScriptTimeZone() || 'Asia/Manila';
-    return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+    return Utilities.formatDate(v, CAL_TZ, 'yyyy-MM-dd');
   }
   return String(v == null ? '' : v).trim();
 }
@@ -76,8 +80,7 @@ function cal_fmtDateISO_(v) {
 // becomes "h:mm a"; anything else is passed through as text.
 function cal_fmtTime_(v) {
   if (v instanceof Date && !isNaN(v)) {
-    var tz = Session.getScriptTimeZone() || 'Asia/Manila';
-    return Utilities.formatDate(v, tz, 'h:mm a');
+    return Utilities.formatDate(v, CAL_TZ, 'h:mm a');
   }
   return String(v == null ? '' : v).trim();
 }
