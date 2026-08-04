@@ -1999,8 +1999,10 @@
               const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
               const iso = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
               const dayEvents = events.filter(e => coversDay(e, iso));
-              const types = [...new Set(dayEvents.map(e => e.type))];
-              return { iso, day:d.getDate(), inMonth:d.getMonth() === vm - 1, isToday: iso===todayISO, types };
+              // One dot per event, agency (purple) grouped before AIA (rose).
+              const evTypes = dayEvents.map(e => e.type)
+                .sort((a, b) => (a === b ? 0 : a === "agency" ? -1 : 1));
+              return { iso, day:d.getDate(), inMonth:d.getMonth() === vm - 1, isToday: iso===todayISO, evTypes, count:evTypes.length };
             });
 
             const EventCard = ({ e, i }) => {
@@ -2070,8 +2072,19 @@
                                 c.inMonth ? "text-neutral-800" : "text-neutral-300")}>
                               <span className={cls("flex h-5 w-5 items-center justify-center rounded-full",
                                 c.isToday && "bg-ink text-white font-semibold")}>{c.day}</span>
-                              <span className="mt-0.5 flex gap-0.5">
-                                {c.types.map(t=><span key={t} className={cls("h-1.5 w-1.5 rounded-full", CAL_TYPES[t].dot)} />)}
+                              <span className="mt-0.5 flex flex-col items-center gap-0.5 leading-none">
+                                {[0,3].map(rowStart=>{
+                                  const row = c.evTypes.slice(0,6).slice(rowStart, rowStart+3);
+                                  if(!row.length) return null;
+                                  return (
+                                    <span key={rowStart} className="flex items-center gap-0.5">
+                                      {row.map((t,idx)=><span key={idx} className={cls("h-1.5 w-1.5 rounded-full", CAL_TYPES[t].dot)} />)}
+                                      {c.count>6 && rowStart===3 && (
+                                        <span className="ml-0.5 text-[8px] font-semibold leading-none text-neutral-400">+{c.count-6}</span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
                               </span>
                             </button>
                           );
