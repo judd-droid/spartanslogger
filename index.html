@@ -103,7 +103,7 @@
     const pillGreen = "rounded-md border border-emerald-300 bg-emerald-50 text-emerald-700";
     
     const cls = (...xs) => xs.filter(Boolean).join(" ");
-    const todayISODate = () => new Date().toISOString().slice(0,10);
+    const todayISODate = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
     const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
     const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:"long"});
 
