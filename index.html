@@ -614,7 +614,10 @@
       const [calEvents, setCalEvents] = useState(() => readLS(LS.calEvents, []));
       const [calMonth, setCalMonth] = useState(() => todayISODate().slice(0, 7));
       const [calDay, setCalDay] = useState("");
+      const [calPage, setCalPage] = useState(0);   // agenda pagination (10/page)
       useEffect(() => writeLS(LS.calEvents, calEvents), [calEvents]);
+      // Reset to the first page whenever the agenda's contents change.
+      useEffect(() => { setCalPage(0); }, [calDay, calMonth, calEvents]);
 
       const filteredHistory = useMemo(() => {
         const q = historyQuery.trim().toLowerCase();
@@ -1985,6 +1988,13 @@
               : events.filter(e => e.end >= todayISO)
             ).sort((a, b) => (a.start + (a.startTime||"")).localeCompare(b.start + (b.startTime||"")));
 
+            // Paginate the agenda: 10 per page with Prev/Next.
+            const CAL_PAGE = 10;
+            const pageCount = Math.max(1, Math.ceil(agenda.length / CAL_PAGE));
+            const page = Math.min(calPage, pageCount - 1);
+            const pageStart = page * CAL_PAGE;
+            const pagedAgenda = agenda.slice(pageStart, pageStart + CAL_PAGE);
+
             const cells = Array.from({ length: 42 }, (_, i) => {
               const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
               const iso = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
@@ -2072,7 +2082,19 @@
                       </div>
                       {agenda.length===0
                         ? <div className="text-sm text-neutral-500">{calDay ? "No events on this day." : "No upcoming events."}</div>
-                        : agenda.map((e,i)=><EventCard key={i} e={e} i={i} />)}
+                        : pagedAgenda.map((e,i)=><EventCard key={pageStart+i} e={e} i={pageStart+i} />)}
+
+                      {agenda.length > CAL_PAGE && (
+                        <div className="mt-1 flex items-center justify-between">
+                          <button type="button" disabled={page<=0} onClick={()=>setCalPage(p=>Math.max(0,p-1))}
+                            className={cls(btnSecondary, "h-9 px-3 text-xs")}>‹ Prev</button>
+                          <span className="text-xs text-neutral-500">
+                            {pageStart+1}–{Math.min(pageStart+CAL_PAGE, agenda.length)} of {agenda.length}
+                          </span>
+                          <button type="button" disabled={page>=pageCount-1} onClick={()=>setCalPage(p=>Math.min(pageCount-1,p+1))}
+                            className={cls(btnSecondary, "h-9 px-3 text-xs")}>Next ›</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
