@@ -69,20 +69,36 @@ function cal_headerInfo_(sh) {
   return { header: header, map: map };
 }
 
+// Normalise a date cell to ISO yyyy-MM-dd. We read cells with
+// getDisplayValues(), so `v` is the exact text shown in the Sheet — no
+// timezone conversion happens, which is what keeps event days from drifting.
+// Handles the ISO the Sheet already shows ("2026-08-05") and the common
+// US-style fallback ("8/5/2026"). A Date is only seen if a caller passes raw
+// values; format it in Philippine time to stay consistent.
 function cal_fmtDateISO_(v) {
   if (v instanceof Date && !isNaN(v)) {
     return Utilities.formatDate(v, CAL_TZ, 'yyyy-MM-dd');
   }
-  return String(v == null ? '' : v).trim();
+  var s = String(v == null ? '' : v).trim();
+  var iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (iso) return iso[1] + '-' + cal_pad2_(iso[2]) + '-' + cal_pad2_(iso[3]);
+  var us = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+  if (us) return us[3] + '-' + cal_pad2_(us[1]) + '-' + cal_pad2_(us[2]);
+  return s;
 }
 
-// Render a time cell as a short string. A Date (Sheets stores times as dates)
-// becomes "h:mm a"; anything else is passed through as text.
+function cal_pad2_(n) { return String(n).length < 2 ? '0' + n : String(n); }
+
+// Render a time cell as a short string. We read the displayed text, so this is
+// already the Philippine-time wall clock the user typed; just trim a trailing
+// ":00" seconds group ("9:00:00 AM" → "9:00 AM"). A Date is only seen on a raw
+// read; format it in Philippine time.
 function cal_fmtTime_(v) {
   if (v instanceof Date && !isNaN(v)) {
     return Utilities.formatDate(v, CAL_TZ, 'h:mm a');
   }
-  return String(v == null ? '' : v).trim();
+  var s = String(v == null ? '' : v).trim();
+  return s.replace(/^(\d{1,2}:\d{2}):\d{2}(\s*[AaPp][Mm])?$/, '$1$2');
 }
 
 function cal_json_(obj) {
@@ -101,7 +117,9 @@ function calendarGet_() {
 
   var info = cal_headerInfo_(sh);
   var map = info.map, header = info.header;
-  var vals = sh.getRange(2, 1, lastRow - 1, header.length).getValues();
+  // Read the DISPLAYED text (not raw Date objects) so the Sheet's Philippine
+  // wall-clock dates/times pass straight through with no timezone conversion.
+  var vals = sh.getRange(2, 1, lastRow - 1, header.length).getDisplayValues();
   var get = function (row, h) { return map[h] !== undefined ? row[map[h]] : ''; };
 
   var events = [];
