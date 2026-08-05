@@ -1982,11 +1982,25 @@
               setCalDay("");
             };
 
+            // Minutes since midnight for a "9:00 AM" / "1:30 PM" style string, so
+            // same-day events sort by real clock time rather than as text
+            // (where "10:30 AM" would wrongly precede "9:00 AM"). Blank/unknown
+            // times sort last within the day.
+            const timeMin = (s) => {
+              const m = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?/.exec(String(s || "").trim());
+              if (!m) return 24 * 60;
+              let h = +m[1] % 12;
+              if (m[3] && m[3].toLowerCase() === "pm") h += 12;
+              return h * 60 + (+m[2]);
+            };
             // Agenda: a chosen day's events, else everything from today forward.
             const agenda = (calDay
               ? events.filter(e => coversDay(e, calDay))
               : events.filter(e => e.end >= todayISO)
-            ).sort((a, b) => (a.start + (a.startTime||"")).localeCompare(b.start + (b.startTime||"")));
+            ).sort((a, b) =>
+              a.start !== b.start
+                ? a.start.localeCompare(b.start)
+                : timeMin(a.startTime) - timeMin(b.startTime));
 
             // Paginate the agenda: 10 per page with Prev/Next.
             const CAL_PAGE = 10;
