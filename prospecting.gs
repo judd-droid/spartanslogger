@@ -221,31 +221,25 @@ function prospectingPost_(data) {
   var cols = info.cols;
 
   var entryId = String(data.id || data.entryID || Utilities.getUuid());
-  var row = new Array(info.width).fill('');
-  var set = function (f, v) { if (cols[f] !== undefined) row[cols[f]] = v; };
-  set('advisor', String(data.advisor || '').trim());
-  set('unit', String(data.unit || '').trim());
-  set('weekEnding', psh_fmtDateISO_(data.weekEnding));
-  set('approaches', Number(data.approaches) || 0);
-  set('setAppointments', Number(data.setAppointments) || 0);
-  set('timestamp', new Date());
-  set('entryID', entryId);
 
   var lastRow = sh.getLastRow();
   var target = lastRow + 1;                 // default: append
+  var existingRow = null;                   // the row we're overwriting, if any
 
   // Upsert. A weekly row is uniquely identified by (advisor + weekEnding), so
-  // an edit re-POSTs the same week and overwrites that row — even for legacy
-  // rows created before entryIDs were returned to the client. We match on the
-  // week first, then fall back to entryID for exactness.
+  // an edit re-POSTs the same week and updates that row — even for legacy rows
+  // whose entryID column is blank. We match by entryID first (exact), then fall
+  // back to (advisor + weekEnding).
   if (lastRow > 1) {
     var advKey  = String(data.advisor || '').trim().toLowerCase();
     var weekKey = psh_fmtDateISO_(data.weekEnding);
     var all = sh.getRange(2, 1, lastRow - 1, info.width).getValues();
     var found = -1;
+    var idIn = String(data.id || data.entryID || '').trim();
     for (var i = 0; i < all.length; i++) {
-      // Exact entryID match wins immediately.
-      if (cols.entryID !== undefined && String(all[i][cols.entryID] || '') === entryId) {
+      // Exact entryID match wins immediately (only when the client sent an id).
+      if (idIn && cols.entryID !== undefined
+        && String(all[i][cols.entryID] || '').trim() === idIn) {
         found = i; break;
       }
       // Otherwise match this advisor's row for the same week.
@@ -258,13 +252,33 @@ function prospectingPost_(data) {
     }
     if (found >= 0) {
       target = found + 2;                   // 0-based row 0 → sheet row 2
-      // Preserve the existing row's entryID so it stays stable across edits.
+      existingRow = all[found].slice();     // preserve untouched columns
+      // Keep the existing entryID if the row already has one.
       if (cols.entryID !== undefined) {
         var existingId = String(all[found][cols.entryID] || '').trim();
-        if (existingId) { entryId = existingId; row[cols.entryID] = existingId; }
+        if (existingId) entryId = existingId;
       }
     }
   }
+
+  // Start from the existing row on update (so columns we don't manage — e.g.
+  // Sr. Unit, ACE Attendance — are preserved), or a blank row on insert. Then
+  // overlay only the fields the Telethon page owns.
+  var row = existingRow || new Array(info.width).fill('');
+  var set = function (f, v) { if (cols[f] !== undefined) row[cols[f]] = v; };
+  set('advisor', String(data.advisor || '').trim());
+  set('weekEnding', psh_fmtDateISO_(data.weekEnding));
+  set('approaches', Number(data.approaches) || 0);
+  set('setAppointments', Number(data.setAppointments) || 0);
+  set('timestamp', new Date());
+  set('entryID', entryId);
+  // Only set Unit on insert, or on update when the row's Unit is blank — never
+  // clobber a Unit already chosen in the sheet.
+  if (cols.unit !== undefined
+    && (!existingRow || !String(row[cols.unit] || '').trim())) {
+    set('unit', String(data.unit || '').trim());
+  }
+
   sh.getRange(target, 1, 1, row.length).setValues([row]);
 
   return { ok: true, id: entryId };
