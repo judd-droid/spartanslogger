@@ -6,14 +6,20 @@
  * Self-contained: every helper is prefixed `psh_` so it won't clash with the
  * functions already in Code.gs / bop.gs / calendar.gs.
  *
- * READ-ONLY. This only returns the signed-in advisor's own prospecting rows so
- * the Telethon page can show an Approach / Set History below the counters. The
- * app already WRITES prospecting rows through your existing `path=prospecting`
- * handler in Code.gs — this file does not touch writes.
+ * This file has two handlers:
+ *   • prospectingHistoryGet_  (GET)  — returns the signed-in advisor's own
+ *     prospecting rows so the Telethon page can show an Approach / Set History
+ *     below the counters.
+ *   • prospectingPost_        (POST) — appends/upserts one weekly prospecting
+ *     row. This is a REFERENCE implementation of the `path=prospecting` write
+ *     that the Telethon page already calls. If your Code.gs already handles
+ *     `path=prospecting`, keep that one and wire only the GET route below —
+ *     the two are interchangeable as long as they write the same tab/columns.
  *
  * Identity model: the Vercel proxy validates the advisor + sync key and
- * forwards a trusted `advisor` (query param on GET). This handler reads that
- * advisor directly and returns only that advisor's rows.
+ * forwards a trusted `advisor` (query param on GET, body field on POST). These
+ * handlers read that advisor directly; the GET returns only that advisor's rows
+ * and the POST stamps the row with it.
  *
  * ONE TAB REQUIRED — the tab your `path=prospecting` POST already writes to.
  * Set PSH_SHEET below to that tab's exact name (default 'Prospecting'). Only
@@ -28,13 +34,18 @@
  *                      'Appointments Set', 'Set'
  *   Timestamp        → 'Timestamp', 'lastModified', 'Date Logged', 'Logged At'
  *
- * WIRING — add this one block to your EXISTING doGet(e):
+ * WIRING — inside your EXISTING doGet(e), near your other `path` checks:
  *
  *   if (e && e.parameter && e.parameter.path === 'prospectinghistory')
  *     return psh_json_(prospectingHistoryGet_(e.parameter));
  *
+ * WIRING (only if you want THIS write handler instead of your own) — inside
+ * doPost(e), after you parse the body into `data` and read `path`:
+ *
+ *   if (path === 'prospecting') return psh_json_(prospectingPost_(data));
+ *
  * (`psh_json_` just wraps ContentService — reuse your own JSON helper if you
- * prefer and keep only prospectingHistoryGet_.)
+ * prefer and keep only the *Get_/*Post_ calls.)
  ****************************************************************************/
 
 // Leave blank to use the bound spreadsheet (recommended for a container-bound
@@ -58,6 +69,18 @@ var PSH_ALIASES = {
   setAppointments:  ['set appointments', 'setappointments', 'set apps',
                      'appointments set', 'set'],
   timestamp:        ['timestamp', 'lastmodified', 'date logged', 'logged at'],
+  entryID:          ['entryid', 'id'],
+};
+
+// Canonical header text written when the write handler has to create a column.
+var PSH_CANONICAL_HEADERS = {
+  advisor:         'Advisor',
+  unit:            'Unit',
+  weekEnding:      'Week Ending',
+  approaches:      'Approaches',
+  setAppointments: 'Set Appointments',
+  timestamp:       'Timestamp',
+  entryID:         'entryID',
 };
 
 /* ---------- small helpers (all psh_ prefixed) ---------- */
@@ -162,4 +185,61 @@ function prospectingHistoryGet_(params) {
   });
 
   return { ok: true, rows: out };
+}
+
+/* ---------- write handler (reference for path=prospecting) ---------- */
+
+// Ensure every canonical field has a column; append any missing to row 1.
+// Returns a fresh { cols, width } after any columns were added.
+function psh_ensureCols_(sh, fields) {
+  var info = psh_fieldCols_(sh);
+  var missing = fields.filter(function (f) { return info.cols[f] === undefined; });
+  if (missing.length) {
+    var startCol = info.width + 1;
+    var labels = missing.map(function (f) { return PSH_CANONICAL_HEADERS[f] || f; });
+    sh.getRange(1, startCol, 1, labels.length).setValues([labels]).setFontWeight('bold');
+    info = psh_fieldCols_(sh);
+  }
+  return info;
+}
+
+/**
+ * Append (or upsert) one weekly prospecting row. `data` is the JSON the
+ * Telethon page POSTs: { id, advisor, unit, weekEnding, approaches,
+ * setAppointments }. `data.advisor` is the canonical name the proxy forwards.
+ *
+ * Upsert is keyed on entryID so an offline retry of the same submit (the app
+ * re-sends the same `id`) updates its row instead of duplicating it. Rows
+ * without an id are always appended.
+ */
+function prospectingPost_(data) {
+  data = data || {};
+  var sh = psh_sheet_(PSH_SHEET);
+  var info = psh_ensureCols_(sh, ['advisor', 'unit', 'weekEnding',
+    'approaches', 'setAppointments', 'timestamp', 'entryID']);
+  var cols = info.cols;
+
+  var entryId = String(data.id || data.entryID || Utilities.getUuid());
+  var row = new Array(info.width).fill('');
+  var set = function (f, v) { if (cols[f] !== undefined) row[cols[f]] = v; };
+  set('advisor', String(data.advisor || '').trim());
+  set('unit', String(data.unit || '').trim());
+  set('weekEnding', psh_fmtDateISO_(data.weekEnding));
+  set('approaches', Number(data.approaches) || 0);
+  set('setAppointments', Number(data.setAppointments) || 0);
+  set('timestamp', new Date());
+  set('entryID', entryId);
+
+  var lastRow = sh.getLastRow();
+  var target = lastRow + 1;                 // default: append
+  if (lastRow > 1 && cols.entryID !== undefined) {
+    var idCol = cols.entryID + 1;
+    var ids = sh.getRange(2, idCol, lastRow - 1, 1).getValues()
+      .map(function (r) { return String(r[0] || ''); });
+    var found = ids.indexOf(entryId);
+    if (found >= 0) target = found + 2;     // 0-based row 0 → sheet row 2
+  }
+  sh.getRange(target, 1, 1, row.length).setValues([row]);
+
+  return { ok: true, id: entryId };
 }

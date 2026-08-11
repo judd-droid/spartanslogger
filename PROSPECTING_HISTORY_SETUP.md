@@ -27,6 +27,13 @@ appointments. Open that tab and confirm its **name** and header row (row 1).
 If your columns already use different names, either rename them to one of the
 above or add the name to `PSH_ALIASES` in `prospecting.gs`.
 
+> **New tab from scratch?** `prospecting.gs` also ships a reference **write**
+> handler (`prospectingPost_`) that creates any missing columns on first write,
+> so you can point it at an empty tab and let it build the header row. See
+> step 2 for wiring it. If your `Code.gs` already handles `path=prospecting`,
+> keep that one — the two are interchangeable as long as they write the same
+> tab and columns.
+
 ## 2. Apps Script — add `prospecting.gs` and wire the route
 
 1. In the Sheet: **Extensions ▸ Apps Script**.
@@ -43,6 +50,17 @@ above or add the name to `PSH_ALIASES` in `prospecting.gs`.
    > If your `doGet` builds responses with your own JSON helper, call
    > `prospectingHistoryGet_(e.parameter)` and pass the result to that helper
    > instead of `psh_json_`.
+
+   **Optional — use the reference write handler.** Only if you do *not* already
+   handle `path=prospecting` in `Code.gs`, also add this to `doPost(e)`, after
+   you parse the body into `data` and read `path`:
+
+   ```js
+   if (path === 'prospecting') return psh_json_(prospectingPost_(data));
+   ```
+
+   It appends one row per submit and upserts on `entryID`, so an offline retry
+   of the same submit updates its row instead of duplicating it.
 
 4. **Deploy ▸ Manage deployments ▸ Edit ▸ Deploy** to publish the new version
    (Apps Script serves the *deployed* version to the proxy, not the editor).
