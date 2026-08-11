@@ -647,9 +647,11 @@
       useEffect(() => { setCalPage(0); }, [calDay, calMonth, calEvents]);
 
       const filteredHistory = useMemo(() => {
-        // Missed meetings stay in history (and keep syncing) but are hidden from
-        // this view — see markMeetingStatus. A copy is available on request.
-        const visible = history.filter(r => meetingStatusOf(r) !== "missed");
+        // History shows meetings that have actually happened (completed). Missed
+        // meetings and still-scheduled/upcoming appointments are hidden — they all
+        // keep syncing, and past-due scheduled ones surface via the reconcile
+        // banner. A copy of hidden rows is available on request.
+        const visible = history.filter(r => meetingStatusOf(r) === "completed");
         const q = historyQuery.trim().toLowerCase();
         if (!q) return visible;
         return visible.filter(r => {
