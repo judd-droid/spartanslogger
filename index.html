@@ -1743,13 +1743,16 @@
       // left open past midnight, the new day brings it back on next focus/visit.
       const [welcomeDismissed, setWelcomeDismissed] = useState(false);
       const welcomeDayRef = React.useRef(todayISODate());
+      // Bumped whenever the card re-arms, so its content (greeting, pace, tip,
+      // phrasing) is recomputed fresh rather than showing stale values.
+      const [welcomeNonce, setWelcomeNonce] = useState(0);
 
       // A new calendar day re-arms the welcome (fires on tab focus / visibility
       // change so a long-open app still greets the following morning).
       useEffect(() => {
         const maybeNewDay = () => {
           const t = todayISODate();
-          if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); }
+          if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); setWelcomeNonce(n => n + 1); }
         };
         window.addEventListener("focus", maybeNewDay);
         document.addEventListener("visibilitychange", maybeNewDay);
@@ -1760,11 +1763,11 @@
       }, []);
 
       // Leaving New Meeting hides the welcome for the rest of the day; a new
-      // day (checked on return) re-arms it.
+      // day (checked on return) re-arms it with fresh content.
       useEffect(() => {
         if (tab !== "log") { setWelcomeDismissed(true); return; }
         const t = todayISODate();
-        if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); }
+        if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); setWelcomeNonce(n => n + 1); }
       }, [tab]);
       const welcomeData = useMemo(() => {
         const GOAL = 15;
@@ -1934,7 +1937,7 @@
 
         return { greeting: greetPhrase, firstName, pace, action, hype, sessionSummary, bopAhead,
                  scheduledAheadCount: scheduledAhead.length, stats, bestDayLabel, tip };
-      }, [history, calEvents, bopEvents, bopGuests, settings.advisorName]);
+      }, [history, calEvents, bopEvents, bopGuests, settings.advisorName, welcomeNonce]);
 
       const pendingCount = outbox.length;
       const canEditAmounts = !!form.casePaid && canEditOutcome;
