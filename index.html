@@ -513,19 +513,25 @@
       ),
     };
 
-    // A single nav button. `icon` is a React node (see ICONS).
-    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel }) => {
+    // A single nav button. `icon` is a React node (see ICONS). `badge` is an
+    // optional count shown as a red dot with a number (e.g. items needing action).
+    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel, badge = 0 }) => {
       const active = tab === id;
       return (
       <button
         onClick={() => setTab(id)}
         className={cls(
-          "h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
+          "relative h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
           active ? "bg-brand-600 text-white" : "text-neutral-600 [@media(hover:hover)]:hover:bg-white/70"
         )}
         aria-pressed={active}
-        aria-label={ariaLabel || label}
+        aria-label={badge > 0 ? `${ariaLabel || label} (${badge} need updating)` : (ariaLabel || label)}
       >
+        {badge > 0 && (
+          <span className="absolute right-1.5 top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-brand-50">
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
         <div className="flex flex-col items-center leading-[1.05] pt-1 pb-1">
           {icon}
           <span className="flex h-[1.9em] items-center justify-center text-center text-[9px] sm:text-[10px] leading-[1.05]">{label}</span>
@@ -534,7 +540,7 @@
       );
     };
 
-    const FloatingTabBar = ({ tab, setTab }) => (
+    const FloatingTabBar = ({ tab, setTab, calendarBadge = 0 }) => (
       <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
         <div className="pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-6 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
@@ -542,7 +548,7 @@
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
           <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
           <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      icon={ICONS.recruit} />
-          <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" />
+          <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" badge={calendarBadge} />
         </div>
       </div>
     );
@@ -1437,6 +1443,42 @@
         setEditingId(null); resetForm(); setIsSending(false);
       };
 
+      // --- Phase 2: reconcile past-due scheduled meetings ---------------------
+      // Scheduled meetings whose time has passed (with a 3-hour grace) still
+      // waiting for the advisor to say what happened.
+      const RECONCILE_GRACE_MS = 3 * 60 * 60 * 1000;
+      const pastDueMeetings = useMemo(() => {
+        if (!settings.trackUpcoming) return [];
+        const nowMs = Date.now();
+        return (history || [])
+          .filter(r => r && r.kind !== "prospecting" && meetingStatusOf(r) === "scheduled")
+          .filter(r => {
+            const when = new Date(`${r.date}T${r.appointmentTime || "23:59"}`);
+            return !isNaN(when) && (when.getTime() + RECONCILE_GRACE_MS) < nowMs;
+          })
+          .slice()
+          .sort((a, b) => `${a.date} ${a.appointmentTime || ""}`.localeCompare(`${b.date} ${b.appointmentTime || ""}`));
+      }, [history, settings.trackUpcoming]);
+
+      const [reviewing, setReviewing] = useState(false);
+      useEffect(() => { if (!pastDueMeetings.length) setReviewing(false); }, [pastDueMeetings.length]);
+
+      // Persist a status change (used for "Missed"). Meetings upsert by id.
+      const markMeetingStatus = async (rec, status) => {
+        if (!rec || !rec.id) return;
+        const updated = { ...rec, status, timestamp: new Date().toISOString() };
+        setHistory(h => h.map(x => x.id === rec.id ? updated : x));
+        const ok = await sendToEndpoint(DEFAULT_ENDPOINT, updated);
+        if (!ok) { setOutbox(o => [updated, ...o]); setToast({ t: "Saved offline — will sync when online.", type: "warn" }); }
+        else { setToast({ t: status === "missed" ? "Marked as missed." : "Updated.", type: "ok" }); }
+      };
+
+      // Open a past-due meeting in the New Meeting form to complete/reschedule it.
+      const reviewInForm = (rec) => {
+        setReviewing(false);
+        startEdit(rec);   // loads the record into the form and switches to the log tab
+      };
+
       const weeklyGoalSlots = useMemo(() => {
         const today = new Date();
         const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1493,6 +1535,70 @@
             pauseTimer();                       // PAUSE on Settings
             setOpenSettings(v => !v);
           }} pendingCount={pendingCount} weeklyGoalSlots={weeklyGoalSlots} />
+
+          {/* Phase 2: gentle nudge to reconcile past-due scheduled meetings. */}
+          {!openSettings && pastDueMeetings.length > 0 && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <div className="flex items-center gap-2 text-sm text-amber-800">
+                <span aria-hidden="true">⚠️</span>
+                <span>
+                  <span className="font-semibold">{pastDueMeetings.length}</span> past {pastDueMeetings.length === 1 ? "appointment needs" : "appointments need"} updating
+                </span>
+              </div>
+              <button type="button" onClick={() => setReviewing(true)}
+                className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm [@media(hover:hover)]:hover:bg-amber-700 active:scale-95 transition">
+                Review
+              </button>
+            </div>
+          )}
+
+          {/* Phase 2: review overlay — step through each past-due meeting. */}
+          {reviewing && pastDueMeetings.length > 0 && (() => {
+            const m = pastDueMeetings[0];
+            const remaining = pastDueMeetings.length;
+            const fmtWhen = (r) => {
+              const d = new Date(`${r.date}T${r.appointmentTime || "00:00"}`);
+              return isNaN(d)
+                ? (r.date || "")
+                : d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+                  + (r.appointmentTime ? ` · ${r.appointmentTime}` : "");
+            };
+            return (
+              <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center" onClick={() => setReviewing(false)}>
+                <div className="w-full max-w-sm rounded-xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <div className="text-sm font-semibold text-neutral-900">Update past appointment</div>
+                    <span className="text-xs text-neutral-400">{remaining} left</span>
+                  </div>
+                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5">
+                    <div className="truncate text-sm font-semibold text-neutral-900">{m.prospect || "Meeting"}</div>
+                    <div className="mt-0.5 text-xs text-neutral-500">
+                      {fmtWhen(m)}{m.meetingPlace ? ` · ${m.meetingPlace}` : ""}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-neutral-500">Did this meeting happen?</p>
+                  <div className="mt-2 grid gap-2">
+                    <button type="button" onClick={() => reviewInForm(m)}
+                      className="flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white [@media(hover:hover)]:hover:bg-emerald-700 active:scale-[0.98] transition">
+                      ✅ It happened — fill in results
+                    </button>
+                    <button type="button" onClick={() => reviewInForm(m)}
+                      className={cls(btnSecondary, "justify-center")}>
+                      🔄 Rescheduled — change date/time/venue
+                    </button>
+                    <button type="button" onClick={() => markMeetingStatus(m, "missed")}
+                      className={cls(btnSecondary, "justify-center text-rose-600")}>
+                      ✖️ Didn't happen (missed)
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => setReviewing(false)}
+                    className="mt-3 w-full py-1.5 text-center text-xs font-medium text-neutral-400 [@media(hover:hover)]:hover:text-neutral-600">
+                    I'll do this later
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           <Slide open={openSettings}>
             <Section title="SETTINGS">
@@ -2452,7 +2558,7 @@
             );
           })()}
 
-          <FloatingTabBar tab={tab} setTab={goToTab} />
+          <FloatingTabBar tab={tab} setTab={goToTab} calendarBadge={pastDueMeetings.length} />
           
           {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
         </Page>
