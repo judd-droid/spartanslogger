@@ -1693,11 +1693,11 @@
                   </button>
                 )}
               
-                <button onClick={resetForm}
-                  className={btnSecondary}>
+                <button onClick={resetForm} disabled={isSending}
+                  className={cls(btnSecondary, isSending && "opacity-50 cursor-not-allowed")}>
                   Clear
                 </button>
-              
+
                 <button onClick={handleSubmit} disabled={isSending}
                   className={cls(
                     "flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98]",
@@ -1927,12 +1927,13 @@
                 {/* Prospecting action bar — inside the panel, below the counters */}
                 <div className="mt-3 flex gap-3">
                   <button
+                    disabled={prospectSubmitting}
                     onClick={() => {
                       pauseTimer();                     // ← make sure this calls setTimerRunning(false)
                       setEditingWeekId(null);           // also drop any in-progress edit
                       setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
                     }}
-                    className={btnSecondary}
+                    className={cls(btnSecondary, prospectSubmitting && "opacity-50 cursor-not-allowed")}
                   >
                     Clear
                   </button>
