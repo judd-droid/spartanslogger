@@ -147,9 +147,10 @@
       meeting:  { label:"Completed",    dot:"bg-green-500",   chip:"border-green-200 bg-green-50 text-green-700",     ring:"ring-green-400" },
       upcoming: { label:"Upcoming",     dot:"bg-orange-300",  chip:"border-orange-200 bg-orange-50 text-orange-700",  ring:"ring-orange-300" },
       overdue:  { label:"To Log",       dot:"bg-blue-500",    chip:"border-blue-200 bg-blue-50 text-blue-700",        ring:"ring-blue-400" },
+      recruit:  { label:"Recruitment",  dot:"bg-teal-500",    chip:"border-teal-200 bg-teal-50 text-teal-700",        ring:"ring-teal-400" },
     };
     // Draw order for the day-cell dots.
-    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2, upcoming: 3, overdue: 4 };
+    const CAL_TYPE_ORDER = { agency: 0, aia: 1, recruit: 2, meeting: 3, upcoming: 4, overdue: 5 };
 
     // A meeting's lifecycle status. Uses the explicit `status` when present;
     // otherwise derives it (legacy rows: future date → scheduled, else completed).
@@ -1412,7 +1413,7 @@
         if (settings.advisorName && settings.syncKey) pullCalendar();
       }, [settings.advisorName, settings.syncKey]);
       useEffect(() => {
-        if (tab === "calendar" && settings.advisorName && settings.syncKey) pullCalendar();
+        if (tab === "calendar" && settings.advisorName && settings.syncKey) { pullCalendar(); pullBops(); }
       }, [tab]);
 
       // Load the advisor's prospecting history once credentials exist, and
@@ -2708,7 +2709,28 @@
                 };
               }).filter(e => e && e.start);
 
-            const events = agencyEvents.concat(myMeetings);
+            // Recruitment (BOP) events, folded in as first-class calendar
+            // events. Details show how many of this advisor's guests are
+            // registered for the event, so the calendar doubles as a prep view.
+            const recruitEvents = (bopEvents || []).map(ev => {
+              const start = String(ev.eventDate || "").slice(0, 10);
+              if (!start) return null;
+              const myGuests = (bopGuests || []).filter(g =>
+                g.eventName === ev.eventName && g.eventDate === ev.eventDate).length;
+              return {
+                name: ev.eventName || "Recruitment event",
+                type: "recruit",
+                start, end: start,
+                startTime: "", endTime: "",
+                location: "",
+                details: [
+                  myGuests > 0 ? `${myGuests} of your guest${myGuests > 1 ? "s" : ""} registered` : "",
+                  ev.remarks || "",
+                ].filter(Boolean).join(" · "),
+              };
+            }).filter(Boolean);
+
+            const events = agencyEvents.concat(myMeetings).concat(recruitEvents);
 
             // Does an event cover this ISO day? (inclusive of multi-day spans)
             const coversDay = (e, iso) => e.start <= iso && iso <= e.end;
@@ -2803,6 +2825,7 @@
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-neutral-600">
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.agency.dot)} />Agency</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.aia.dot)} />AIA</span>
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.recruit.dot)} />Recruitment</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.meeting.dot)} />Past Meetings</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.upcoming.dot)} />Upcoming Meetings</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.overdue.dot)} />To Log</span>
