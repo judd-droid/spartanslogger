@@ -2721,8 +2721,8 @@
                 name: ev.eventName || "Recruitment event",
                 type: "recruit",
                 start, end: start,
-                startTime: "", endTime: "",
-                location: "",
+                startTime: ev.startTime || "", endTime: ev.endTime || "",
+                location: ev.location || "",
                 details: [
                   myGuests > 0 ? `${myGuests} of your guest${myGuests > 1 ? "s" : ""} registered` : "",
                   ev.remarks || "",

@@ -108,6 +108,18 @@ function bop_fmtDateISO_(v) {
   return s;
 }
 
+// Format a time cell as "5:30 PM". Handles both Date objects (time-typed
+// cells) and plain strings like "5:30:00 PM".
+function bop_fmtTime_(v) {
+  if (v instanceof Date && !isNaN(v)) {
+    var tz = Session.getScriptTimeZone() || 'Asia/Manila';
+    return Utilities.formatDate(v, tz, 'h:mm a');
+  }
+  var s = String(v == null ? '' : v).trim();
+  // Drop trailing ":00" seconds if present ("5:30:00 PM" -> "5:30 PM").
+  return s.replace(/(\d{1,2}:\d{2}):\d{2}(\s*[AaPp][Mm])/, '$1$2');
+}
+
 function bop_uuid_() {
   return Utilities.getUuid();
 }
@@ -181,6 +193,9 @@ function bopsGet_() {
     events.push({
       eventName: name,
       eventDate: bop_fmtDateISO_(get(vals[i], 'Event Date')),
+      location: String(get(vals[i], 'Location') || '').trim(),
+      startTime: bop_fmtTime_(get(vals[i], 'Start Time')),
+      endTime: bop_fmtTime_(get(vals[i], 'End Time')),
       registered: Number(get(vals[i], 'Registered') || 0),
       showUp: Number(get(vals[i], 'Show-Up') || 0),
       remarks: String(get(vals[i], 'Remarks') || ''),
