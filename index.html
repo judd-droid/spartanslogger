@@ -137,13 +137,17 @@
 
     const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1", bopEvents:"sn.meet.bopevents.v1", bopGuests:"sn.meet.bopguests.v1", calEvents:"sn.meet.calevents.v1", prospectHistory:"sn.meet.prospecthistory.v1" };
 
-    // Calendar event "Type" → color treatment. Two agency-wide buckets:
-    //   Agency (internal Supernova events) → purple
-    //   AIA    (AIA / company events)      → pink-red (rose)
+    // Calendar event "Type" → color treatment.
+    //   Agency  (internal Supernova events) → purple
+    //   AIA     (AIA / company events)      → pink-red (rose)
+    //   Meeting (this advisor's own meetings)→ green
     const CAL_TYPES = {
-      agency: { label:"Agency", dot:"bg-purple-500", chip:"border-purple-200 bg-purple-50 text-purple-700", ring:"ring-purple-400" },
-      aia:    { label:"AIA",    dot:"bg-rose-500",   chip:"border-rose-200 bg-rose-50 text-rose-700",       ring:"ring-rose-400" },
+      agency:  { label:"Agency",     dot:"bg-purple-500",  chip:"border-purple-200 bg-purple-50 text-purple-700",     ring:"ring-purple-400" },
+      aia:     { label:"AIA",        dot:"bg-rose-500",    chip:"border-rose-200 bg-rose-50 text-rose-700",           ring:"ring-rose-400" },
+      meeting: { label:"My Meeting", dot:"bg-green-500",   chip:"border-green-200 bg-green-50 text-green-700",        ring:"ring-green-400" },
     };
+    // Draw order for the day-cell dots (agency, then aia, then my meetings).
+    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2 };
     const calType = (t) => (String(t||"").trim().toLowerCase().startsWith("aia") ? "aia" : "agency");
     const LS_SYNC = { last: "sn.meet.lastsync.v1" };
 
@@ -2148,7 +2152,7 @@
             };
 
             // Normalise events → { name, type, start, end, startTime, endTime, location, details }
-            const events = (calEvents || []).map(ev => {
+            const agencyEvents = (calEvents || []).map(ev => {
               const start = String(ev.startDate || ev.date || "").slice(0, 10);
               const end = String(ev.endDate || start).slice(0, 10) || start;
               return {
@@ -2159,6 +2163,24 @@
                 location: ev.location || "", details: ev.details || ev.remarks || "",
               };
             }).filter(e => e.start);
+
+            // This advisor's own meetings from the Appointment 15 table (the
+            // `history` records), shown in green. Prospecting rows aren't meetings.
+            const myMeetings = (history || [])
+              .filter(r => r && r.kind !== "prospecting" && r.date)
+              .map(r => {
+                const start = String(r.date || "").slice(0, 10);
+                return {
+                  name: r.prospect || "Meeting",
+                  type: "meeting",
+                  start, end: start,
+                  startTime: r.appointmentTime || "", endTime: "",
+                  location: r.meetingPlace || "",
+                  details: [r.product, r.remarks].filter(Boolean).join(" · "),
+                };
+              }).filter(e => e.start);
+
+            const events = agencyEvents.concat(myMeetings);
 
             // Does an event cover this ISO day? (inclusive of multi-day spans)
             const coversDay = (e, iso) => e.start <= iso && iso <= e.end;
@@ -2207,9 +2229,9 @@
               const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
               const iso = isoOf(d.getFullYear(), d.getMonth(), d.getDate());
               const dayEvents = events.filter(e => coversDay(e, iso));
-              // One dot per event, agency (purple) grouped before AIA (rose).
+              // One dot per event, grouped agency → AIA → my meetings.
               const evTypes = dayEvents.map(e => e.type)
-                .sort((a, b) => (a === b ? 0 : a === "agency" ? -1 : 1));
+                .sort((a, b) => (CAL_TYPE_ORDER[a] ?? 9) - (CAL_TYPE_ORDER[b] ?? 9));
               return { iso, day:d.getDate(), inMonth:d.getMonth() === vm - 1, isToday: iso===todayISO, evTypes, count:evTypes.length };
             });
 
@@ -2253,6 +2275,7 @@
                     <div className="flex items-center gap-4 text-xs text-neutral-600">
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.agency.dot)} />Agency</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.aia.dot)} />AIA</span>
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.meeting.dot)} />My Meetings</span>
                     </div>
                     <hr className="border-neutral-200" />
 
