@@ -835,8 +835,9 @@
 
       // When set, the counters + Submit are editing an existing history row
       // (its entryID) instead of creating a new one. Submit re-POSTs with this
-      // id so the backend upserts (overwrites) that same row.
-      const [editingId, setEditingId] = useState(null);
+      // id so the backend upserts (overwrites) that same row. Named distinctly
+      // from the meeting-log `editingId` above to avoid a redeclaration clash.
+      const [editingWeekId, setEditingWeekId] = useState(null);
 
       // Approach / Set history: this advisor's weekly prospecting rows, pulled
       // from the Sheet through the proxy. Cached so the list renders offline.
@@ -865,7 +866,7 @@
         const record = {
           // Editing an existing week → reuse its id so the backend upserts
           // (overwrites) that row instead of appending a new one.
-          id: editingId || crypto.randomUUID?.() || String(Date.now()),
+          id: editingWeekId || crypto.randomUUID?.() || String(Date.now()),
           kind: "prospecting",
           advisor: settings.advisorName,
           unit: settings.unit,
@@ -888,8 +889,8 @@
           if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings.", type: "warn" }); return; }
           if (!res.ok)            { setToast({ t: `Proxy error (${res.status}).`, type: "warn" }); return; }
       
-          setToast({ t: editingId ? "History updated!" : "Prospecting activity submitted!", type: "ok" });
-          setEditingId(null);                 // leave edit mode
+          setToast({ t: editingWeekId ? "History updated!" : "Prospecting activity submitted!", type: "ok" });
+          setEditingWeekId(null);             // leave edit mode
           setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
           pullProspectHistory();              // refresh the history below the counters
 
@@ -907,7 +908,7 @@
           setToast({ t: "This entry can't be edited yet — refresh your history.", type: "warn" });
           return;
         }
-        setEditingId(row.id);
+        setEditingWeekId(row.id);
         setProspecting(p => ({
           ...p,
           date: row.weekEnding || p.date,       // a Sunday → weekEnding stays the same
@@ -919,7 +920,7 @@
       };
 
       const cancelEditProspect = () => {
-        setEditingId(null);
+        setEditingWeekId(null);
         setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
       };
 
@@ -1829,7 +1830,7 @@
                   Week ending (Sunday): <span className="font-semibold">{weekEnding}</span>
                 </div>
 
-                {editingId && (
+                {editingWeekId && (
                   <div className="flex items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                     <span>Editing the week ending <span className="font-semibold">{weekEnding}</span> — adjust below and Submit to save.</span>
                     <button type="button" onClick={cancelEditProspect}
@@ -1897,7 +1898,7 @@
                   <button
                     onClick={() => {
                       pauseTimer();                     // ← make sure this calls setTimerRunning(false)
-                      setEditingId(null);               // also drop any in-progress edit
+                      setEditingWeekId(null);           // also drop any in-progress edit
                       setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
                     }}
                     className={btnSecondary}
@@ -1909,7 +1910,7 @@
                     onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
                     className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
                   >
-                    {editingId ? "Save Changes" : "Submit"}
+                    {editingWeekId ? "Save Changes" : "Submit"}
                   </button>
                 </div>
 
@@ -1961,7 +1962,7 @@
                         {prospectHistory.map((r, i) => (
                           <tr key={r.weekEnding + "|" + i}
                             className={cls("border-b border-neutral-100 last:border-b-0",
-                              editingId && editingId === r.id ? "bg-amber-50" : "")}>
+                              editingWeekId && editingWeekId === r.id ? "bg-amber-50" : "")}>
                             <td className="px-3 py-2.5 font-semibold text-neutral-900">
                               {r.weekEnding ? fmtWk(r.weekEnding) : "—"}
                             </td>
