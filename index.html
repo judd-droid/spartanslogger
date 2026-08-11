@@ -188,91 +188,95 @@
     const s = (n) => (n === 1 ? "" : "s");
     const WELCOME = {
       greeting: {
-        morning:   ["Good morning", "Morning", "Rise and grind", "Top of the morning", "Good morning, champ"],
-        afternoon: ["Good afternoon", "Afternoon", "Good afternoon, champ", "Hey there", "Back at it"],
-        evening:   ["Good evening", "Evening", "Good evening, champ", "Winding down", "Evening, hustler"],
+        morning:   ["Good morning", "Morning", "Morning, and welcome back", "Good morning to you"],
+        afternoon: ["Good afternoon", "Afternoon", "Good afternoon, welcome back", "Hope your afternoon's going well"],
+        evening:   ["Good evening", "Evening", "Good evening, welcome back", "Hope you had a good day"],
       },
       // pace(done, remaining, perDay)
       pace: [
-        (d, r, p) => `${d} of 15 in the bag — ${r} to go, roughly ${p}/day from here.`,
-        (d, r, p) => `${d} down, ${r} to go. Knock out ~${p} a day and 15 is yours.`,
-        (d, r, p) => `You're at ${d}/15 this week — about ${p} meetings a day closes it out.`,
-        (d, r, p) => `${r} meeting${s(r)} between you and a full 15. That's ~${p}/day.`,
-        (d, r, p) => `${d} logged, ${r} left. Pace to beat: ${p} a day.`,
+        (d, r, p) => `You're at ${d} of 15 this week, with ${r} to go. That's about ${p} a day from here.`,
+        (d, r, p) => `${d} logged so far, ${r} left. Roughly ${p} a day gets you to 15.`,
+        (d, r, p) => `${r} more meeting${s(r)} would round out your 15. Around ${p} a day does it.`,
+        (d, r, p) => `Nice, ${d} in already. ${r} to go, or about ${p} a day for the rest of the week.`,
       ],
       paceZero: [
-        (p) => `0 of 15 so far — about ${p}/day to bag all 15 by Sunday.`,
-        (p) => `Clean slate: 15 to go. Roughly ${p} meetings a day gets you there.`,
-        (p) => `Nothing logged yet this week — ~${p}/day and you're golden.`,
-        (p) => `Fresh week. Target's 15, that's about ${p} a day. Let's start.`,
+        (p) => `No meetings logged yet this week. About ${p} a day would see you to 15 by Sunday.`,
+        (p) => `Fresh start on the 15. Roughly ${p} a day keeps you on pace.`,
+        (p) => `The week's young. Around ${p} meetings a day and you'll get there.`,
       ],
       paceDone: [
-        `You've logged all 15 meetings this week. 🎯`,
-        `15 of 15 — the week is complete. 🎯`,
-        `Full house: all 15 meetings are in. 🎯`,
+        `All 15 meetings are in for the week. 🎯`,
+        `That's a full 15 logged this week. 🎯`,
+        `You've closed out the 15 for the week. 🎯`,
       ],
       hypeDone: [
-        `🏆 15 of 15 — you OWNED this week. Legend.`,
-        `🏆 Full 15 logged. That's championship pace!`,
-        `🔥 You maxed the week out. Absolute machine.`,
-        `🏆 15/15 — take a bow, then go again.`,
+        `Fifteen meetings in a week is real work. Well done.`,
+        `A full 15. That's the kind of week that builds a career.`,
+        `You hit the 15. Take a moment, then let's do it again next week.`,
       ],
       // hypeStreak(streak)
       hypeStreak: [
-        (n) => `🔥 ${n}-day logging streak — don't you dare break it today!`,
-        (n) => `🔥 ${n} days in a row. Keep the fire lit!`,
-        (n) => `⚡ ${n}-day streak alive — one more meeting keeps it burning.`,
-        (n) => `🔥 ${n} straight days of logging. Momentum is a superpower.`,
+        (n) => `That's ${n} days running with a meeting logged. Lovely rhythm, keep it going.`,
+        (n) => `${n} days in a row now. Consistency like that adds up fast.`,
+        (n) => `You've kept it up ${n} days straight. One more today keeps the run alive.`,
       ],
       // hypeBeat(gap, best)
       hypeBeat: [
-        (g, b) => `💪 Just ${g} more to smash your best week of ${b}. Go get it!`,
-        (g, b) => `🚀 ${g} away from a new personal best (${b}). This is the week!`,
-        (g, b) => `💥 Beat your record of ${b} — you only need ${g} more. Let's go!`,
+        (g, b) => `Your best week so far is ${b}. Just ${g} more this week and you'd top it.`,
+        (g, b) => `You're ${g} away from beating your record of ${b}. Well within reach.`,
+        (g, b) => `${g} more and this becomes your best week yet. The last one was ${b}.`,
       ],
       // hypeRolling(done, remaining)
       hypeRolling: [
-        (d, r) => `⚡ ${d} down and rolling — ${r} more and the week is YOURS!`,
-        (d, r) => `🔥 ${d} logged already. ${r} to go — keep swinging!`,
-        (d, r) => `💪 You're moving! ${r} meeting${s(r)} left to lock in 15.`,
-        (d, r) => `🚀 ${d} in the books. Close the gap — ${r} more!`,
+        (d, r) => `${d} down and moving well. ${r} more to go.`,
+        (d, r) => `Good momentum with ${d} logged. ${r} left to reach 15.`,
+        (d, r) => `You're rolling. ${d} in, ${r} to go.`,
       ],
       hypeFresh: [
-        `🚀 Fresh week, clean slate. One meeting flips the switch — let's GO!`,
-        `⚡ Blank canvas. The first meeting is the hardest — go grab it!`,
-        `🔥 New week, new 15. Who's your first yes today?`,
-        `💪 Zero to hero starts with one call. Make it now!`,
+        `New week ahead. The first meeting is always the one that gets things moving.`,
+        `A fresh week to build on. Who's the easiest person to reach out to today?`,
+        `Clean slate this week. One good conversation is a fine place to start.`,
       ],
       // actionOverdue(n)
       actionOverdue: [
-        (n) => `${n} meeting${s(n)} still need logging — close the loop while it's fresh.`,
-        (n) => `You've got ${n} unlogged meeting${s(n)}. Tap to record the outcome${s(n)}.`,
-        (n) => `${n} past meeting${s(n)} waiting on you — log ${n === 1 ? "it" : "them"} before the details fade.`,
+        (n) => `${n} meeting${s(n)} from earlier ${n === 1 ? "is" : "are"} still waiting to be logged. Worth doing while it's fresh.`,
+        (n) => `You've got ${n} meeting${s(n)} to record the outcome for.`,
+        (n) => `A moment when you're free: ${n} past meeting${s(n)} to log.`,
       ],
       // actionConfirm(n)
       actionConfirm: [
-        (n) => `${n} meeting${s(n)} tomorrow — a quick confirm call today keeps them from slipping.`,
-        (n) => `${n} on the calendar for tomorrow. Ring them to lock it in!`,
-        (n) => `Tomorrow: ${n} meeting${s(n)}. A confirm text or call cuts no-shows big time.`,
+        (n) => `${n} meeting${s(n)} tomorrow. A quick call today to confirm goes a long way.`,
+        (n) => `You've got ${n} tomorrow. A confirm call or text tends to keep them on the books.`,
+        (n) => `${n} lined up for tomorrow. Worth a quick reminder to each of them.`,
       ],
-      // Shown when nothing is logged ahead — but the advisor may well have
-      // meetings tracked elsewhere, so these invite rather than assume "empty".
+      // Shown when nothing is logged ahead. Advisors may track meetings
+      // elsewhere, so these never assume the week is actually empty.
       actionEmpty: [
-        `Got meetings lined up we don't know about? Log them to keep your 15 on track — or set a fresh one.`,
-        `Nothing on the app's radar yet this week. Add what's already booked, or line up your next yes.`,
-        `Room for more this week? Who's your easiest yes to call today?`,
-        `Keep the momentum — book (or log) your next meeting and watch the 15 fill up.`,
+        `If you've a bit of room this week, who'd be a good person to reach out to?`,
+        `A little space in the week is a good chance to line up your next conversation.`,
+        `Anyone on your list worth a call today? Even one keeps things moving.`,
       ],
       // actionKeep(n)
       actionKeep: [
-        (n) => `${n} meeting${s(n)} on deck this week — keep the pipeline full and set one more.`,
-        (n) => `${n} lined up ahead. Momentum loves company — book another!`,
-        (n) => `Nice, ${n} scheduled. Don't coast — one more call today.`,
+        (n) => `${n} meeting${s(n)} coming up on the app. Room for one more if today allows.`,
+        (n) => `${n} ahead and going well. A call today keeps the pipeline healthy.`,
+        (n) => `${n} lined up. If there's time, one more reach-out never hurts.`,
       ],
       actionAfterGoal: [
-        `15 in the bag — now build next week's momentum today.`,
-        `Week's done. Get a head start — set one for next week!`,
-        `Goal smashed. The best advisors keep dialing anyway. 😉`,
+        `The week's target is done. A call or two now gives next week a head start.`,
+        `You've hit 15. Anything you set today is a bonus on top.`,
+        `Goal's met. If you're in the mood, a head start on next week is never wasted.`,
+      ],
+      // Rotating mentor tips (idea #8). Practical, not generic.
+      tips: [
+        `Tip: ask for two referrals before you leave every meeting. It's the cheapest lead you'll ever get.`,
+        `Tip: the day-before confirm call is the simplest way to cut no-shows.`,
+        `Tip: send a short thank-you after each meeting. People remember it.`,
+        `Tip: block your prospecting time on the calendar like it's a client meeting.`,
+        `Tip: your warm market already trusts you. Start there when the pipeline feels thin.`,
+        `Tip: a quick birthday or milestone greeting often reopens a quiet conversation.`,
+        `Tip: aim to leave every meeting with the next step already booked.`,
+        `Tip: track the dials, not just the meetings. The meetings follow the dials.`,
       ],
     };
 
@@ -1756,7 +1760,41 @@
         const gKey = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
         const greetPhrase = pick(WELCOME.greeting[gKey]);
 
-        return { greeting: greetPhrase, firstName, pace, action, hype, sessionSummary, bopAhead, scheduledAheadCount: scheduledAhead.length };
+        // --- Stats from what they've already logged (valuable even to advisors
+        // who keep their forward calendar elsewhere). Recognition + a gentle
+        // activity→income signal, no future data required. ---
+        const paidYes = (r) => ["Yes", "yes", "true", true].includes(r.casePaid);
+        const completed = meetings.filter(r => meetingStatusOf(r) === "completed");
+        const monthPrefix = todayISO.slice(0, 7);
+        const yearPrefix = todayISO.slice(0, 4);
+        const mtdMeetings = completed.filter(r => (r.date || "").startsWith(monthPrefix)).length;
+        const ytdMeetings = completed.filter(r => (r.date || "").startsWith(yearPrefix)).length;
+        const paidCount = completed.filter(paidYes).length;
+        // Conversion shown only once there's enough history to be meaningful.
+        const convRate = completed.length >= 8 ? Math.round((paidCount / completed.length) * 100) : null;
+
+        // Best weekday by paid conversion (needs a bit of volume per day).
+        const byDay = {};
+        for (const r of completed) {
+          const d = parseISO(r.date); if (!d) continue;
+          const k = d.getDay();
+          (byDay[k] = byDay[k] || { n: 0, paid: 0 }).n++;
+          if (paidYes(r)) byDay[k].paid++;
+        }
+        let bestDay = null, bestRate = -1;
+        for (const [k, v] of Object.entries(byDay)) {
+          if (v.n < 4) continue;
+          const rate = v.paid / v.n;
+          if (rate > bestRate) { bestRate = rate; bestDay = Number(k); }
+        }
+        const DAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+        const bestDayLabel = (bestDay != null && bestRate > 0) ? DAYS[bestDay] : null;
+
+        const stats = { mtdMeetings, ytdMeetings, convRate };
+        const tip = pick(WELCOME.tips);
+
+        return { greeting: greetPhrase, firstName, pace, action, hype, sessionSummary, bopAhead,
+                 scheduledAheadCount: scheduledAhead.length, stats, bestDayLabel, tip };
       }, [history, calEvents, bopEvents, bopGuests, settings.advisorName]);
 
       const pendingCount = outbox.length;
@@ -1991,6 +2029,29 @@
                     )}
                   </div>
 
+                  {(welcomeData.stats.mtdMeetings > 0 || welcomeData.stats.convRate != null) && (
+                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/20 pt-3">
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.mtdMeetings}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">This month</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.ytdMeetings}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">This year</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.convRate == null ? "—" : `${welcomeData.stats.convRate}%`}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">Meet→Paid</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {welcomeData.bestDayLabel && (
+                    <p className="mt-3 text-[13px] text-white/90">
+                      <span className="font-semibold">Worth knowing:</span> {welcomeData.bestDayLabel} tend to be your strongest for closing. Worth booking a few there.
+                    </p>
+                  )}
+
                   {(welcomeData.sessionSummary.length > 0 || welcomeData.bopAhead.length > 0) && (
                     <div className="mt-3 space-y-1 border-t border-white/20 pt-3 text-[13px] text-white/90">
                       {welcomeData.sessionSummary.length > 0 && (
@@ -2000,12 +2061,14 @@
                         <p key={i}>
                           <span className="font-semibold">📣 {b.name}</span> on {b.day}
                           {b.guests > 0
-                            ? ` — ${b.guests} guest${b.guests > 1 ? "s" : ""} registered. A reminder call keeps them coming!`
-                            : ` — no guests yet. Who could you invite?`}
+                            ? `. ${b.guests} guest${b.guests > 1 ? "s" : ""} registered, and a reminder call helps them show up.`
+                            : `. No guests registered yet.`}
                         </p>
                       ))}
                     </div>
                   )}
+
+                  <p className="mt-3 border-t border-white/20 pt-3 text-[13px] italic text-white/85">{welcomeData.tip}</p>
                 </section>
               )}
               <Section
