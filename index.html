@@ -1851,30 +1851,28 @@
                   />
                 </div>
 
+                {/* Prospecting action bar — inside the panel, below the counters */}
+                <div className="mt-3 flex gap-3">
+                  <button
+                    onClick={() => {
+                      pauseTimer();                     // ← make sure this calls setTimerRunning(false)
+                      setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
+                    }}
+                    className={btnSecondary}
+                  >
+                    Clear
+                  </button>
+
+                  <button
+                    onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
+                    className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
+                  >
+                    Submit
+                  </button>
+                </div>
+
               </div>
             </Section>
-          )}
-
-          {/* Prospecting action bar (outside the white card) */}
-          {tab === "prospecting" && (
-            <div className="mb-4 flex gap-3">
-              <button
-                onClick={() => {
-                  pauseTimer();                     // ← make sure this calls setTimerRunning(false)
-                  setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
-                }}
-                className={btnSecondary}
-              >
-                Clear
-              </button>
-
-              <button
-                onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
-                className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
-              >
-                Submit
-              </button>
-            </div>
           )}
 
           {/* Approach / Set history — this advisor's submitted weekly totals */}
