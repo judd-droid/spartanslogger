@@ -169,6 +169,7 @@ function prospectingHistoryGet_(params) {
     var tsRaw = cols.timestamp  !== undefined ? raw[i][cols.timestamp]  : '';
 
     out.push({
+      id:              cols.entryID !== undefined ? String(row[cols.entryID] || '').trim() : '',
       advisor:         cols.advisor !== undefined ? String(row[cols.advisor] || '').trim() : advisor,
       unit:            cols.unit !== undefined ? String(row[cols.unit] || '').trim() : '',
       weekEnding:      psh_fmtDateISO_(weRaw),
