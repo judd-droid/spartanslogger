@@ -181,7 +181,7 @@
     ];
     const getRandomQuote = () => QUOTES[Math.floor(Math.random()*QUOTES.length)];
 
-    const defaultSettings = { advisorName: "", unit: "", syncKey: "", trackUpcoming: false };
+    const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
       caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", status:"" };
@@ -1402,7 +1402,7 @@
       // "Scheduling" = tracking upcoming appointments is on, the meeting is in
       // the future, and it hasn't already been marked completed. In that state
       // the outcome fields are grayed out because the meeting hasn't happened yet.
-      const scheduling = settings.trackUpcoming && meetingIsFuture && form.status !== "completed";
+      const scheduling = meetingIsFuture && form.status !== "completed";
       const canEditOutcome = !scheduling;
       // The status this submit will save.
       const submitStatus = form.status === "missed"
@@ -1448,7 +1448,6 @@
       // waiting for the advisor to say what happened.
       const RECONCILE_GRACE_MS = 3 * 60 * 60 * 1000;
       const pastDueMeetings = useMemo(() => {
-        if (!settings.trackUpcoming) return [];
         const nowMs = Date.now();
         return (history || [])
           .filter(r => r && r.kind !== "prospecting" && meetingStatusOf(r) === "scheduled")
@@ -1458,7 +1457,7 @@
           })
           .slice()
           .sort((a, b) => `${a.date} ${a.appointmentTime || ""}`.localeCompare(`${b.date} ${b.appointmentTime || ""}`));
-      }, [history, settings.trackUpcoming]);
+      }, [history]);
 
       const [reviewing, setReviewing] = useState(false);
       useEffect(() => { if (!pastDueMeetings.length) setReviewing(false); }, [pastDueMeetings.length]);
@@ -1508,23 +1507,20 @@
         // Completed meetings fill (and count toward) the 15 first; upcoming
         // scheduled meetings this week follow as a light-orange pipeline preview.
         // Missed meetings are excluded entirely.
-        // With tracking off, every meeting behaves as before (counts, green).
-        const effStatus = (r) => settings.trackUpcoming ? meetingStatusOf(r) : "completed";
-
-        const completed = weekMeetings.filter(r => effStatus(r) === "completed").slice().sort(bySchedule);
-        const upcoming  = weekMeetings.filter(r => effStatus(r) === "scheduled").slice().sort(bySchedule);
+        const completed = weekMeetings.filter(r => meetingStatusOf(r) === "completed").slice().sort(bySchedule);
+        const upcoming  = weekMeetings.filter(r => meetingStatusOf(r) === "scheduled").slice().sort(bySchedule);
         const ordered   = completed.concat(upcoming).slice(0, 15);
 
         return Array.from({ length: 15 }, (_, index) => {
           const meeting = ordered[index];
           if (!meeting) return { status: "empty" };
-          const isUpcoming = effStatus(meeting) === "scheduled";
+          const isUpcoming = meetingStatusOf(meeting) === "scheduled";
           return {
             status: isUpcoming ? "upcoming" : (paidValues.has(meeting.casePaid) ? "paid" : "meeting"),
             tooltip: `${formatGoalTooltipDate(meeting.date)}: ${meeting.prospect || "Unnamed prospect"}${isUpcoming ? " (upcoming)" : ""}`
           };
         });
-      }, [history, settings.trackUpcoming]);
+      }, [history]);
 
       const pendingCount = outbox.length;
       const canEditAmounts = !!form.casePaid && canEditOutcome;
@@ -1628,22 +1624,6 @@
                     placeholder="Paste the key from admin"
                   />
                 </LabeledInput>
-
-                {/* Opt-in: track upcoming appointments (future-dated meetings) */}
-                <label className="flex cursor-pointer items-start justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-neutral-700">Track upcoming appointments</div>
-                    <div className="mt-0.5 text-xs text-neutral-500">
-                      Log meetings for future dates and see them on your calendar. Only completed meetings count toward your weekly 15. Leave off if you manage upcoming meetings elsewhere.
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={!!settings.trackUpcoming}
-                    onChange={e => setSettings(s => ({ ...s, trackUpcoming: e.target.checked }))}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600"
-                  />
-                </label>
 
                 {/* 2) Sync area */}
                 <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
@@ -2360,7 +2340,7 @@
               .filter(r => r && r.kind !== "prospecting" && r.date)
               .map(r => {
                 const start = String(r.date || "").slice(0, 10);
-                const st = settings.trackUpcoming ? meetingStatusOf(r) : "completed";
+                const st = meetingStatusOf(r);
                 if (st === "missed") return null;
                 let type = "meeting";                 // completed
                 if (st === "scheduled") {
@@ -2476,10 +2456,8 @@
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.agency.dot)} />Agency</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.aia.dot)} />AIA</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.meeting.dot)} />Completed</span>
-                      {settings.trackUpcoming && (<>
-                        <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.upcoming.dot)} />Upcoming</span>
-                        <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.overdue.dot)} />Needs update</span>
-                      </>)}
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.upcoming.dot)} />Upcoming</span>
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.overdue.dot)} />Needs update</span>
                     </div>
                     <hr className="border-neutral-200" />
 
