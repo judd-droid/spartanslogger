@@ -146,11 +146,10 @@
       aia:      { label:"AIA",          dot:"bg-rose-500",    chip:"border-rose-200 bg-rose-50 text-rose-700",        ring:"ring-rose-400" },
       meeting:  { label:"Completed",    dot:"bg-green-500",   chip:"border-green-200 bg-green-50 text-green-700",     ring:"ring-green-400" },
       upcoming: { label:"Upcoming",     dot:"bg-orange-300",  chip:"border-orange-200 bg-orange-50 text-orange-700",  ring:"ring-orange-300" },
-      later:    { label:"Scheduled",    dot:"bg-green-200",   chip:"border-green-200 bg-white text-green-700",        ring:"ring-green-300" },
-      overdue:  { label:"Needs Update", dot:"bg-blue-500",    chip:"border-blue-200 bg-blue-50 text-blue-700",        ring:"ring-blue-400" },
+      overdue:  { label:"To Log",       dot:"bg-blue-500",    chip:"border-blue-200 bg-blue-50 text-blue-700",        ring:"ring-blue-400" },
     };
     // Draw order for the day-cell dots.
-    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2, upcoming: 3, later: 4, overdue: 5 };
+    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2, upcoming: 3, overdue: 4 };
 
     // A meeting's lifecycle status. Uses the explicit `status` when present;
     // otherwise derives it (legacy rows: future date → scheduled, else completed).
@@ -2330,20 +2329,12 @@
               };
             }).filter(e => e.start);
 
-            // Current week (Mon–Sun) bounds, to color upcoming meetings that
-            // fall within this week light orange vs. later ones outline-green.
-            const _t = new Date();
-            const _mon = new Date(_t.getFullYear(), _t.getMonth(), _t.getDate());
-            _mon.setDate(_mon.getDate() - ((_mon.getDay() + 6) % 7));
-            const _sun = new Date(_mon); _sun.setDate(_mon.getDate() + 6);
-            const weekStartISO = isoOf(_mon.getFullYear(), _mon.getMonth(), _mon.getDate());
-            const weekEndISO   = isoOf(_sun.getFullYear(), _sun.getMonth(), _sun.getDate());
             const nowMs = Date.now();
 
             // This advisor's own meetings from the Appointment 15 table (the
             // `history` records). Color by lifecycle:
-            //   completed → green · upcoming this week → orange ·
-            //   scheduled later → outline green · past-due scheduled → amber.
+            //   completed → green · upcoming (any future date) → orange ·
+            //   past-due scheduled → blue (To Log).
             // Missed meetings are hidden from the calendar.
             const myMeetings = (history || [])
               .filter(r => r && r.kind !== "prospecting" && r.date)
@@ -2355,9 +2346,9 @@
                 if (st === "scheduled") {
                   const when = new Date(`${start}T${r.appointmentTime || "23:59"}`);
                   const overdue = !isNaN(when) && when.getTime() < nowMs;
-                  type = overdue ? "overdue"
-                       : (start >= weekStartISO && start <= weekEndISO) ? "upcoming"
-                       : "later";
+                  // Any future, not-yet-logged meeting is "upcoming" (orange),
+                  // regardless of week; past-due ones are "overdue" (To Log).
+                  type = overdue ? "overdue" : "upcoming";
                 }
                 return {
                   name: r.prospect || "Meeting",
