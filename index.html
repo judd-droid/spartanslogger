@@ -1814,7 +1814,10 @@
               </Section>
 
               <Section title="Amounts & Product" muted={!canEditAmounts}
-                right={<span className={cls("text-xs", canEditAmounts ? "text-emerald-700" : "text-neutral-400")}>{canEditAmounts ? "Required" : "Set Paid to Yes"}</span>}>
+                right={<span className={cls("text-xs",
+                  !canEditOutcome ? "text-orange-500" : canEditAmounts ? "text-emerald-700" : "text-neutral-400")}>
+                  {!canEditOutcome ? "After the meeting" : canEditAmounts ? "Required" : "Set Paid to Yes"}
+                </span>}>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="FYP (₱)">
                     <MoneyInput
