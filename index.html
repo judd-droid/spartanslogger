@@ -1519,12 +1519,18 @@
         return `${d.toLocaleString("en-US",{month:"long"})} ${d.getFullYear()} Numbers`;
       }, []);
 
-      // Fire a one-off pull when name or key becomes valid
+      // Fire a one-off pull of everything the welcome card reads when name or
+      // key becomes valid, and only reveal the card once those settle (with a
+      // timeout fallback so a slow/offline network never hides it forever).
       useEffect(() => {
+        let settled = false;
+        const reveal = () => { if (!settled) { settled = true; setWelcomeReady(true); } };
         if (settings.advisorName && settings.syncKey) {
-          pullUpdates();
-          pullBops();
+          Promise.allSettled([pullUpdates(), pullBops(), pullCalendar()]).then(reveal);
+          const t = setTimeout(reveal, 5000);
+          return () => clearTimeout(t);
         }
+        reveal();   // no credentials yet: cached data is all there is
       }, [settings.advisorName, settings.syncKey]);
 
       // Refresh BOP events/guests each time the Recruit tab is opened.
@@ -1532,11 +1538,7 @@
         if (tab === "recruit" && settings.advisorName && settings.syncKey) pullBops();
       }, [tab]);
 
-      // Load the agency calendar once credentials exist, and refresh it each
-      // time the Calendar tab is opened.
-      useEffect(() => {
-        if (settings.advisorName && settings.syncKey) pullCalendar();
-      }, [settings.advisorName, settings.syncKey]);
+      // Refresh the agency calendar each time the Calendar tab is opened.
       useEffect(() => {
         if (tab === "calendar" && settings.advisorName && settings.syncKey) { pullCalendar(); pullBops(); }
       }, [tab]);
@@ -1761,6 +1763,9 @@
       // returning to New Meeting the same day won't bring it back. If the app is
       // left open past midnight, the new day brings it back on next focus/visit.
       const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+      // Held false until the initial server sync settles, so the card appears
+      // once, fully formed, instead of flashing cached data then updating.
+      const [welcomeReady, setWelcomeReady] = useState(false);
       const welcomeDayRef = React.useRef(todayISODate());
       // Bumped whenever the card re-arms, so its content (greeting, pace, tip,
       // phrasing) is recomputed fresh rather than showing stale values.
@@ -2176,7 +2181,7 @@
 
           {tab==="log" && (
             <>
-              {!welcomeDismissed && (
+              {welcomeReady && !welcomeDismissed && (
                 <section className="mb-4 overflow-hidden rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white shadow-sm">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="text-lg font-bold leading-tight">
