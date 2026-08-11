@@ -180,6 +180,106 @@
     ];
     const getRandomQuote = () => QUOTES[Math.floor(Math.random()*QUOTES.length)];
 
+    // --- Welcome-card phrase pools -------------------------------------------
+    // Each line is chosen from many variants so the card never reads the same
+    // way two launches running. `pick` grabs one at random; template variants
+    // are functions of the day's numbers (done, remaining/left, perDay, streak…).
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const s = (n) => (n === 1 ? "" : "s");
+    const WELCOME = {
+      greeting: {
+        morning:   ["Good morning", "Morning", "Morning, and welcome back", "Good morning to you"],
+        afternoon: ["Good afternoon", "Afternoon", "Good afternoon, welcome back", "Hope your afternoon's going well"],
+        evening:   ["Good evening", "Evening", "Good evening, welcome back", "Hope you had a good day"],
+      },
+      // pace(done, remaining, perDay)
+      pace: [
+        (d, r, p) => `You're at ${d} of 15 this week, with ${r} to go. That's about ${p} a day from here.`,
+        (d, r, p) => `${d} logged so far, ${r} left. Roughly ${p} a day gets you to 15.`,
+        (d, r, p) => `${r} more meeting${s(r)} would round out your 15. Around ${p} a day does it.`,
+        (d, r, p) => `Nice, ${d} in already. ${r} to go, or about ${p} a day for the rest of the week.`,
+      ],
+      paceZero: [
+        (p) => `No meetings logged yet this week. About ${p} a day would see you to 15 by Sunday.`,
+        (p) => `Fresh start on the 15. Roughly ${p} a day keeps you on pace.`,
+        (p) => `The week's young. Around ${p} meetings a day and you'll get there.`,
+      ],
+      paceDone: [
+        `All 15 meetings are in for the week. 🎯`,
+        `That's a full 15 logged this week. 🎯`,
+        `You've closed out the 15 for the week. 🎯`,
+      ],
+      hypeDone: [
+        `Fifteen meetings in a week is real work. Well done.`,
+        `A full 15. That's the kind of week that builds a career.`,
+        `You hit the 15. Take a moment, then let's do it again next week.`,
+      ],
+      // hypeStreak(streak)
+      hypeStreak: [
+        (n) => `That's ${n} days running with a meeting logged. Lovely rhythm, keep it going.`,
+        (n) => `${n} days in a row now. Consistency like that adds up fast.`,
+        (n) => `You've kept it up ${n} days straight. One more today keeps the run alive.`,
+      ],
+      // hypeBeat(gap, best)
+      hypeBeat: [
+        (g, b) => `Your best week so far is ${b}. Just ${g} more this week and you'd top it.`,
+        (g, b) => `You're ${g} away from beating your record of ${b}. Well within reach.`,
+        (g, b) => `${g} more and this becomes your best week yet. The last one was ${b}.`,
+      ],
+      // hypeRolling(done, remaining)
+      hypeRolling: [
+        (d, r) => `${d} down and moving well. ${r} more to go.`,
+        (d, r) => `Good momentum with ${d} logged. ${r} left to reach 15.`,
+        (d, r) => `You're rolling. ${d} in, ${r} to go.`,
+      ],
+      hypeFresh: [
+        `New week ahead. The first meeting is always the one that gets things moving.`,
+        `A fresh week to build on. Who's the easiest person to reach out to today?`,
+        `Clean slate this week. One good conversation is a fine place to start.`,
+      ],
+      // actionOverdue(n)
+      actionOverdue: [
+        (n) => `${n} meeting${s(n)} from earlier ${n === 1 ? "is" : "are"} still waiting to be logged. Worth doing while it's fresh.`,
+        (n) => `You've got ${n} meeting${s(n)} to record the outcome for.`,
+        (n) => `A moment when you're free: ${n} past meeting${s(n)} to log.`,
+      ],
+      // actionConfirm(n)
+      actionConfirm: [
+        (n) => `${n} meeting${s(n)} tomorrow. A quick call today to confirm goes a long way.`,
+        (n) => `You've got ${n} tomorrow. A confirm call or text tends to keep them on the books.`,
+        (n) => `${n} lined up for tomorrow. Worth a quick reminder to each of them.`,
+      ],
+      // Shown when nothing is logged ahead. Advisors may track meetings
+      // elsewhere, so these never assume the week is actually empty.
+      actionEmpty: [
+        `If you've a bit of room this week, who'd be a good person to reach out to?`,
+        `A little space in the week is a good chance to line up your next conversation.`,
+        `Anyone on your list worth a call today? Even one keeps things moving.`,
+      ],
+      // actionKeep(n)
+      actionKeep: [
+        (n) => `${n} meeting${s(n)} coming up on the app. Room for one more if today allows.`,
+        (n) => `${n} ahead and going well. A call today keeps the pipeline healthy.`,
+        (n) => `${n} lined up. If there's time, one more reach-out never hurts.`,
+      ],
+      actionAfterGoal: [
+        `The week's target is done. A call or two now gives next week a head start.`,
+        `You've hit 15. Anything you set today is a bonus on top.`,
+        `Goal's met. If you're in the mood, a head start on next week is never wasted.`,
+      ],
+      // Rotating mentor tips (idea #8). Practical, not generic.
+      tips: [
+        `Tip: ask for two referrals before you leave every meeting. It's the cheapest lead you'll ever get.`,
+        `Tip: the day-before confirm call is the simplest way to cut no-shows.`,
+        `Tip: send a short thank-you after each meeting. People remember it.`,
+        `Tip: block your prospecting time on the calendar like it's a client meeting.`,
+        `Tip: your warm market already trusts you. Start there when the pipeline feels thin.`,
+        `Tip: a quick birthday or milestone greeting often reopens a quiet conversation.`,
+        `Tip: aim to leave every meeting with the next step already booked.`,
+        `Tip: track the dials, not just the meetings. The meetings follow the dials.`,
+      ],
+    };
+
     const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
@@ -1526,6 +1626,177 @@
         });
       }, [history]);
 
+      // --- Welcome card: a coach's one-liner built entirely from local state. ---
+      // Greeting + weekly pace + one next action + a hype/streak footer. Reuses
+      // the same Mon–Sun week and completed-meeting rules as the 15-tracker so
+      // the two never disagree. Dismissible for the session; back next launch.
+      const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+      const welcomeData = useMemo(() => {
+        const GOAL = 15;
+        const now = new Date();
+        const hour = now.getHours();
+        const firstName = (settings.advisorName || "").trim().split(/\s+/)[0] || "";
+
+        // Mon–Sun week (identical to weeklyGoalSlots).
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const daysSinceMonday = (today.getDay() + 6) % 7;
+        const monday = new Date(today); monday.setDate(today.getDate() - daysSinceMonday);
+        const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+        const weekStart = toLocalISO(monday), weekEnd = toLocalISO(sunday);
+        const todayISO = toLocalISO(today);
+        const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+        const tomorrowISO = toLocalISO(tomorrow);
+        const in7 = new Date(today); in7.setDate(today.getDate() + 7);
+        const in7ISO = toLocalISO(in7);
+
+        const meetings = (history || []).filter(r => r && r.kind !== "prospecting");
+        const weekMeetings = meetings.filter(r => r.date >= weekStart && r.date <= weekEnd);
+        const done = weekMeetings.filter(r => meetingStatusOf(r) === "completed").length;
+        const remaining = Math.max(0, GOAL - done);
+        const hitGoal = done >= GOAL;
+
+        // Days left in the week counting today → Sunday, so pace stays honest.
+        const daysLeft = Math.max(1, 7 - daysSinceMonday);
+        const perDay = remaining > 0 ? Math.ceil(remaining / daysLeft) : 0;
+
+        // Upcoming scheduled meetings (not yet logged) in the next 7 days.
+        const scheduledAhead = meetings.filter(r =>
+          meetingStatusOf(r) === "scheduled" && r.date >= todayISO && r.date <= in7ISO);
+        const meetingsTomorrow = scheduledAhead.filter(r => r.date === tomorrowISO).length;
+
+        // Past-due scheduled meetings that still need logging.
+        const overdue = meetings.filter(r => {
+          if (meetingStatusOf(r) !== "scheduled") return false;
+          const when = new Date(`${r.date}T${r.appointmentTime || "23:59"}`);
+          return !isNaN(when) && when.getTime() < now.getTime();
+        }).length;
+
+        // Agency sessions (ACE / FCM / GRID and friends) in the next 7 days.
+        const dow = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString(undefined, { weekday: "short" }) : ""; };
+        const sessions = (calEvents || [])
+          .map(ev => ({
+            name: ev.eventName || ev.name || "",
+            start: String(ev.startDate || ev.date || "").slice(0, 10),
+          }))
+          .filter(e => e.name && e.start >= todayISO && e.start <= in7ISO)
+          .sort((a, b) => a.start.localeCompare(b.start));
+        // Group day-names under each session name → "ACE (Wed, Fri)".
+        const sessionMap = {};
+        for (const s of sessions) {
+          (sessionMap[s.name] = sessionMap[s.name] || []).push(dow(s.start));
+        }
+        const sessionSummary = Object.entries(sessionMap)
+          .map(([name, days]) => `${name} (${[...new Set(days)].join(", ")})`);
+
+        // Recruitment (BOP) events in the next 7 days + guests already registered.
+        const bopAhead = (bopEvents || [])
+          .filter(ev => ev.eventDate && ev.eventDate >= todayISO && ev.eventDate <= in7ISO)
+          .map(ev => {
+            const guests = (bopGuests || []).filter(g => g.eventName === ev.eventName && g.eventDate === ev.eventDate).length;
+            return { name: ev.eventName, date: ev.eventDate, day: dow(ev.eventDate), guests };
+          })
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Logging streak: consecutive days (ending today or yesterday) with a
+        // completed meeting. Survives the morning before the first meeting lands.
+        const doneDays = new Set(meetings.filter(r => meetingStatusOf(r) === "completed").map(r => r.date));
+        let streak = 0;
+        let cursor = new Date(today);
+        if (!doneDays.has(toLocalISO(cursor))) cursor.setDate(cursor.getDate() - 1); // grace for today
+        while (doneDays.has(toLocalISO(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); }
+
+        // Personal best: most completed meetings in any single Mon–Sun week.
+        const weekTallies = {};
+        for (const r of meetings) {
+          if (meetingStatusOf(r) !== "completed" || !r.date) continue;
+          const [y, m, d] = r.date.split("-").map(Number);
+          const dt = new Date(y, m - 1, d);
+          const back = (dt.getDay() + 6) % 7;
+          dt.setDate(dt.getDate() - back);
+          const key = toLocalISO(dt);
+          weekTallies[key] = (weekTallies[key] || 0) + 1;
+        }
+        const bestWeek = Object.values(weekTallies).reduce((a, b) => Math.max(a, b), 0);
+        const beatBest = !hitGoal && bestWeek > done && (bestWeek - done) <= 3;
+
+        // The single next action, by priority. { text, cta?, dest? }
+        let action;
+        if (overdue > 0) {
+          action = { text: pick(WELCOME.actionOverdue)(overdue), cta: "Log it", dest: "history" };
+        } else if (meetingsTomorrow > 0) {
+          action = { text: pick(WELCOME.actionConfirm)(meetingsTomorrow), cta: "Open calendar", dest: "calendar" };
+        } else if (!hitGoal && scheduledAhead.length === 0) {
+          action = { text: pick(WELCOME.actionEmpty), cta: "Start dialing", dest: "prospecting" };
+        } else if (!hitGoal) {
+          action = { text: pick(WELCOME.actionKeep)(scheduledAhead.length), cta: "Start dialing", dest: "prospecting" };
+        } else {
+          action = { text: pick(WELCOME.actionAfterGoal), cta: "Start dialing", dest: "prospecting" };
+        }
+
+        // The hype line (energetic & bold), most relevant state first.
+        let hype;
+        if (hitGoal) {
+          hype = pick(WELCOME.hypeDone);
+        } else if (streak >= 2) {
+          hype = pick(WELCOME.hypeStreak)(streak);
+        } else if (beatBest) {
+          hype = pick(WELCOME.hypeBeat)(bestWeek - done, bestWeek);
+        } else if (done > 0) {
+          hype = pick(WELCOME.hypeRolling)(done, remaining);
+        } else {
+          hype = pick(WELCOME.hypeFresh);
+        }
+
+        // The pace line.
+        let pace;
+        if (hitGoal) {
+          pace = pick(WELCOME.paceDone);
+        } else if (done === 0) {
+          pace = pick(WELCOME.paceZero)(perDay);
+        } else {
+          pace = pick(WELCOME.pace)(done, remaining, perDay);
+        }
+
+        const gKey = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+        const greetPhrase = pick(WELCOME.greeting[gKey]);
+
+        // --- Stats from what they've already logged (valuable even to advisors
+        // who keep their forward calendar elsewhere). Recognition + a gentle
+        // activity→income signal, no future data required. ---
+        const paidYes = (r) => ["Yes", "yes", "true", true].includes(r.casePaid);
+        const completed = meetings.filter(r => meetingStatusOf(r) === "completed");
+        const monthPrefix = todayISO.slice(0, 7);
+        const yearPrefix = todayISO.slice(0, 4);
+        const mtdMeetings = completed.filter(r => (r.date || "").startsWith(monthPrefix)).length;
+        const ytdMeetings = completed.filter(r => (r.date || "").startsWith(yearPrefix)).length;
+        const paidCount = completed.filter(paidYes).length;
+        // Conversion shown only once there's enough history to be meaningful.
+        const convRate = completed.length >= 8 ? Math.round((paidCount / completed.length) * 100) : null;
+
+        // Best weekday by paid conversion (needs a bit of volume per day).
+        const byDay = {};
+        for (const r of completed) {
+          const d = parseISO(r.date); if (!d) continue;
+          const k = d.getDay();
+          (byDay[k] = byDay[k] || { n: 0, paid: 0 }).n++;
+          if (paidYes(r)) byDay[k].paid++;
+        }
+        let bestDay = null, bestRate = -1;
+        for (const [k, v] of Object.entries(byDay)) {
+          if (v.n < 4) continue;
+          const rate = v.paid / v.n;
+          if (rate > bestRate) { bestRate = rate; bestDay = Number(k); }
+        }
+        const DAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+        const bestDayLabel = (bestDay != null && bestRate > 0) ? DAYS[bestDay] : null;
+
+        const stats = { mtdMeetings, ytdMeetings, convRate };
+        const tip = pick(WELCOME.tips);
+
+        return { greeting: greetPhrase, firstName, pace, action, hype, sessionSummary, bopAhead,
+                 scheduledAheadCount: scheduledAhead.length, stats, bestDayLabel, tip };
+      }, [history, calEvents, bopEvents, bopGuests, settings.advisorName]);
+
       const pendingCount = outbox.length;
       const canEditAmounts = !!form.casePaid && canEditOutcome;
 
@@ -1727,6 +1998,79 @@
 
           {tab==="log" && (
             <>
+              {!welcomeDismissed && (
+                <section className="mb-4 overflow-hidden rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-600 to-violet-600 p-4 text-white shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-lg font-bold leading-tight">
+                      {welcomeData.greeting}{welcomeData.firstName ? `, ${welcomeData.firstName}` : ""}! 👋
+                    </h2>
+                    <button
+                      onClick={() => setWelcomeDismissed(true)}
+                      aria-label="Dismiss welcome"
+                      className="-mr-1 -mt-1 rounded-md p-1 text-white/70 transition hover:bg-white/15 hover:text-white"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+
+                  <p className="mt-1 text-sm font-medium text-white/95">{welcomeData.pace}</p>
+                  <p className="mt-2 text-base font-extrabold leading-snug">{welcomeData.hype}</p>
+
+                  <div className="mt-3 rounded-md bg-white/15 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-white/70">Next up</div>
+                    <p className="mt-0.5 text-sm font-medium">{welcomeData.action.text}</p>
+                    {welcomeData.action.dest && (
+                      <button
+                        onClick={() => goToTab(welcomeData.action.dest)}
+                        className="mt-2 inline-flex items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xs font-bold text-indigo-700 shadow-sm transition hover:bg-white/90"
+                      >
+                        {welcomeData.action.cta} →
+                      </button>
+                    )}
+                  </div>
+
+                  {(welcomeData.stats.mtdMeetings > 0 || welcomeData.stats.convRate != null) && (
+                    <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/20 pt-3">
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.mtdMeetings}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">This month</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.ytdMeetings}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">This year</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold tabular-nums">{welcomeData.stats.convRate == null ? "—" : `${welcomeData.stats.convRate}%`}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/70">Meet→Paid</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {welcomeData.bestDayLabel && (
+                    <p className="mt-3 text-[13px] text-white/90">
+                      <span className="font-semibold">Worth knowing:</span> {welcomeData.bestDayLabel} tend to be your strongest for closing. Worth booking a few there.
+                    </p>
+                  )}
+
+                  {(welcomeData.sessionSummary.length > 0 || welcomeData.bopAhead.length > 0) && (
+                    <div className="mt-3 space-y-1 border-t border-white/20 pt-3 text-[13px] text-white/90">
+                      {welcomeData.sessionSummary.length > 0 && (
+                        <p><span className="font-semibold">This week:</span> {welcomeData.sessionSummary.join(" · ")}</p>
+                      )}
+                      {welcomeData.bopAhead.map((b, i) => (
+                        <p key={i}>
+                          <span className="font-semibold">📣 {b.name}</span> on {b.day}
+                          {b.guests > 0
+                            ? `. ${b.guests} guest${b.guests > 1 ? "s" : ""} registered, and a reminder call helps them show up.`
+                            : `. No guests registered yet.`}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="mt-3 border-t border-white/20 pt-3 text-[13px] italic text-white/85">{welcomeData.tip}</p>
+                </section>
+              )}
               <Section
                 title={monthYearLabel}
                 right={
