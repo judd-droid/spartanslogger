@@ -875,6 +875,27 @@
           setAppointments: setApps,
         };
       
+        // Optimistic update: reflect the submit in the on-screen history
+        // immediately (upsert by id, else advisor+week), then reconcile with the
+        // server fetch below. Keeps the list feeling instant despite the slow
+        // Apps Script round-trips.
+        setProspectHistory(prev => {
+          const arr = Array.isArray(prev) ? prev.slice() : [];
+          const idx = arr.findIndex(r =>
+            (record.id && r.id && r.id === record.id) ||
+            (String(r.advisor || "").toLowerCase() === String(record.advisor || "").toLowerCase()
+              && r.weekEnding === record.weekEnding));
+          const merged = {
+            ...(idx >= 0 ? arr[idx] : {}),
+            id: record.id, advisor: record.advisor, unit: record.unit,
+            weekEnding: record.weekEnding, approaches: record.approaches,
+            setAppointments: record.setAppointments,
+          };
+          if (idx >= 0) arr[idx] = merged; else arr.push(merged);
+          arr.sort((a, b) => String(b.weekEnding || "").localeCompare(String(a.weekEnding || "")));
+          return arr;
+        });
+
         try {
           // --- Option A (recommended): send key in Authorization header
           const res = await fetch(`${SYNC_URL}?path=prospecting`, {
@@ -1960,8 +1981,11 @@
                         </tr>
                       </thead>
                       <tbody>
-                        {/* Weekly rows, newest first (already sorted by the backend) */}
-                        {prospectHistory.map((r, i) => (
+                        {/* Weekly rows, newest first (descending by week ending) */}
+                        {prospectHistory
+                          .slice()
+                          .sort((a, b) => String(b.weekEnding || "").localeCompare(String(a.weekEnding || "")))
+                          .map((r, i) => (
                           <tr key={r.weekEnding + "|" + i}
                             className={cls("border-b border-neutral-100 last:border-b-0",
                               editingWeekId && (editingWeekId === r.id || editingWeekId === r.weekEnding) ? "bg-amber-50" : "")}>
