@@ -135,7 +135,7 @@
       return out;
     };
 
-    const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1", bopEvents:"sn.meet.bopevents.v1", bopGuests:"sn.meet.bopguests.v1", calEvents:"sn.meet.calevents.v1" };
+    const LS = { settings:"sn.meet.settings.v1", history:"sn.meet.history.v1", outbox:"sn.meet.outbox.v1", bopEvents:"sn.meet.bopevents.v1", bopGuests:"sn.meet.bopguests.v1", calEvents:"sn.meet.calevents.v1", prospectHistory:"sn.meet.prospecthistory.v1" };
 
     // Calendar event "Type" → color treatment. Two agency-wide buckets:
     //   Agency (internal Supernova events) → purple
@@ -832,6 +832,11 @@
         approaches: 0,
         setApps: 0
       });
+
+      // Approach / Set history: this advisor's weekly prospecting rows, pulled
+      // from the Sheet through the proxy. Cached so the list renders offline.
+      const [prospectHistory, setProspectHistory] = useState(() => readLS(LS.prospectHistory, []));
+      useEffect(() => writeLS(LS.prospectHistory, prospectHistory), [prospectHistory]);
       
       // Derived week-ending for sheet
       const weekEnding = useMemo(
@@ -878,13 +883,38 @@
       
           setToast({ t: "Prospecting activity submitted!", type: "ok" });
           setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
-      
+          pullProspectHistory();              // refresh the history below the counters
+
         } catch {
           // Network/CORS/offline → queue it
           setOutbox(o => [record, ...o]);
           setToast({ t: "Saved offline — will sync when online.", type: "warn" });
         }
       };
+
+      // --- Approach / Set history -------------------------------------------
+      // Pull this advisor's weekly prospecting rows through the proxy.
+      // announce=true (manual Refresh) reports the outcome via a toast.
+      async function pullProspectHistory(announce = false) {
+        if (!settings.advisorName || !settings.syncKey) return;
+        const qs = new URLSearchParams({ path: "prospectinghistory", advisor: settings.advisorName, key: settings.syncKey }).toString();
+        try {
+          const res = await fetch(`${SYNC_URL}?${qs}`);
+          const json = await res.json().catch(() => null);
+          const got = !!(json && json.ok && Array.isArray(json.rows));
+          if (got) setProspectHistory(json.rows);
+          if (announce) {
+            if (got) {
+              const n = json.rows.length;
+              setToast({ t: n ? `Loaded ${n} week${n === 1 ? "" : "s"} ✅` : "No prospecting logged yet.", type: "ok" });
+            } else {
+              setToast({ t: "Couldn't load your history — try again shortly.", type: "warn" });
+            }
+          }
+        } catch {
+          if (announce) setToast({ t: "Couldn't reach the server (offline?).", type: "warn" });
+        }
+      }
 
       // --- Recruit / BOP guests ---------------------------------------------
       // Pull the BOP events (from the 'BOPs' tab) and this advisor's guests.
@@ -1189,6 +1219,15 @@
       }, [settings.advisorName, settings.syncKey]);
       useEffect(() => {
         if (tab === "calendar" && settings.advisorName && settings.syncKey) pullCalendar();
+      }, [tab]);
+
+      // Load the advisor's prospecting history once credentials exist, and
+      // refresh it each time the Telethon tab is opened.
+      useEffect(() => {
+        if (settings.advisorName && settings.syncKey) pullProspectHistory();
+      }, [settings.advisorName, settings.syncKey]);
+      useEffect(() => {
+        if (tab === "prospecting" && settings.advisorName && settings.syncKey) pullProspectHistory();
       }, [tab]);
 
       // scroll to top when opening settings
@@ -1815,7 +1854,75 @@
               </div>
             </Section>
           )}
-                    
+
+          {/* Approach / Set history — this advisor's submitted weekly totals */}
+          {tab === "prospecting" && (
+            <Section title="Approach / Set History" right={
+              <button type="button" onClick={()=>pullProspectHistory(true)} aria-label="Refresh history" title="Refresh"
+                className="text-brand-600 [@media(hover:hover)]:hover:text-brand-700 active:scale-95 transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </button>
+            }>
+              {(!settings.advisorName || !settings.syncKey) ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Set your name, unit, and sync key in Settings to load your history.
+                </div>
+              ) : prospectHistory.length === 0 ? (
+                <div className="rounded-md border border-neutral-200 bg-white px-3 py-2.5 text-xs text-neutral-500">
+                  No prospecting logged yet — submit above and it'll appear here.
+                </div>
+              ) : (() => {
+                const totalApp = prospectHistory.reduce((s, r) => s + (Number(r.approaches) || 0), 0);
+                const totalSet = prospectHistory.reduce((s, r) => s + (Number(r.setAppointments) || 0), 0);
+                // Format an ISO yyyy-MM-dd as a local date without UTC drift.
+                const fmtWk = (iso) => {
+                  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+                  if (!m) return iso || "—";
+                  return new Date(+m[1], +m[2] - 1, +m[3])
+                    .toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+                };
+                return (
+                  <div className="space-y-2">
+                    {/* All-time totals */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-center">
+                        <div className="text-lg font-black leading-none text-indigo-700">{totalApp}</div>
+                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">Total Approaches</div>
+                      </div>
+                      <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-center">
+                        <div className="text-lg font-black leading-none text-emerald-700">{totalSet}</div>
+                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">Total Set Appts</div>
+                      </div>
+                    </div>
+                    {/* Weekly rows, newest first (already sorted by the backend) */}
+                    {prospectHistory.map((r, i) => (
+                      <div key={r.weekEnding + "|" + i} className="rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-neutral-900">
+                              Week ending {r.weekEnding ? fmtWk(r.weekEnding) : "—"}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                              {Number(r.approaches) || 0} appr.
+                            </span>
+                            <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                              {Number(r.setAppointments) || 0} set
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </Section>
+          )}
+
           {/* Prospecting action bar (outside the white card) */}
           {tab === "prospecting" && (
             <div className="mb-36 flex gap-3">
