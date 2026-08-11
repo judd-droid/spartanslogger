@@ -839,6 +839,10 @@
       // from the meeting-log `editingId` above to avoid a redeclaration clash.
       const [editingWeekId, setEditingWeekId] = useState(null);
 
+      // True while a prospecting submit/edit is in flight — disables the
+      // Clear/Submit buttons so a user can't double-submit.
+      const [prospectSubmitting, setProspectSubmitting] = useState(false);
+
       // Approach / Set history: this advisor's weekly prospecting rows, pulled
       // from the Sheet through the proxy. Cached so the list renders offline.
       const [prospectHistory, setProspectHistory] = useState(() => readLS(LS.prospectHistory, []));
@@ -852,6 +856,7 @@
 
       // Prospecting submit (POSTS to /api/sync?path=prospecting)
       const handleProspectingSubmit = async () => {
+        if (prospectSubmitting) return;       // guard against double-submit
         pauseTimer();                         // PAUSE on Submit
         if (!settings.advisorName) { setToast({ t:"Set your name in Settings first.", type:"warn" }); setOpenSettings(true); return; }
         if (!settings.unit)        { setToast({ t:"Select your Unit in Settings.", type:"warn" }); setOpenSettings(true); return; }
@@ -896,6 +901,7 @@
           return arr;
         });
 
+        setProspectSubmitting(true);
         try {
           // --- Option A (recommended): send key in Authorization header
           const res = await fetch(`${SYNC_URL}?path=prospecting`, {
@@ -906,10 +912,10 @@
             },
             body: JSON.stringify(record),
           });
-      
+
           if (res.status === 401) { setToast({ t: "Invalid sync key — check Settings.", type: "warn" }); return; }
           if (!res.ok)            { setToast({ t: `Proxy error (${res.status}).`, type: "warn" }); return; }
-      
+
           setToast({ t: editingWeekId ? "History updated!" : "Prospecting activity submitted!", type: "ok" });
           setEditingWeekId(null);             // leave edit mode
           setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
@@ -919,6 +925,8 @@
           // Network/CORS/offline → queue it
           setOutbox(o => [record, ...o]);
           setToast({ t: "Saved offline — will sync when online.", type: "warn" });
+        } finally {
+          setProspectSubmitting(false);
         }
       };
 
@@ -1919,21 +1927,28 @@
                 {/* Prospecting action bar — inside the panel, below the counters */}
                 <div className="mt-3 flex gap-3">
                   <button
+                    disabled={prospectSubmitting}
                     onClick={() => {
                       pauseTimer();                     // ← make sure this calls setTimerRunning(false)
                       setEditingWeekId(null);           // also drop any in-progress edit
                       setProspecting(p => ({ ...p, approaches: 0, setApps: 0 }));
                     }}
-                    className={btnSecondary}
+                    className={cls(btnSecondary, prospectSubmitting && "opacity-50 cursor-not-allowed")}
                   >
                     Clear
                   </button>
 
                   <button
+                    disabled={prospectSubmitting}
                     onClick={() => { pauseTimer(); handleProspectingSubmit(); }}
-                    className="flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
+                    className={cls(
+                      "flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98] bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700",
+                      prospectSubmitting && "opacity-60 cursor-not-allowed active:scale-100"
+                    )}
                   >
-                    {editingWeekId ? "Save Changes" : "Submit"}
+                    {prospectSubmitting
+                      ? (editingWeekId ? "Saving…" : "Submitting…")
+                      : (editingWeekId ? "Save Changes" : "Submit")}
                   </button>
                 </div>
 
