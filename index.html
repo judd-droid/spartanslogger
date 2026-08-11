@@ -647,9 +647,12 @@
       useEffect(() => { setCalPage(0); }, [calDay, calMonth, calEvents]);
 
       const filteredHistory = useMemo(() => {
+        // Missed meetings stay in history (and keep syncing) but are hidden from
+        // this view — see markMeetingStatus. A copy is available on request.
+        const visible = history.filter(r => meetingStatusOf(r) !== "missed");
         const q = historyQuery.trim().toLowerCase();
-        if (!q) return history;
-        return history.filter(r => {
+        if (!q) return visible;
+        return visible.filter(r => {
           const steps = [
             r.factFinding==="Yes" && "KYC Done",
             r.appSubmitted==="Yes" && "Submitted",
@@ -1901,9 +1904,10 @@
                 </div>
               )}
               <div>
-                {history.length===0 && <div className="text-sm text-slate-500">No entries yet.</div>}
-                {history.length>0 && filteredHistory.length===0 && (
-                  <div className="text-sm text-slate-500">No matches for “{historyQuery}”.</div>
+                {filteredHistory.length===0 && (
+                  <div className="text-sm text-slate-500">
+                    {historyQuery.trim() ? `No matches for “${historyQuery}”.` : "No entries yet."}
+                  </div>
                 )}
 
                 {(()=>{
