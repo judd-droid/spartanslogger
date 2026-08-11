@@ -1849,6 +1849,17 @@
         const sessionSummary = Object.entries(sessionMap)
           .map(([name, days]) => `${name} (${[...new Set(days)].join(", ")})`);
 
+        // This advisor's own upcoming client meetings (logged, scheduled) in the
+        // next 7 days, for a quick day-by-day heads-up. Only reflects meetings
+        // logged in the app; advisors who track their calendar elsewhere simply
+        // won't see this line, and it never claims the week is empty.
+        const upcomingMeetings = scheduledAhead
+          .slice()
+          .sort((a, b) => (a.date === b.date
+            ? String(a.appointmentTime || "").localeCompare(String(b.appointmentTime || ""))
+            : a.date.localeCompare(b.date)))
+          .map(r => ({ name: r.prospect || "Meeting", day: dow(r.date), time: r.appointmentTime || "" }));
+
         // Recruitment (BOP) events in the next 7 days + guests already registered.
         const bopAhead = (bopEvents || [])
           .filter(ev => ev.eventDate && ev.eventDate >= todayISO && ev.eventDate <= in7ISO)
@@ -1955,7 +1966,7 @@
         const tip = pick(WELCOME.tips);
 
         return { greeting: greetPhrase, firstName, pace, action, hype, sessionSummary, bopAhead,
-                 scheduledAheadCount: scheduledAhead.length, stats, bestDayLabel, tip };
+                 scheduledAheadCount: scheduledAhead.length, upcomingMeetings, stats, bestDayLabel, tip };
       }, [history, calEvents, bopEvents, bopGuests, settings.advisorName, welcomeNonce]);
 
       const pendingCount = outbox.length;
@@ -2217,6 +2228,19 @@
                     <p className="mt-3 text-[13px] text-white/90">
                       <span className="font-semibold">Worth knowing:</span> {welcomeData.bestDayLabel} tend to be your strongest for closing. Worth booking a few there.
                     </p>
+                  )}
+
+                  {welcomeData.upcomingMeetings.length > 0 && (
+                    <div className="mt-3 border-t border-white/20 pt-3 text-[13px] text-white/90">
+                      <p className="font-semibold">
+                        {welcomeData.upcomingMeetings.length} client meeting{welcomeData.upcomingMeetings.length > 1 ? "s" : ""} ahead in the next 7 days:
+                      </p>
+                      <ul className="mt-1 space-y-0.5">
+                        {welcomeData.upcomingMeetings.map((m, i) => (
+                          <li key={i}>📅 {m.day}: {m.name}{m.time ? ` at ${m.time}` : ""}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
 
                   {(welcomeData.sessionSummary.length > 0 || welcomeData.bopAhead.length > 0) && (
