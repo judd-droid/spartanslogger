@@ -1672,7 +1672,11 @@
         }).length;
 
         // Agency sessions (ACE / FCM / GRID and friends) in the next 7 days.
-        const dow = (iso) => { const d = parseISO(iso); return d ? d.toLocaleDateString(undefined, { weekday: "short" }) : ""; };
+        const parseISOd = (iso) => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+          return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+        };
+        const dow = (iso) => { const d = parseISOd(iso); return d ? d.toLocaleDateString(undefined, { weekday: "short" }) : ""; };
         const sessions = (calEvents || [])
           .map(ev => ({
             name: ev.eventName || ev.name || "",
@@ -1776,7 +1780,7 @@
         // Best weekday by paid conversion (needs a bit of volume per day).
         const byDay = {};
         for (const r of completed) {
-          const d = parseISO(r.date); if (!d) continue;
+          const d = parseISOd(r.date); if (!d) continue;
           const k = d.getDay();
           (byDay[k] = byDay[k] || { n: 0, paid: 0 }).n++;
           if (paidYes(r)) byDay[k].paid++;
