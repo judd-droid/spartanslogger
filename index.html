@@ -1736,8 +1736,36 @@
       // --- Welcome card: a coach's one-liner built entirely from local state. ---
       // Greeting + weekly pace + one next action + a hype/streak footer. Reuses
       // the same Mon–Sun week and completed-meeting rules as the 15-tracker so
-      // the two never disagree. Dismissible for the session; back next launch.
+      // the two never disagree. Shown on initial open and once per new calendar
+      // day. It is NOT a permanent part of the New Meeting page: once the user
+      // leaves the tab (or taps the x), it stays hidden until the next day, so
+      // returning to New Meeting the same day won't bring it back. If the app is
+      // left open past midnight, the new day brings it back on next focus/visit.
       const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+      const welcomeDayRef = React.useRef(todayISODate());
+
+      // A new calendar day re-arms the welcome (fires on tab focus / visibility
+      // change so a long-open app still greets the following morning).
+      useEffect(() => {
+        const maybeNewDay = () => {
+          const t = todayISODate();
+          if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); }
+        };
+        window.addEventListener("focus", maybeNewDay);
+        document.addEventListener("visibilitychange", maybeNewDay);
+        return () => {
+          window.removeEventListener("focus", maybeNewDay);
+          document.removeEventListener("visibilitychange", maybeNewDay);
+        };
+      }, []);
+
+      // Leaving New Meeting hides the welcome for the rest of the day; a new
+      // day (checked on return) re-arms it.
+      useEffect(() => {
+        if (tab !== "log") { setWelcomeDismissed(true); return; }
+        const t = todayISODate();
+        if (t !== welcomeDayRef.current) { welcomeDayRef.current = t; setWelcomeDismissed(false); }
+      }, [tab]);
       const welcomeData = useMemo(() => {
         const GOAL = 15;
         const now = new Date();
