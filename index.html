@@ -904,11 +904,13 @@
       // Load a history row back into the counters for editing. Submitting then
       // re-POSTs with the same id, so the backend overwrites that week's row.
       const startEditProspect = (row) => {
-        if (!row || !row.id) {
-          setToast({ t: "This entry can't be edited yet — refresh your history.", type: "warn" });
+        if (!row || !row.weekEnding) {
+          setToast({ t: "This entry can't be edited — try refreshing your history.", type: "warn" });
           return;
         }
-        setEditingWeekId(row.id);
+        // Prefer the row's own id; otherwise the backend upserts by the week,
+        // so the weekEnding itself is enough to flag that we're editing.
+        setEditingWeekId(row.id || row.weekEnding);
         setProspecting(p => ({
           ...p,
           date: row.weekEnding || p.date,       // a Sunday → weekEnding stays the same
@@ -1962,7 +1964,7 @@
                         {prospectHistory.map((r, i) => (
                           <tr key={r.weekEnding + "|" + i}
                             className={cls("border-b border-neutral-100 last:border-b-0",
-                              editingWeekId && editingWeekId === r.id ? "bg-amber-50" : "")}>
+                              editingWeekId && (editingWeekId === r.id || editingWeekId === r.weekEnding) ? "bg-amber-50" : "")}>
                             <td className="px-3 py-2.5 font-semibold text-neutral-900">
                               {r.weekEnding ? fmtWk(r.weekEnding) : "—"}
                             </td>

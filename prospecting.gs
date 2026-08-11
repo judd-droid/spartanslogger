@@ -233,12 +233,37 @@ function prospectingPost_(data) {
 
   var lastRow = sh.getLastRow();
   var target = lastRow + 1;                 // default: append
-  if (lastRow > 1 && cols.entryID !== undefined) {
-    var idCol = cols.entryID + 1;
-    var ids = sh.getRange(2, idCol, lastRow - 1, 1).getValues()
-      .map(function (r) { return String(r[0] || ''); });
-    var found = ids.indexOf(entryId);
-    if (found >= 0) target = found + 2;     // 0-based row 0 → sheet row 2
+
+  // Upsert. A weekly row is uniquely identified by (advisor + weekEnding), so
+  // an edit re-POSTs the same week and overwrites that row — even for legacy
+  // rows created before entryIDs were returned to the client. We match on the
+  // week first, then fall back to entryID for exactness.
+  if (lastRow > 1) {
+    var advKey  = String(data.advisor || '').trim().toLowerCase();
+    var weekKey = psh_fmtDateISO_(data.weekEnding);
+    var all = sh.getRange(2, 1, lastRow - 1, info.width).getValues();
+    var found = -1;
+    for (var i = 0; i < all.length; i++) {
+      // Exact entryID match wins immediately.
+      if (cols.entryID !== undefined && String(all[i][cols.entryID] || '') === entryId) {
+        found = i; break;
+      }
+      // Otherwise match this advisor's row for the same week.
+      if (found < 0
+        && cols.advisor !== undefined && cols.weekEnding !== undefined
+        && String(all[i][cols.advisor] || '').trim().toLowerCase() === advKey
+        && psh_fmtDateISO_(all[i][cols.weekEnding]) === weekKey) {
+        found = i;                          // keep scanning in case an id also matches
+      }
+    }
+    if (found >= 0) {
+      target = found + 2;                   // 0-based row 0 → sheet row 2
+      // Preserve the existing row's entryID so it stays stable across edits.
+      if (cols.entryID !== undefined) {
+        var existingId = String(all[found][cols.entryID] || '').trim();
+        if (existingId) { entryId = existingId; row[cols.entryID] = existingId; }
+      }
+    }
   }
   sh.getRange(target, 1, 1, row.length).setValues([row]);
 
