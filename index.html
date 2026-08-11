@@ -142,12 +142,24 @@
     //   AIA     (AIA / company events)      → pink-red (rose)
     //   Meeting (this advisor's own meetings)→ green
     const CAL_TYPES = {
-      agency:  { label:"Agency",     dot:"bg-purple-500",  chip:"border-purple-200 bg-purple-50 text-purple-700",     ring:"ring-purple-400" },
-      aia:     { label:"AIA",        dot:"bg-rose-500",    chip:"border-rose-200 bg-rose-50 text-rose-700",           ring:"ring-rose-400" },
-      meeting: { label:"My Meeting", dot:"bg-green-500",   chip:"border-green-200 bg-green-50 text-green-700",        ring:"ring-green-400" },
+      agency:   { label:"Agency",       dot:"bg-purple-500",  chip:"border-purple-200 bg-purple-50 text-purple-700",  ring:"ring-purple-400" },
+      aia:      { label:"AIA",          dot:"bg-rose-500",    chip:"border-rose-200 bg-rose-50 text-rose-700",        ring:"ring-rose-400" },
+      meeting:  { label:"Completed",    dot:"bg-green-500",   chip:"border-green-200 bg-green-50 text-green-700",     ring:"ring-green-400" },
+      upcoming: { label:"Upcoming",     dot:"bg-orange-300",  chip:"border-orange-200 bg-orange-50 text-orange-700",  ring:"ring-orange-300" },
+      later:    { label:"Scheduled",    dot:"bg-green-200",   chip:"border-green-200 bg-white text-green-700",        ring:"ring-green-300" },
+      overdue:  { label:"Needs update", dot:"bg-amber-500",   chip:"border-amber-200 bg-amber-50 text-amber-700",     ring:"ring-amber-400" },
     };
-    // Draw order for the day-cell dots (agency, then aia, then my meetings).
-    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2 };
+    // Draw order for the day-cell dots.
+    const CAL_TYPE_ORDER = { agency: 0, aia: 1, meeting: 2, upcoming: 3, later: 4, overdue: 5 };
+
+    // A meeting's lifecycle status. Uses the explicit `status` when present;
+    // otherwise derives it (legacy rows: future date → scheduled, else completed).
+    const meetingStatusOf = (r) => {
+      const s = String(r && r.status || "").toLowerCase();
+      if (s === "completed" || s === "scheduled" || s === "missed") return s;
+      const dt = new Date(`${(r && r.date) || ""}T${(r && r.appointmentTime) || "23:59"}`);
+      return (!isNaN(dt) && dt.getTime() > Date.now()) ? "scheduled" : "completed";
+    };
     const calType = (t) => (String(t||"").trim().toLowerCase().startsWith("aia") ? "aia" : "agency");
     const LS_SYNC = { last: "sn.meet.lastsync.v1" };
 
@@ -169,10 +181,10 @@
     ];
     const getRandomQuote = () => QUOTES[Math.floor(Math.random()*QUOTES.length)];
 
-    const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
+    const defaultSettings = { advisorName: "", unit: "", syncKey: "", trackUpcoming: false };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
-      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"" };
+      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", status:"" };
 
     const readLS = (k,f)=>{ try{ const v=JSON.parse(localStorage.getItem(k)||"null"); return v??f; }catch{return f;} };
     const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -206,13 +218,14 @@
       <div
         className="mt-3 grid gap-1.5"
         style={{ gridTemplateColumns: "repeat(15, minmax(0, 1fr))" }}
-        aria-label={`${slots.filter(slot => slot.status !== "empty").length} of 15 appointments logged this week`}
+        aria-label={`${slots.filter(slot => slot.status === "paid" || slot.status === "meeting").length} of 15 appointments logged this week`}
       >
         {slots.map((slot, index) => {
           const isPaid = slot.status === "paid";
           const isMeeting = slot.status === "meeting" || isPaid;
+          const isUpcoming = slot.status === "upcoming";
           const tooltipText = slot.tooltip || `Appointment ${index + 1}: open`;
-          const showTooltip = isMeeting && activeTooltipIndex === index;
+          const showTooltip = (isMeeting || isUpcoming) && activeTooltipIndex === index;
           const tooltipAlign = index < 3
             ? "left-0"
             : index > 11
@@ -235,7 +248,9 @@
                   ? "border-emerald-600 bg-emerald-600"
                   : isMeeting
                     ? "border-indigo-600 bg-indigo-500"
-                    : "border-neutral-300 bg-white"
+                    : isUpcoming
+                      ? "border-orange-300 bg-orange-200"
+                      : "border-neutral-300 bg-white"
               )}
             >
               {isPaid && (
@@ -265,7 +280,9 @@
     };
 
     const TopBar = ({ settingsOpen, onToggleSettings, pendingCount, weeklyGoalSlots }) => {
-      const done = weeklyGoalSlots.filter(s => s.status !== "empty").length;
+      // Only completed meetings count toward the 15; upcoming (light orange)
+      // slots are a pipeline preview and don't count.
+      const done = weeklyGoalSlots.filter(s => s.status === "paid" || s.status === "meeting").length;
       return (
       <header className="sticky top-0 z-50 mb-4 border-b border-neutral-200 bg-white/80 backdrop-blur overflow-visible">
         <div className="px-4 pt-4 pb-4">
@@ -346,8 +363,8 @@
     const TextInput = ({ value, onChange, placeholder, type="text", inputMode }) => (
       <input value={value} onChange={(e)=>onChange(e.target.value)} type={type} inputMode={inputMode} placeholder={placeholder} className={baseField}/>
     );
-    const NumberInput = ({ value, onChange, step=1, min=0, placeholder }) => (
-      <input value={value} onChange={(e)=>onChange(e.target.value===""?"":Number(e.target.value))} type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder} className={baseField+" appearance-none"}/>
+    const NumberInput = ({ value, onChange, step=1, min=0, placeholder, disabled=false }) => (
+      <input value={value} onChange={(e)=>onChange(e.target.value===""?"":Number(e.target.value))} type="number" step={step} min={min} inputMode="numeric" placeholder={placeholder} disabled={disabled} className={cls(baseField, "appearance-none", disabled && "opacity-50 cursor-not-allowed")}/>
     );
     const MoneyInput = ({ value, onChange, placeholder, disabled = false }) => {
       const display = value === "" || value == null ? "" : new Intl.NumberFormat("en-PH").format(Number(value));
@@ -1358,7 +1375,8 @@
           casePaid:(r.casePaid==="Yes"),
           caseApproved:(r.caseApproved==="Yes"),
           referralsGiven:Number(r.referralsGiven||0),
-          fyp:r.fyp??"", fyc:r.fyc??"", product:r.product||""
+          fyp:r.fyp??"", fyc:r.fyc??"", product:r.product||"",
+          status:r.status||""
         };
       }
       function startEdit(rec){
@@ -1368,6 +1386,23 @@
       }
 
       const resetForm=()=>setForm({...emptyForm,meetingPlace:form.meetingPlace});
+
+      // Is the meeting the form currently describes in the future?
+      const meetingIsFuture = useMemo(() => {
+        const dt = new Date(`${form.date}T${form.time || "00:00"}`);
+        return !isNaN(dt) && dt.getTime() > Date.now();
+      }, [form.date, form.time]);
+
+      // "Scheduling" = tracking upcoming appointments is on, the meeting is in
+      // the future, and it hasn't already been marked completed. In that state
+      // the outcome fields are grayed out because the meeting hasn't happened yet.
+      const scheduling = settings.trackUpcoming && meetingIsFuture && form.status !== "completed";
+      const canEditOutcome = !scheduling;
+      // The status this submit will save.
+      const submitStatus = form.status === "missed"
+        ? "missed"
+        : (scheduling ? "scheduled" : "completed");
+
       const payload = useMemo(()=>{
         const dt=`${form.date} ${form.time}`;
         return {
@@ -1378,9 +1413,10 @@
           casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
           fyp: form.fyp===""? "" : Number(form.fyp), fyc: form.fyc===""? "" : Number(form.fyc),
           product: form.product, caseApproved: form.caseApproved?"Yes":"No",
+          status: submitStatus,
           timestamp: new Date().toISOString(), dt
         };
-      },[form,settings]);
+      },[form,settings,submitStatus]);
 
       const [isSending,setIsSending]=useState(false);
       const handleSubmit = async ()=>{
@@ -1421,25 +1457,36 @@
           return new Date(year, month - 1, day).toLocaleDateString(undefined, { month: "short", day: "numeric" });
         };
 
-        const meetingsThisWeek = history
-          .filter(r => r && r.kind !== "prospecting" && r.date >= weekStart && r.date <= weekEnd)
-          .slice()
-          .sort((a, b) => `${a.date || ""} ${a.appointmentTime || ""}`.localeCompare(`${b.date || ""} ${b.appointmentTime || ""}`))
-          .slice(0, 15);
+        const bySchedule = (a, b) =>
+          `${a.date || ""} ${a.appointmentTime || ""}`.localeCompare(`${b.date || ""} ${b.appointmentTime || ""}`);
+
+        const weekMeetings = history
+          .filter(r => r && r.kind !== "prospecting" && r.date >= weekStart && r.date <= weekEnd);
+
+        // Completed meetings fill (and count toward) the 15 first; upcoming
+        // scheduled meetings this week follow as a light-orange pipeline preview.
+        // Missed meetings are excluded entirely.
+        // With tracking off, every meeting behaves as before (counts, green).
+        const effStatus = (r) => settings.trackUpcoming ? meetingStatusOf(r) : "completed";
+
+        const completed = weekMeetings.filter(r => effStatus(r) === "completed").slice().sort(bySchedule);
+        const upcoming  = weekMeetings.filter(r => effStatus(r) === "scheduled").slice().sort(bySchedule);
+        const ordered   = completed.concat(upcoming).slice(0, 15);
 
         return Array.from({ length: 15 }, (_, index) => {
-          const meeting = meetingsThisWeek[index];
+          const meeting = ordered[index];
           if (!meeting) return { status: "empty" };
+          const isUpcoming = effStatus(meeting) === "scheduled";
           return {
-            status: paidValues.has(meeting.casePaid) ? "paid" : "meeting",
-            tooltip: `${formatGoalTooltipDate(meeting.date)}: ${meeting.prospect || "Unnamed prospect"}`
+            status: isUpcoming ? "upcoming" : (paidValues.has(meeting.casePaid) ? "paid" : "meeting"),
+            tooltip: `${formatGoalTooltipDate(meeting.date)}: ${meeting.prospect || "Unnamed prospect"}${isUpcoming ? " (upcoming)" : ""}`
           };
         });
-      }, [history]);
+      }, [history, settings.trackUpcoming]);
 
       const pendingCount = outbox.length;
-      const canEditAmounts = !!form.casePaid;
-      
+      const canEditAmounts = !!form.casePaid && canEditOutcome;
+
       return (
         <Page>
           <TopBar settingsOpen={openSettings} onToggleSettings={() => {
@@ -1475,7 +1522,23 @@
                     placeholder="Paste the key from admin"
                   />
                 </LabeledInput>
-          
+
+                {/* Opt-in: track upcoming appointments (future-dated meetings) */}
+                <label className="flex cursor-pointer items-start justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-neutral-700">Track upcoming appointments</div>
+                    <div className="mt-0.5 text-xs text-neutral-500">
+                      Log meetings for future dates and see them on your calendar. Only completed meetings count toward your weekly 15. Leave off if you manage upcoming meetings elsewhere.
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={!!settings.trackUpcoming}
+                    onChange={e => setSettings(s => ({ ...s, trackUpcoming: e.target.checked }))}
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600"
+                  />
+                </label>
+
                 {/* 2) Sync area */}
                 <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                   <div className="flex items-center justify-between gap-3">
@@ -1643,7 +1706,7 @@
                 </LabeledInput>
                 <div className="grid grid-cols-2 gap-3">
                   <LabeledInput label="Meeting # (1, 2, 3…)"><NumberInput value={form.meetingCount} onChange={v=>setForm(f=>({...f,meetingCount:v}))} min={1}/></LabeledInput>
-                  <LabeledInput label="# of Referrals"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0}/></LabeledInput>
+                  <LabeledInput label="# of Referrals"><NumberInput value={form.referralsGiven} onChange={v=>setForm(f=>({...f,referralsGiven:v}))} min={0} disabled={!canEditOutcome}/></LabeledInput>
                 </div>
                 {!editingId && priorMeetings.length>0 && (
                   <p className="mt-1 text-xs text-slate-500">
@@ -1652,8 +1715,16 @@
                 )}
               </Section>
 
-              <Section title="What Happened">
-                <YesNoGrid items={yesNoItems} form={form} setForm={setForm}/>
+              <Section title="What Happened" muted={!canEditOutcome}
+                right={!canEditOutcome && <span className="text-xs text-orange-500">After the meeting</span>}>
+                {!canEditOutcome && (
+                  <p className="mb-2 text-xs text-slate-500">
+                    This meeting is scheduled for the future — you'll fill in what happened after it takes place.
+                  </p>
+                )}
+                <div className={cls(!canEditOutcome && "pointer-events-none opacity-50")}>
+                  <YesNoGrid items={yesNoItems} form={form} setForm={setForm}/>
+                </div>
               </Section>
 
               <Section title="Amounts & Product" muted={!canEditAmounts}
@@ -1707,7 +1778,7 @@
                     "flex-1 h-12 rounded-md px-4 text-sm font-medium text-white shadow-sm transition active:scale-[0.98]",
                     isSending ? "bg-brand-600/60 cursor-not-allowed" : "bg-brand-600 [@media(hover:hover)]:hover:bg-brand-700"
                   )}>
-                  {isSending ? "Sending…" : (editingId ? "Update" : "Submit")}
+                  {isSending ? "Sending…" : (editingId ? "Update" : (scheduling ? "Schedule" : "Submit"))}
                 </button>
               </div>
 
@@ -2164,21 +2235,44 @@
               };
             }).filter(e => e.start);
 
+            // Current week (Mon–Sun) bounds, to color upcoming meetings that
+            // fall within this week light orange vs. later ones outline-green.
+            const _t = new Date();
+            const _mon = new Date(_t.getFullYear(), _t.getMonth(), _t.getDate());
+            _mon.setDate(_mon.getDate() - ((_mon.getDay() + 6) % 7));
+            const _sun = new Date(_mon); _sun.setDate(_mon.getDate() + 6);
+            const weekStartISO = isoOf(_mon.getFullYear(), _mon.getMonth(), _mon.getDate());
+            const weekEndISO   = isoOf(_sun.getFullYear(), _sun.getMonth(), _sun.getDate());
+            const nowMs = Date.now();
+
             // This advisor's own meetings from the Appointment 15 table (the
-            // `history` records), shown in green. Prospecting rows aren't meetings.
+            // `history` records). Color by lifecycle:
+            //   completed → green · upcoming this week → orange ·
+            //   scheduled later → outline green · past-due scheduled → amber.
+            // Missed meetings are hidden from the calendar.
             const myMeetings = (history || [])
               .filter(r => r && r.kind !== "prospecting" && r.date)
               .map(r => {
                 const start = String(r.date || "").slice(0, 10);
+                const st = settings.trackUpcoming ? meetingStatusOf(r) : "completed";
+                if (st === "missed") return null;
+                let type = "meeting";                 // completed
+                if (st === "scheduled") {
+                  const when = new Date(`${start}T${r.appointmentTime || "23:59"}`);
+                  const overdue = !isNaN(when) && when.getTime() < nowMs;
+                  type = overdue ? "overdue"
+                       : (start >= weekStartISO && start <= weekEndISO) ? "upcoming"
+                       : "later";
+                }
                 return {
                   name: r.prospect || "Meeting",
-                  type: "meeting",
+                  type,
                   start, end: start,
                   startTime: r.appointmentTime || "", endTime: "",
                   location: r.meetingPlace || "",
                   details: [r.product, r.remarks].filter(Boolean).join(" · "),
                 };
-              }).filter(e => e.start);
+              }).filter(e => e && e.start);
 
             const events = agencyEvents.concat(myMeetings);
 
@@ -2272,10 +2366,14 @@
                 ) : (
                   <div className="grid gap-3">
                     {/* Legend */}
-                    <div className="flex items-center gap-4 text-xs text-neutral-600">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-neutral-600">
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.agency.dot)} />Agency</span>
                       <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.aia.dot)} />AIA</span>
-                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.meeting.dot)} />My Meetings</span>
+                      <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.meeting.dot)} />Completed</span>
+                      {settings.trackUpcoming && (<>
+                        <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.upcoming.dot)} />Upcoming</span>
+                        <span className="flex items-center gap-1.5"><span className={cls("h-2.5 w-2.5 rounded-full", CAL_TYPES.overdue.dot)} />Needs update</span>
+                      </>)}
                     </div>
                     <hr className="border-neutral-200" />
 
