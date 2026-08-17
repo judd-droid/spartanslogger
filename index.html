@@ -3021,7 +3021,7 @@
                 <div key={i} className="rounded-md border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-neutral-900">{e.name}</div>
+                      <div className="break-words text-sm font-semibold text-neutral-900">{e.name}</div>
                       <div className="mt-0.5 text-xs text-neutral-500">
                         {fmtLong(e.start)}{e.end!==e.start ? ` – ${fmtLong(e.end)}` : ""}
                         {e.startTime ? ` · ${e.startTime}${e.endTime?`–${e.endTime}`:""}` : ""}
