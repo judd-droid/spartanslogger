@@ -2769,7 +2769,6 @@
                 .filter(g => (g.guestName || "").trim())
                 .map(g => `${g.eventName}||${g.eventDate}`));
             const bopsInvolved = involvedKeys.size;
-            const bopsTotal = bopEvents.length;
             const guestsRegistered = (bopGuests || []).filter(g => (g.guestName || "").trim()).length;
             const guestsShowed = (bopGuests || []).filter(g => String(g.attendance) === "Yes").length;
             const showRate = guestsRegistered > 0 ? Math.round((guestsShowed / guestsRegistered) * 100) : null;
@@ -2792,7 +2791,7 @@
                       <div className="mt-2 grid grid-cols-3 gap-2">
                         <div className="rounded-md bg-neutral-100 p-3 text-center">
                           <div className="text-2xl font-bold tabular-nums text-neutral-900">
-                            {bopsInvolved}<span className="text-base font-semibold text-neutral-400">/{bopsTotal}</span>
+                            {bopsInvolved}
                           </div>
                           <div className="mt-1 text-[11px] font-medium text-neutral-500">BOPs involved</div>
                         </div>
