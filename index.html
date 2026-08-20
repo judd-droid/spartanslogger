@@ -390,7 +390,7 @@
     const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
-      caseApproved:false, referralsGiven:0, fyp:"", fyc:"", product:"", status:"" };
+      referralsGiven:0, fyp:"", fyc:"", product:"", status:"" };
 
     const readLS = (k,f)=>{ try{ const v=JSON.parse(localStorage.getItem(k)||"null"); return v??f; }catch{return f;} };
     const writeLS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
@@ -884,7 +884,6 @@
             r.factFinding==="Yes" && "KYC Done",
             r.appSubmitted==="Yes" && "Submitted",
             r.casePaid==="Yes" && "Paid",
-            r.caseApproved==="Yes" && "Approved",
           ].filter(Boolean).join(" ");
           const hay = [
             r.prospect, r.meetingPlace, r.product, r.date, r.appointmentTime,
@@ -1350,7 +1349,6 @@
             if (u.factFinding != null && (u.factFinding === true || u.factFinding === "true")) u.factFinding = "Yes";
             if (u.appSubmitted != null && (u.appSubmitted === true || u.appSubmitted === "true")) u.appSubmitted = "Yes";
             if (u.casePaid != null && (u.casePaid === true || u.casePaid === "true")) u.casePaid = "Yes";
-            if (u.caseApproved != null && (u.caseApproved === true || u.caseApproved === "true")) u.caseApproved = "Yes";
 
             const keyId = u.id != null ? String(u.id) : null;
             const keyEntry = (u.entryID != null && u.entryID !== "") ? String(u.entryID) : null;
@@ -1610,7 +1608,6 @@
           factFinding:(r.factFinding==="Yes"),
           appSubmitted:(r.appSubmitted==="Yes"),
           casePaid:(r.casePaid==="Yes"),
-          caseApproved:(r.caseApproved==="Yes"),
           referralsGiven:Number(r.referralsGiven||0),
           fyp:r.fyp??"", fyc:r.fyc??"", product:r.product||"",
           status:r.status||""
@@ -1649,7 +1646,7 @@
           factFinding: form.factFinding?"Yes":"No", appSubmitted: form.appSubmitted?"Yes":"No",
           casePaid: form.casePaid?"Yes":"No", referralsGiven: Number(form.referralsGiven)||0,
           fyp: form.fyp===""? "" : Number(form.fyp), fyc: form.fyc===""? "" : Number(form.fyc),
-          product: form.product, caseApproved: form.caseApproved?"Yes":"No",
+          product: form.product,
           status: submitStatus,
           timestamp: new Date().toISOString(), dt
         };
@@ -2474,7 +2471,7 @@
                           const hasMoney = !!r.fyp || !!r.fyc;
                           const hasProduct = !!r.product;
                           const paid = r.casePaid==="Yes";
-                          const anyStep = paid || r.appSubmitted==="Yes" || r.factFinding==="Yes" || r.caseApproved==="Yes";
+                          const anyStep = paid || r.appSubmitted==="Yes" || r.factFinding==="Yes";
                           const dot = paid ? "bg-emerald-500" : anyStep ? "bg-indigo-500" : "bg-neutral-300";
                           const steps = [
                             r.factFinding==="Yes" && "KYC Done",
