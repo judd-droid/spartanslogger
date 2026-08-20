@@ -2480,7 +2480,6 @@
                             r.factFinding==="Yes" && "KYC Done",
                             r.appSubmitted==="Yes" && "Submitted",
                             r.casePaid==="Yes" && "Paid",
-                            r.caseApproved==="Yes" && "Approved",
                           ].filter(Boolean);
                           const meetingLabel = r.firstMeeting==="Yes" ? "First meeting"
                             : (Number(r.noOfMeetings)>0 ? `Mtgs: ${r.noOfMeetings}` : "—");
