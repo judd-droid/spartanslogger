@@ -25,18 +25,20 @@
       --strong-bg:#171A2B;
       --nav-bg:#e0e7ff; --nav-border:#c7d2fe; --nav-text:#525252;
       --nav-active:#DD467D; --nav-active-text:#ffffff;
+      --timer-bg:#eef2ff; --timer-border:#a5b4fc; --timer-text:#4338ca;
       color-scheme:light;
     }
     :root[data-theme="dark"]{
-      --sn-red:#f59e0b; --sn-red-light:#78350f; --sn-black:#f8fafc; --sn-gray:#94a3b8;
+      --sn-red:#c58a32; --sn-red-light:#4a341d; --sn-black:#f8fafc; --sn-gray:#94a3b8;
       --background:#0b1730; --foreground:#f4f7ff; --card:#111f3a; --card-foreground:#f4f7ff;
       --muted:#172a4b; --muted-foreground:#9fb2d1; --border:#355076; --input:#355076;
       --primary:#eaf1ff; --primary-foreground:#08152d; --page:#071329; --line:#355076;
-      --brand:#f59e0b; --brand-deep:#d97706; --ink:#eaf1ff;
-      --interactive:#f59e0b; --interactive-hover:#d97706; --interactive-text:#08152d;
+      --brand:#c58a32; --brand-deep:#a96e24; --ink:#eaf1ff;
+      --interactive:#b97b2a; --interactive-hover:#9f6622; --interactive-text:#08152d;
       --strong-bg:#08152d;
-      --nav-bg:#0d1d38; --nav-border:#9a641b; --nav-text:#d1b98f;
-      --nav-active:#f59e0b; --nav-active-text:#08152d;
+      --nav-bg:#0d1d38; --nav-border:#765528; --nav-text:#bca98a;
+      --nav-active:#b97b2a; --nav-active-text:#08152d;
+      --timer-bg:#14233e; --timer-border:#765528; --timer-text:#c99a53;
       color-scheme:dark;
     }
     :root[data-theme="tanduay"]{
@@ -49,6 +51,7 @@
       --strong-bg:#40170c;
       --nav-bg:#fff8e8; --nav-border:#d5a15d; --nav-text:#76523a;
       --nav-active:#a52a20; --nav-active-text:#ffffff;
+      --timer-bg:#fff3d6; --timer-border:#c9934d; --timer-text:#7e2119;
       color-scheme:light;
     }
     :root[data-theme="doomsday"]{
@@ -61,6 +64,7 @@
       --strong-bg:#020604;
       --nav-bg:#07110d; --nav-border:#3b8f53; --nav-text:#8bb09a;
       --nav-active:#73ff78; --nav-active-text:#031008;
+      --timer-bg:#0e2118; --timer-border:#3b8f53; --timer-text:#73ff78;
       color-scheme:dark;
     }
     @supports (color: color-mix(in srgb, black, white)) {
@@ -125,9 +129,14 @@
     .theme-nav{background-color:var(--nav-bg)!important;border-color:var(--nav-border)!important}
     .theme-tab-active{background-color:var(--nav-active)!important;color:var(--nav-active-text)!important}
     .theme-tab-inactive{color:var(--nav-text)!important}
+    .theme-timer-digit{background-color:var(--timer-bg)!important;border-color:var(--timer-border)!important;color:var(--timer-text)!important}
+    .theme-timer-colon,.theme-accent-text{color:var(--brand)!important}
     :root[data-theme="dark"] .bg-brand-600,:root[data-theme="dark"] .bg-brand-700,
     :root[data-theme="tanduay"] .bg-brand-600,:root[data-theme="tanduay"] .bg-brand-700,
     :root[data-theme="doomsday"] .bg-brand-600,:root[data-theme="doomsday"] .bg-brand-700{background-color:var(--brand)!important}
+    :root[data-theme="dark"] .text-brand-600,:root[data-theme="dark"] .text-brand-700,
+    :root[data-theme="tanduay"] .text-brand-600,:root[data-theme="tanduay"] .text-brand-700,
+    :root[data-theme="doomsday"] .text-brand-600,:root[data-theme="doomsday"] .text-brand-700{color:var(--brand)!important}
     :root[data-theme="dark"] .bg-brand-600.text-white,:root[data-theme="dark"] .bg-brand-700.text-white,
     :root[data-theme="dark"] .theme-interactive .text-white{color:var(--interactive-text)!important}
     :root[data-theme="dark"] .bg-brand-600\/60,:root[data-theme="tanduay"] .bg-brand-600\/60{background-color:color-mix(in srgb,var(--brand) 60%,transparent)!important}
@@ -147,7 +156,7 @@
     :root[data-theme="tanduay"] .border-indigo-200,:root[data-theme="tanduay"] .border-indigo-300,:root[data-theme="tanduay"] .border-indigo-600{border-color:var(--interactive)!important}
     :root[data-theme="doomsday"] .border-indigo-200,:root[data-theme="doomsday"] .border-indigo-300,:root[data-theme="doomsday"] .border-indigo-600{border-color:var(--interactive)!important}
     :root[data-theme="dark"] .from-indigo-600,:root[data-theme="tanduay"] .from-indigo-600{--tw-gradient-from:var(--interactive) var(--tw-gradient-from-position)!important;--tw-gradient-to:transparent var(--tw-gradient-to-position)!important}
-    :root[data-theme="dark"] .to-violet-600{--tw-gradient-to:#b45309 var(--tw-gradient-to-position)!important}
+    :root[data-theme="dark"] .to-violet-600{--tw-gradient-to:#68451f var(--tw-gradient-to-position)!important}
     :root[data-theme="tanduay"] .to-violet-600{--tw-gradient-to:#d45a12 var(--tw-gradient-to-position)!important}
     :root[data-theme="doomsday"] .from-indigo-600{--tw-gradient-from:#1f8a45 var(--tw-gradient-from-position)!important;--tw-gradient-to:transparent var(--tw-gradient-to-position)!important}
     :root[data-theme="doomsday"] .to-violet-600{--tw-gradient-to:#07110d var(--tw-gradient-to-position)!important}
@@ -509,7 +518,7 @@
     const defaultSettings = { advisorName: "", unit: "", syncKey: "", theme: "light" };
     const THEME_OPTIONS = [
       { value:"light", label:"Light", colors:["#f8fafc","#ffffff","#111827"] },
-      { value:"dark", label:"Midnight", colors:["#071329","#111f3a","#f59e0b"] },
+      { value:"dark", label:"Midnight", colors:["#071329","#111f3a","#b97b2a"] },
       { value:"tanduay", label:"Tanduay", colors:["#ffffff","#40170c","#d45a12","#efc577"] },
       { value:"doomsday", label:"Doomsday", colors:["#030806","#0b1712","#73ff78","#9aa69f"] }
     ];
@@ -1168,7 +1177,7 @@
           <div
             className={cls(
               "flex items-center justify-center select-none shadow-sm",
-              "border border-indigo-300 bg-indigo-50 text-indigo-700 font-black tabular-nums",
+              "theme-timer-digit border border-indigo-300 bg-indigo-50 text-indigo-700 font-black tabular-nums",
               // responsive size (phone → desktop)
               "w-[clamp(3.0rem,6vw,4.4rem)] h-[clamp(3.4rem,7vw,5.2rem)]",
               "text-[clamp(1.9rem,5.5vw,3.2rem)]",
@@ -1190,7 +1199,7 @@
           <div className="flex items-center justify-center gap-3 select-none">
             <DigitBox d={m1} />
             <DigitBox d={m2} />
-            <span className="text-4xl md:text-5xl font-black text-indigo-700">:</span>
+            <span className="theme-timer-colon text-4xl md:text-5xl font-black text-indigo-700">:</span>
             <DigitBox d={s1} />
             <DigitBox d={s2} />
           </div>
@@ -2742,7 +2751,7 @@
                         <DigitBox d={mm[1]} />
                       </div>
                 
-                      <span className="text-indigo-700 font-black select-none
+                      <span className="theme-timer-colon text-indigo-700 font-black select-none
                                        text-[clamp(1.8rem,6vw,3.4rem)]">:</span>
                 
                       <div className="flex gap-[clamp(0.4rem,1.6vw,0.9rem)]">
@@ -2762,7 +2771,7 @@
                 
                       <button
                         onClick={() => (timerRunning ? pauseTimer() : startTimer())}
-                        className={cls(btnSecondary, "h-10 md:h-12 text-sm md:text-base w-full")}
+                        className={cls("theme-interactive rounded-md px-4 py-2 font-medium shadow-sm transition active:scale-[0.98]", "h-10 md:h-12 text-sm md:text-base w-full")}
                       >
                         {timerRunning ? "Pause" : "Start"}
                       </button>
@@ -2820,7 +2829,7 @@
             <div className="mb-36">
             <Section title="Approach / Set History" right={
               <button type="button" onClick={()=>pullProspectHistory(true)} aria-label="Refresh history" title="Refresh"
-                className="text-brand-600 [@media(hover:hover)]:hover:text-brand-700 active:scale-95 transition">
+                className="theme-accent-text text-brand-600 [@media(hover:hover)]:hover:text-brand-700 active:scale-95 transition">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                   <path d="M21 12a9 9 0 1 1-2.64-6.36" />
                   <path d="M21 3v6h-6" />
@@ -2926,7 +2935,7 @@
             const showRate = guestsRegistered > 0 ? Math.round((guestsShowed / guestsRegistered) * 100) : null;
             return (
               <Section title="Recruit — BOP Guests" right={
-                <button type="button" onClick={()=>pullBops(true)} className="text-xs font-medium text-brand-600 underline">Refresh</button>
+                <button type="button" onClick={()=>pullBops(true)} className="theme-accent-text text-xs font-medium text-brand-600 underline">Refresh</button>
               }>
                 <div className="grid gap-3">
                   {(!settings.advisorName || !settings.syncKey) && (
@@ -3190,7 +3199,7 @@
             return (
               <Section title="Agency Calendar" right={
                 <button type="button" onClick={()=>pullCalendar(true)} aria-label="Refresh calendar" title="Refresh"
-                  className="text-brand-600 [@media(hover:hover)]:hover:text-brand-700 active:scale-95 transition">
+                  className="theme-accent-text text-brand-600 [@media(hover:hover)]:hover:text-brand-700 active:scale-95 transition">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                     <path d="M21 12a9 9 0 1 1-2.64-6.36" />
                     <path d="M21 3v6h-6" />
