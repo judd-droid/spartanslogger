@@ -21,9 +21,28 @@
       /* Nova palette anchors */
       --brand:#DD467D; --brand-deep:#C2356A;
       --ink:#171A2B;
+      color-scheme:light;
+    }
+    :root[data-theme="dark"]{
+      --sn-red:#f472b6; --sn-red-light:#831843; --sn-black:#f8fafc; --sn-gray:#94a3b8;
+      --background:#111827; --foreground:#f8fafc; --card:#172033; --card-foreground:#f8fafc;
+      --muted:#1e293b; --muted-foreground:#94a3b8; --border:#475569; --input:#475569;
+      --primary:#f8fafc; --primary-foreground:#0f172a; --page:#0f172a; --line:#475569;
+      --brand:#f472b6; --brand-deep:#ec4899; --ink:#f8fafc;
+      color-scheme:dark;
+    }
+    :root[data-theme="tanduay"]{
+      --sn-red:#a52a20; --sn-red-light:#e7b46d; --sn-black:#2b120b; --sn-gray:#76523a;
+      --background:#ffffff; --foreground:#2b120b; --card:#ffffff; --card-foreground:#2b120b;
+      --muted:#fff6df; --muted-foreground:#76523a; --border:#d5a15d; --input:#d5a15d;
+      --primary:#40170c; --primary-foreground:#fffaf0; --page:#fffaf0; --line:#d5a15d;
+      --brand:#a52a20; --brand-deep:#7e2119; --ink:#40170c;
+      color-scheme:light;
     }
     @supports (color: color-mix(in srgb, black, white)) {
       :root{ --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white); }
+      :root[data-theme="dark"]{ --sn-red-light:color-mix(in srgb,var(--sn-red) 28%, transparent); }
+      :root[data-theme="tanduay"]{ --sn-red-light:color-mix(in srgb,#e7b46d 55%, white); }
     }
     html,body{min-height:100%}
     body{
@@ -32,6 +51,40 @@
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
       font-family:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     }
+    :root[data-theme="dark"] .bg-white{background-color:var(--card)!important}
+    :root[data-theme="dark"] .bg-white\/80,:root[data-theme="dark"] .bg-white\/90{background-color:rgba(23,32,51,.94)!important}
+    :root[data-theme="dark"] .bg-white\/30{background-color:rgba(23,32,51,.30)!important}
+    :root[data-theme="dark"] .bg-slate-50{background-color:#111827!important}
+    :root[data-theme="dark"] .bg-slate-100{background-color:#1e293b!important}
+    :root[data-theme="dark"] .bg-slate-900{background-color:#f8fafc!important}
+    :root[data-theme="dark"] .text-slate-900{color:#f8fafc!important}
+    :root[data-theme="dark"] .text-slate-800,:root[data-theme="dark"] .text-slate-700{color:#e2e8f0!important}
+    :root[data-theme="dark"] .text-slate-600,:root[data-theme="dark"] .text-slate-500{color:#94a3b8!important}
+    :root[data-theme="dark"] .text-slate-400,:root[data-theme="dark"] .text-slate-300{color:#cbd5e1!important}
+    :root[data-theme="dark"] .bg-slate-900.text-white{color:#0f172a!important}
+    :root[data-theme="dark"] .border-slate-200,:root[data-theme="dark"] .border-slate-300{border-color:#475569!important}
+    :root[data-theme="dark"] .bg-neutral-50,:root[data-theme="dark"] .bg-neutral-100{background-color:var(--muted)!important}
+    :root[data-theme="dark"] .text-neutral-900,:root[data-theme="dark"] .text-neutral-800,:root[data-theme="dark"] .text-neutral-700{color:#e2e8f0!important}
+    :root[data-theme="dark"] .text-neutral-600,:root[data-theme="dark"] .text-neutral-500,:root[data-theme="dark"] .text-neutral-400{color:#94a3b8!important}
+    :root[data-theme="dark"] .border-neutral-200,:root[data-theme="dark"] .border-neutral-300{border-color:var(--border)!important}
+    :root[data-theme="tanduay"] .bg-white{background-color:var(--card)!important}
+    :root[data-theme="tanduay"] .bg-white\/90{background-color:rgba(255,255,255,.94)!important}
+    :root[data-theme="tanduay"] .bg-white\/30{background-color:rgba(255,250,240,.46)!important}
+    :root[data-theme="tanduay"] .bg-slate-50{background-color:#fff6df!important}
+    :root[data-theme="tanduay"] .bg-slate-100{background-color:#f3d59b!important}
+    :root[data-theme="tanduay"] .bg-slate-900{background-color:#40170c!important}
+    :root[data-theme="tanduay"] .text-slate-900{color:#2b120b!important}
+    :root[data-theme="tanduay"] .text-slate-800,:root[data-theme="tanduay"] .text-slate-700{color:#4b2415!important}
+    :root[data-theme="tanduay"] .text-slate-600,:root[data-theme="tanduay"] .text-slate-500{color:#76523a!important}
+    :root[data-theme="tanduay"] .bg-slate-900.text-white{color:#fff6df!important}
+    :root[data-theme="tanduay"] .border-slate-200,:root[data-theme="tanduay"] .border-slate-300{border-color:#c9934d!important}
+    :root[data-theme="tanduay"] .bg-neutral-50,:root[data-theme="tanduay"] .bg-neutral-100{background-color:var(--muted)!important}
+    :root[data-theme="tanduay"] .text-neutral-900,:root[data-theme="tanduay"] .text-neutral-800,:root[data-theme="tanduay"] .text-neutral-700{color:#4b2415!important}
+    :root[data-theme="tanduay"] .text-neutral-600,:root[data-theme="tanduay"] .text-neutral-500,:root[data-theme="tanduay"] .text-neutral-400{color:#76523a!important}
+    :root[data-theme="tanduay"] .border-neutral-200,:root[data-theme="tanduay"] .border-neutral-300{border-color:var(--border)!important}
+    .theme-choice{min-height:4.5rem;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
+    .theme-choice[aria-checked="true"]{border-color:var(--sn-red)!important;box-shadow:0 0 0 3px var(--sn-red-light);transform:translateY(-1px)}
+    .brand-wordmark{background:#fff;border-radius:.6rem;padding:.15rem .35rem}
     @keyframes toastIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
     @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
     input,select,button,textarea{font:inherit;font-size:16px}
@@ -55,7 +108,6 @@
     } } };
   </script>
   <link rel="preload" href="./supernova-wordmark.png" as="image">
-
   <!-- Favicon (desktop browsers, bookmarks, tabs) -->
   <link rel="icon" type="image/png" href="./loggericon.png">
   <link rel="shortcut icon" type="image/png" href="./loggericon.png">
@@ -65,6 +117,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Appt 15 Logger">
+  <meta name="theme-color" content="#e5ecf5">
+  <script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("sn.meet.settings.v1")||"{}").theme||"light"}catch(e){}</script>
 </head>
 <body>
   <div id="root"></div>
@@ -387,7 +441,12 @@
       ],
     };
 
-    const defaultSettings = { advisorName: "", unit: "", syncKey: "" };
+    const defaultSettings = { advisorName: "", unit: "", syncKey: "", theme: "light" };
+    const THEME_OPTIONS = [
+      { value:"light", label:"Light", colors:["#f8fafc","#ffffff","#111827"] },
+      { value:"dark", label:"Dark", colors:["#0f172a","#172033","#f8fafc"] },
+      { value:"tanduay", label:"Tanduay", colors:["#ffffff","#40170c","#d45a12","#efc577"] }
+    ];
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
       referralsGiven:0, fyp:"", fyc:"", product:"", status:"" };
@@ -503,7 +562,7 @@
         <div className="px-4 pt-4 pb-4">
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <img src={LOGO_SRC} alt="Supernova Financial" className="mb-2 h-12 md:h-14 select-none" />
+              <img src={LOGO_SRC} alt="Supernova Financial" className="brand-wordmark mb-2 h-12 md:h-14 select-none" />
               <div className="flex items-center gap-2">
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
                 <h1 className="text-lg font-semibold leading-tight tracking-tight">Appointment 15 Logger</h1>
@@ -1434,6 +1493,12 @@
 
       // persist to localStorage
       useEffect(()=>writeLS(LS.settings,settings),[settings]);
+      useEffect(()=>{
+        const theme = THEME_OPTIONS.some(option => option.value === settings.theme) ? settings.theme : "light";
+        document.documentElement.dataset.theme = theme;
+        const themeColors = { light:"#e5ecf5", dark:"#0f172a", tanduay:"#fffaf0" };
+        document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[theme]);
+      },[settings.theme]);
       useEffect(()=>writeLS(LS.history,history),[history]);
       useEffect(()=>writeLS(LS.outbox,outbox),[outbox]);
 
@@ -2078,6 +2143,27 @@
                     placeholder="Paste the key from admin"
                   />
                 </LabeledInput>
+
+                <fieldset>
+                  <legend className="mb-2 text-sm font-semibold text-neutral-700">App colors</legend>
+                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="App color theme">
+                    {THEME_OPTIONS.map(option => {
+                      const selected = settings.theme === option.value;
+                      return (
+                        <button key={option.value} type="button" role="radio" aria-checked={selected}
+                          className="theme-choice rounded-lg border border-neutral-300 bg-white p-2 text-left shadow-sm"
+                          onClick={() => setSettings(s => ({ ...s, theme: option.value }))}>
+                          <span className="mb-2 flex overflow-hidden rounded-md border border-black/10" aria-hidden="true">
+                            {option.colors.map(color => <span key={color} className="h-5 flex-1" style={{backgroundColor:color}} />)}
+                          </span>
+                          <span className="flex items-center justify-between gap-1 text-xs font-semibold text-neutral-800">
+                            {option.label}<span aria-hidden="true">{selected ? "✓" : ""}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
 
                 {/* 2) Sync area */}
                 <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
