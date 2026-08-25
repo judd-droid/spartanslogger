@@ -51,10 +51,23 @@
       --nav-active:#a52a20; --nav-active-text:#ffffff;
       color-scheme:light;
     }
+    :root[data-theme="doomsday"]{
+      --sn-red:#73ff78; --sn-red-light:#163d25; --sn-black:#e5eee8; --sn-gray:#8bb09a;
+      --background:#08100d; --foreground:#e5eee8; --card:#0b1712; --card-foreground:#e5eee8;
+      --muted:#11251d; --muted-foreground:#8bb09a; --border:#315442; --input:#315442;
+      --primary:#73ff78; --primary-foreground:#041008; --page:#030806; --line:#315442;
+      --brand:#73ff78; --brand-deep:#45d65b; --ink:#d8e2dc;
+      --interactive:#56df68; --interactive-hover:#3cbd50; --interactive-text:#031008;
+      --strong-bg:#020604;
+      --nav-bg:#07110d; --nav-border:#3b8f53; --nav-text:#8bb09a;
+      --nav-active:#73ff78; --nav-active-text:#031008;
+      color-scheme:dark;
+    }
     @supports (color: color-mix(in srgb, black, white)) {
       :root{ --sn-red-light: color-mix(in srgb, var(--sn-red) 35%, white); }
       :root[data-theme="dark"]{ --sn-red-light:color-mix(in srgb,var(--sn-red) 28%, transparent); }
       :root[data-theme="tanduay"]{ --sn-red-light:color-mix(in srgb,#e7b46d 55%, white); }
+      :root[data-theme="doomsday"]{ --sn-red-light:color-mix(in srgb,#73ff78 24%,transparent); }
     }
     html,body{min-height:100%}
     body{
@@ -94,30 +107,50 @@
     :root[data-theme="tanduay"] .text-neutral-900,:root[data-theme="tanduay"] .text-neutral-800,:root[data-theme="tanduay"] .text-neutral-700{color:#4b2415!important}
     :root[data-theme="tanduay"] .text-neutral-600,:root[data-theme="tanduay"] .text-neutral-500,:root[data-theme="tanduay"] .text-neutral-400{color:#76523a!important}
     :root[data-theme="tanduay"] .border-neutral-200,:root[data-theme="tanduay"] .border-neutral-300{border-color:var(--border)!important}
+    :root[data-theme="doomsday"] .bg-white{background-color:var(--card)!important}
+    :root[data-theme="doomsday"] .bg-white\/80,:root[data-theme="doomsday"] .bg-white\/90{background-color:rgba(11,23,18,.94)!important}
+    :root[data-theme="doomsday"] .bg-white\/30{background-color:rgba(11,23,18,.30)!important}
+    :root[data-theme="doomsday"] .bg-slate-50,:root[data-theme="doomsday"] .bg-slate-100,
+    :root[data-theme="doomsday"] .bg-neutral-50,:root[data-theme="doomsday"] .bg-neutral-100{background-color:var(--muted)!important}
+    :root[data-theme="doomsday"] .text-slate-900,:root[data-theme="doomsday"] .text-slate-800,:root[data-theme="doomsday"] .text-slate-700,
+    :root[data-theme="doomsday"] .text-neutral-900,:root[data-theme="doomsday"] .text-neutral-800,:root[data-theme="doomsday"] .text-neutral-700{color:#d8e2dc!important}
+    :root[data-theme="doomsday"] .text-slate-600,:root[data-theme="doomsday"] .text-slate-500,:root[data-theme="doomsday"] .text-slate-400,
+    :root[data-theme="doomsday"] .text-neutral-600,:root[data-theme="doomsday"] .text-neutral-500,:root[data-theme="doomsday"] .text-neutral-400{color:#8bb09a!important}
+    :root[data-theme="doomsday"] .border-slate-200,:root[data-theme="doomsday"] .border-slate-300,
+    :root[data-theme="doomsday"] .border-neutral-200,:root[data-theme="doomsday"] .border-neutral-300{border-color:var(--border)!important}
     .theme-choice{min-height:4.5rem;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
     .theme-choice[aria-checked="true"]{border-color:var(--sn-red)!important;box-shadow:0 0 0 3px var(--sn-red-light);transform:translateY(-1px)}
-    .brand-wordmark{background:#fff;border-radius:.6rem;padding:.15rem .35rem}
+    .brand-wordmark{object-fit:contain;object-position:left center}
     .theme-interactive{background-color:var(--interactive)!important;color:var(--interactive-text)!important}
     .theme-nav{background-color:var(--nav-bg)!important;border-color:var(--nav-border)!important}
     .theme-tab-active{background-color:var(--nav-active)!important;color:var(--nav-active-text)!important}
     .theme-tab-inactive{color:var(--nav-text)!important}
     :root[data-theme="dark"] .bg-brand-600,:root[data-theme="dark"] .bg-brand-700,
-    :root[data-theme="tanduay"] .bg-brand-600,:root[data-theme="tanduay"] .bg-brand-700{background-color:var(--brand)!important}
+    :root[data-theme="tanduay"] .bg-brand-600,:root[data-theme="tanduay"] .bg-brand-700,
+    :root[data-theme="doomsday"] .bg-brand-600,:root[data-theme="doomsday"] .bg-brand-700{background-color:var(--brand)!important}
     :root[data-theme="dark"] .bg-brand-600.text-white,:root[data-theme="dark"] .bg-brand-700.text-white,
     :root[data-theme="dark"] .theme-interactive .text-white{color:var(--interactive-text)!important}
     :root[data-theme="dark"] .bg-brand-600\/60,:root[data-theme="tanduay"] .bg-brand-600\/60{background-color:color-mix(in srgb,var(--brand) 60%,transparent)!important}
-    :root[data-theme="dark"] .bg-ink,:root[data-theme="tanduay"] .bg-ink{background-color:var(--strong-bg)!important}
-    :root[data-theme="dark"] .border-ink,:root[data-theme="tanduay"] .border-ink{border-color:var(--strong-bg)!important}
+    :root[data-theme="doomsday"] .bg-brand-600\/60{background-color:color-mix(in srgb,var(--brand) 60%,transparent)!important}
+    :root[data-theme="doomsday"] .bg-brand-600.text-white,:root[data-theme="doomsday"] .bg-brand-700.text-white,
+    :root[data-theme="doomsday"] .theme-interactive .text-white{color:var(--interactive-text)!important}
+    :root[data-theme="dark"] .bg-ink,:root[data-theme="tanduay"] .bg-ink,:root[data-theme="doomsday"] .bg-ink{background-color:var(--strong-bg)!important}
+    :root[data-theme="dark"] .border-ink,:root[data-theme="tanduay"] .border-ink,:root[data-theme="doomsday"] .border-ink{border-color:var(--strong-bg)!important}
     :root[data-theme="dark"] .bg-indigo-500,:root[data-theme="dark"] .bg-indigo-600,
     :root[data-theme="tanduay"] .bg-indigo-500,:root[data-theme="tanduay"] .bg-indigo-600{background-color:var(--interactive)!important}
+    :root[data-theme="doomsday"] .bg-indigo-500,:root[data-theme="doomsday"] .bg-indigo-600{background-color:var(--interactive)!important;color:var(--interactive-text)!important}
     :root[data-theme="dark"] .bg-indigo-500.text-white,:root[data-theme="dark"] .bg-indigo-600.text-white{color:var(--interactive-text)!important}
     :root[data-theme="dark"] .text-indigo-600,:root[data-theme="dark"] .text-indigo-700,
     :root[data-theme="tanduay"] .text-indigo-600,:root[data-theme="tanduay"] .text-indigo-700{color:var(--interactive)!important}
+    :root[data-theme="doomsday"] .text-indigo-600,:root[data-theme="doomsday"] .text-indigo-700{color:var(--interactive)!important}
     :root[data-theme="dark"] .border-indigo-200,:root[data-theme="dark"] .border-indigo-300,:root[data-theme="dark"] .border-indigo-600,
     :root[data-theme="tanduay"] .border-indigo-200,:root[data-theme="tanduay"] .border-indigo-300,:root[data-theme="tanduay"] .border-indigo-600{border-color:var(--interactive)!important}
+    :root[data-theme="doomsday"] .border-indigo-200,:root[data-theme="doomsday"] .border-indigo-300,:root[data-theme="doomsday"] .border-indigo-600{border-color:var(--interactive)!important}
     :root[data-theme="dark"] .from-indigo-600,:root[data-theme="tanduay"] .from-indigo-600{--tw-gradient-from:var(--interactive) var(--tw-gradient-from-position)!important;--tw-gradient-to:transparent var(--tw-gradient-to-position)!important}
     :root[data-theme="dark"] .to-violet-600{--tw-gradient-to:#b45309 var(--tw-gradient-to-position)!important}
     :root[data-theme="tanduay"] .to-violet-600{--tw-gradient-to:#d45a12 var(--tw-gradient-to-position)!important}
+    :root[data-theme="doomsday"] .from-indigo-600{--tw-gradient-from:#1f8a45 var(--tw-gradient-from-position)!important;--tw-gradient-to:transparent var(--tw-gradient-to-position)!important}
+    :root[data-theme="doomsday"] .to-violet-600{--tw-gradient-to:#07110d var(--tw-gradient-to-position)!important}
     @keyframes toastIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
     @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
     input,select,button,textarea{font:inherit;font-size:16px}
@@ -140,7 +173,6 @@
       },
     } } };
   </script>
-  <link rel="preload" href="./supernova-wordmark.png" as="image">
   <!-- Favicon (desktop browsers, bookmarks, tabs) -->
   <link rel="icon" type="image/png" href="./loggericon.png">
   <link rel="shortcut icon" type="image/png" href="./loggericon.png">
@@ -478,7 +510,8 @@
     const THEME_OPTIONS = [
       { value:"light", label:"Light", colors:["#f8fafc","#ffffff","#111827"] },
       { value:"dark", label:"Midnight", colors:["#071329","#111f3a","#f59e0b"] },
-      { value:"tanduay", label:"Tanduay", colors:["#ffffff","#40170c","#d45a12","#efc577"] }
+      { value:"tanduay", label:"Tanduay", colors:["#ffffff","#40170c","#d45a12","#efc577"] },
+      { value:"doomsday", label:"Doomsday", colors:["#030806","#0b1712","#73ff78","#9aa69f"] }
     ];
     const emptyForm = { prospectName:"", date:todayISODate(), time:nowHM(), meetingPlace:"Zoom",
       firstMeeting:true, meetingCount:1, factFinding:false, appSubmitted:false, casePaid:false,
@@ -495,6 +528,11 @@
 
     // put near the top of your script (you already have this line)
     const LOGO_SRC = "./supernova-wordmark.png";
+    const logoForTheme = (theme) => theme === "dark" || theme === "doomsday"
+      ? "./supernova_white.png"
+      : theme === "tanduay"
+        ? "./supernova_black.png"
+        : LOGO_SRC;
 
     // --- inline lucide-style icons (adopted from the Appt 5 Logger) ---
     const IconSettings = ({ className="h-5 w-5" }) => (
@@ -586,7 +624,7 @@
       );
     };
 
-    const TopBar = ({ settingsOpen, onToggleSettings, onShowWelcome, pendingCount, weeklyGoalSlots }) => {
+    const TopBar = ({ settingsOpen, onToggleSettings, onShowWelcome, pendingCount, weeklyGoalSlots, theme }) => {
       // Only completed meetings count toward the 15; upcoming (light orange)
       // slots are a pipeline preview and don't count.
       const done = weeklyGoalSlots.filter(s => s.status === "paid" || s.status === "meeting").length;
@@ -595,7 +633,7 @@
         <div className="px-4 pt-4 pb-4">
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <img src={LOGO_SRC} alt="Supernova Financial" className="brand-wordmark mb-2 h-12 md:h-14 select-none" />
+              <img src={logoForTheme(theme)} alt="Supernova Financial" className="brand-wordmark mb-2 h-12 w-[7.5rem] md:h-14 md:w-[8.75rem] select-none" />
               <div className="flex items-center gap-2">
                 <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--sn-red)" }} />
                 <h1 className="text-lg font-semibold leading-tight tracking-tight">Appointment 15 Logger</h1>
@@ -1529,7 +1567,7 @@
       useEffect(()=>{
         const theme = THEME_OPTIONS.some(option => option.value === settings.theme) ? settings.theme : "light";
         document.documentElement.dataset.theme = theme;
-        const themeColors = { light:"#e5ecf5", dark:"#071329", tanduay:"#fffaf0" };
+        const themeColors = { light:"#e5ecf5", dark:"#071329", tanduay:"#fffaf0", doomsday:"#030806" };
         document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[theme]);
       },[settings.theme]);
       useEffect(()=>writeLS(LS.history,history),[history]);
@@ -2082,7 +2120,7 @@
             setTab("log");
             setWelcomeNonce(n => n + 1);
             setWelcomeDismissed(false);
-          }} pendingCount={pendingCount} weeklyGoalSlots={weeklyGoalSlots} />
+          }} pendingCount={pendingCount} weeklyGoalSlots={weeklyGoalSlots} theme={settings.theme} />
 
           {/* Phase 2: gentle nudge to reconcile past-due scheduled meetings. */}
           {!openSettings && pastDueMeetings.length > 0 && (
@@ -2179,7 +2217,7 @@
 
                 <fieldset>
                   <legend className="mb-2 text-sm font-semibold text-neutral-700">App colors</legend>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="App color theme">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="App color theme">
                     {THEME_OPTIONS.map(option => {
                       const selected = settings.theme === option.value;
                       return (
