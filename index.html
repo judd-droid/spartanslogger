@@ -26,6 +26,7 @@
       --nav-bg:#e0e7ff; --nav-border:#c7d2fe; --nav-text:#525252;
       --nav-active:#DD467D; --nav-active-text:#ffffff;
       --timer-bg:#eef2ff; --timer-border:#a5b4fc; --timer-text:#4338ca;
+      --success-soft:#ecfdf5; --success-text:#047857;
       color-scheme:light;
     }
     :root[data-theme="dark"]{
@@ -39,6 +40,7 @@
       --nav-bg:#0d1d38; --nav-border:#765528; --nav-text:#bca98a;
       --nav-active:#b97b2a; --nav-active-text:#08152d;
       --timer-bg:#14233e; --timer-border:#765528; --timer-text:#c99a53;
+      --success-soft:#1d2b43; --success-text:#c99a53;
       color-scheme:dark;
     }
     :root[data-theme="tanduay"]{
@@ -52,6 +54,7 @@
       --nav-bg:#fff8e8; --nav-border:#d5a15d; --nav-text:#76523a;
       --nav-active:#a52a20; --nav-active-text:#ffffff;
       --timer-bg:#fff3d6; --timer-border:#c9934d; --timer-text:#7e2119;
+      --success-soft:#fff1cf; --success-text:#8f2b20;
       color-scheme:light;
     }
     :root[data-theme="doomsday"]{
@@ -65,6 +68,7 @@
       --nav-bg:#07110d; --nav-border:#3b8f53; --nav-text:#8bb09a;
       --nav-active:#73ff78; --nav-active-text:#031008;
       --timer-bg:#0e2118; --timer-border:#3b8f53; --timer-text:#73ff78;
+      --success-soft:#10271a; --success-text:#73ff78;
       color-scheme:dark;
     }
     @supports (color: color-mix(in srgb, black, white)) {
@@ -131,6 +135,8 @@
     .theme-tab-inactive{color:var(--nav-text)!important}
     .theme-timer-digit{background-color:var(--timer-bg)!important;border-color:var(--timer-border)!important;color:var(--timer-text)!important}
     .theme-timer-colon,.theme-accent-text{color:var(--brand)!important}
+    .theme-success-card{background-color:var(--success-soft)!important}
+    .theme-success-text{color:var(--success-text)!important}
     :root[data-theme="dark"] .bg-brand-600,:root[data-theme="dark"] .bg-brand-700,
     :root[data-theme="tanduay"] .bg-brand-600,:root[data-theme="tanduay"] .bg-brand-700,
     :root[data-theme="doomsday"] .bg-brand-600,:root[data-theme="doomsday"] .bg-brand-700{background-color:var(--brand)!important}
@@ -2960,9 +2966,9 @@
                           <div className="text-2xl font-bold tabular-nums text-neutral-900">{guestsRegistered}</div>
                           <div className="mt-1 text-[11px] font-medium text-neutral-500">Registered</div>
                         </div>
-                        <div className="rounded-md bg-emerald-50 p-3 text-center">
-                          <div className="text-2xl font-bold tabular-nums text-emerald-700">{guestsShowed}</div>
-                          <div className="mt-1 text-[11px] font-medium text-emerald-600">
+                        <div className="theme-success-card rounded-md bg-emerald-50 p-3 text-center">
+                          <div className="theme-success-text text-2xl font-bold tabular-nums text-emerald-700">{guestsShowed}</div>
+                          <div className="theme-success-text mt-1 text-[11px] font-medium text-emerald-600">
                             Showed up{showRate != null ? ` · ${showRate}%` : ""}
                           </div>
                         </div>
