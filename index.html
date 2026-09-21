@@ -1005,7 +1005,7 @@
       useEffect(() => writeLS(LS.bopEvents, bopEvents), [bopEvents]);
       useEffect(() => writeLS(LS.bopGuests, bopGuests), [bopGuests]);
 
-      // Calendar: read-only agency events (from the 'Calendar' tab). Cached so
+      // Calendar: read-only agency events (from the agency Google Calendars). Cached so
       // the month/agenda render instantly offline. `calMonth` is the visible
       // month (YYYY-MM); `calDay` is the selected day (YYYY-MM-DD) or "".
       const [calEvents, setCalEvents] = useState(() => readLS(LS.calEvents, []));
