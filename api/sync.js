@@ -199,6 +199,31 @@ module.exports = async (req, res) => {
         return res.status(br.ok ? 200 : br.status || 502).send(text);
       }
 
+      // Playbook tab: the Spartan MDRT Playbook, read-only. The PDF is not in
+      // this (public) repo or on this site. It is fetched from Big Board with
+      // the server-side key, and only for a caller who passed the advisor/key
+      // check above, so there is no open link to it.
+      if (path === "playbook") {
+        const BB_URL = process.env.BIGBOARD_API_URL;
+        const BB_KEY = process.env.LOGGER_API_KEY;
+        if (!BB_URL || !BB_KEY) {
+          return res.status(500).json({ ok:false, error:"Missing BIGBOARD_API_URL or LOGGER_API_KEY" });
+        }
+        const pr = await fetch(`${BB_URL.replace(/\/$/, "")}/api/logger/playbook`, {
+          headers: { Authorization: `Bearer ${BB_KEY}` },
+        });
+        if (!pr.ok) {
+          return res.status(pr.status === 404 ? 404 : 502).json({ ok:false, error:"Playbook unavailable" });
+        }
+        const buf = Buffer.from(await pr.arrayBuffer());
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", "inline");
+        res.setHeader("Cache-Control", "private, no-store");
+        res.setHeader("X-Playbook-Version", pr.headers.get("x-playbook-version") || "");
+        res.setHeader("Access-Control-Expose-Headers", "X-Playbook-Version");
+        return res.status(200).send(buf);
+      }
+
       // Calendar page: list agency events from public Google Calendars,
       // read live via the Calendar API (read-only, same for everyone).
       if (path === "calendar") {

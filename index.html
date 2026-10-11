@@ -872,6 +872,14 @@
           <circle cx="15.5" cy="13.5" r="1.3" fill="currentColor" stroke="none" />
         </NavIcon>
       ),
+      // Playbook — an open book
+      playbook: (
+        <NavIcon>
+          <path d="M12 6.5c-1.8-1.5-4.4-2-8-2v13.5c3.6 0 6.2.5 8 2" />
+          <path d="M12 6.5c1.8-1.5 4.4-2 8-2v13.5c-3.6 0-6.2.5-8 2" />
+          <path d="M12 6.5V20" />
+        </NavIcon>
+      ),
       // Recruit — add a person
       recruit: (
         <NavIcon>
@@ -911,17 +919,205 @@
     };
 
     const FloatingTabBar = ({ tab, setTab, calendarBadge = 0 }) => (
-      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[34rem]">
-        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-6 gap-1 shadow-lg">
+      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[38rem]">
+        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-7 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
           <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
           <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      icon={ICONS.recruit} />
           <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" badge={calendarBadge} />
+          <TabButton id="playbook"    tab={tab} setTab={setTab} label="Playbook"     icon={ICONS.playbook} ariaLabel="Spartan MDRT Playbook" />
         </div>
       </div>
     );
+
+
+    // ---- Playbook reader -----------------------------------------------------
+    // A read-only view of the Spartan MDRT Playbook. The PDF is fetched through
+    // the proxy with the advisor's name and sync key (there is no open link to
+    // it), kept in memory for this visit only, and drawn page by page onto a
+    // canvas with pdf.js. There is no download or print control, and each page
+    // carries the reader's name as a faint watermark.
+    const PDFJS_BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174";
+    let _pdfjsLoading = null;
+    const loadPdfJs = () => _pdfjsLoading || (_pdfjsLoading = new Promise((resolve, reject) => {
+      if (window.pdfjsLib) return resolve(window.pdfjsLib);
+      const el = document.createElement("script");
+      el.src = `${PDFJS_BASE}/pdf.min.js`;
+      el.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/pdf.worker.min.js`;
+        resolve(window.pdfjsLib);
+      };
+      el.onerror = () => { _pdfjsLoading = null; reject(new Error("Could not load the reader")); };
+      document.head.appendChild(el);
+    }));
+    let _playbook = null;          // { doc, version, owner } for this visit only
+
+    const PlaybookReader = ({ settings }) => {
+      const ready = !!(settings.advisorName && settings.syncKey);
+      const owner = `${settings.advisorName}|${settings.syncKey}`;
+      const cached = _playbook && _playbook.owner === owner ? _playbook : null;
+      const wrapRef = React.useRef(null);
+      const canvasRef = React.useRef(null);
+      const taskRef = React.useRef(null);
+      const genRef = React.useRef(0);
+      const [doc, setDoc] = React.useState(cached ? cached.doc : null);
+      const [version, setVersion] = React.useState(cached ? cached.version : "");
+      const [status, setStatus] = React.useState(cached ? "ready" : "idle");   // idle | loading | ready | denied | error
+      const [page, setPage] = React.useState(() => Math.max(1, parseInt(localStorage.getItem("sn.playbook.page") || "1", 10) || 1));
+      const [pageInput, setPageInput] = React.useState(String(page));
+      const [zoom, setZoom] = React.useState(1);
+      const [busy, setBusy] = React.useState(false);
+      const count = doc ? doc.numPages : 0;
+
+      const load = React.useCallback(async () => {
+        if (!ready) return;
+        setStatus("loading");
+        try {
+          const pdfjs = await loadPdfJs();
+          const res = await fetch(`${SYNC_URL}?path=playbook&advisor=${encodeURIComponent(settings.advisorName)}`, {
+            headers: { Authorization: `Bearer ${settings.syncKey}` }, cache: "no-store",
+          });
+          if (res.status === 401) { setStatus("denied"); return; }
+          if (!res.ok) throw new Error("unavailable");
+          const v = res.headers.get("X-Playbook-Version") || "";
+          const data = await res.arrayBuffer();
+          const d = await pdfjs.getDocument({ data }).promise;
+          _playbook = { doc: d, version: v, owner };
+          setDoc(d); setVersion(v); setStatus("ready");
+        } catch { setStatus("error"); }
+      }, [ready, owner]);
+
+      React.useEffect(() => { if (ready && !doc && status === "idle") load(); }, [ready, doc, status, load]);
+
+      const go = React.useCallback((n) => {
+        if (!count) return;
+        const next = Math.min(count, Math.max(1, n));
+        setPage(next); setPageInput(String(next));
+        try { localStorage.setItem("sn.playbook.page", String(next)); } catch {}
+        if (wrapRef.current) wrapRef.current.scrollTo({ top: 0, left: 0 });
+      }, [count]);
+
+      React.useEffect(() => { if (count && page > count) go(count); }, [count, page, go]);
+
+      const render = React.useCallback(async () => {
+        const canvas = canvasRef.current, wrap = wrapRef.current;
+        if (!doc || !canvas || !wrap || page > doc.numPages) return;
+        const mine = ++genRef.current;
+        if (taskRef.current) { taskRef.current.cancel(); await taskRef.current.promise.catch(() => {}); }
+        if (mine !== genRef.current) return;
+        setBusy(true);
+        const pg = await doc.getPage(page);
+        if (mine !== genRef.current) return;
+        const base = pg.getViewport({ scale: 1 });
+        const scale = (wrap.clientWidth / base.width) * zoom;
+        const vp = pg.getViewport({ scale });
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
+        canvas.width = Math.floor(vp.width * dpr);
+        canvas.height = Math.floor(vp.height * dpr);
+        canvas.style.width = `${Math.floor(vp.width)}px`;
+        canvas.style.height = `${Math.floor(vp.height)}px`;
+        const ctx = canvas.getContext("2d");
+        const task = pg.render({ canvasContext: ctx, viewport: vp, transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined });
+        taskRef.current = task;
+        try { await task.promise; } catch { return; }
+        if (mine !== genRef.current) return;
+        // The reader's name, faintly, across the page.
+        ctx.save();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.translate(vp.width / 2, vp.height / 2);
+        ctx.rotate(-Math.PI / 5);
+        ctx.globalAlpha = 0.07;
+        ctx.fillStyle = "#14181C";
+        ctx.textAlign = "center";
+        ctx.font = `700 ${Math.round(vp.width / 14)}px Inter, sans-serif`;
+        ctx.fillText(settings.advisorName, 0, 0);
+        ctx.font = `500 ${Math.round(vp.width / 34)}px Inter, sans-serif`;
+        ctx.fillText("Confidential \u00b7 Supernova Financial", 0, Math.round(vp.width / 16));
+        ctx.restore();
+        setBusy(false);
+      }, [doc, page, zoom, settings.advisorName]);
+
+      React.useEffect(() => { render(); }, [render]);
+      React.useEffect(() => {
+        const wrap = wrapRef.current;
+        if (!wrap || !window.ResizeObserver) return;
+        let w = wrap.clientWidth;
+        const ro = new ResizeObserver(() => { if (wrap.clientWidth !== w) { w = wrap.clientWidth; render(); } });
+        ro.observe(wrap);
+        return () => ro.disconnect();
+      }, [render]);
+
+      // Swipe left or right to turn the page (only when not zoomed in), and arrow keys on a computer.
+      React.useEffect(() => {
+        const wrap = wrapRef.current;
+        if (!wrap) return;
+        let x0 = 0, y0 = 0, on = false;
+        const start = (e) => { if (e.touches.length === 1) { on = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; } else on = false; };
+        const end = (e) => {
+          if (!on) return; on = false;
+          const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+          if (zoom === 1 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) go(page + (dx < 0 ? 1 : -1));
+        };
+        const key = (e) => {
+          if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "")) return;
+          if (e.key === "ArrowRight") go(page + 1);
+          if (e.key === "ArrowLeft") go(page - 1);
+        };
+        wrap.addEventListener("touchstart", start, { passive: true });
+        wrap.addEventListener("touchend", end);
+        window.addEventListener("keydown", key);
+        return () => { wrap.removeEventListener("touchstart", start); wrap.removeEventListener("touchend", end); window.removeEventListener("keydown", key); };
+      }, [go, page, zoom]);
+
+      const small = "h-10 min-w-10 px-3 rounded-md border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 disabled:opacity-40";
+      return (
+        <Section title="Spartan MDRT Playbook" right={version ? <span className="text-xs font-medium text-neutral-500">v{version}</span> : null}>
+          {!ready && (
+            <p className="text-sm text-neutral-600">Add your name and sync key in Settings to open the Playbook.</p>
+          )}
+          {ready && status === "loading" && <p className="py-10 text-center text-sm text-neutral-500">Opening the Playbook…</p>}
+          {ready && status === "denied" && <p className="text-sm text-neutral-600">Your name or sync key was not recognized. Check them in Settings.</p>}
+          {ready && status === "error" && (
+            <div className="py-6 text-center">
+              <p className="mb-3 text-sm text-neutral-600">The Playbook could not be opened. Check your connection and try again.</p>
+              <button type="button" className={btnSecondary} onClick={load}>Try again</button>
+            </div>
+          )}
+          {ready && status === "ready" && (
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button type="button" className={small} disabled={page <= 1} onClick={() => go(page - 1)} aria-label="Previous page">‹</button>
+                  <input inputMode="numeric" value={pageInput} aria-label="Page number"
+                    onChange={(e) => setPageInput(e.target.value.replace(/[^0-9]/g, ""))}
+                    onBlur={() => go(parseInt(pageInput || String(page), 10) || page)}
+                    onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    className="h-10 w-14 rounded-md border border-neutral-200 bg-white text-center text-sm font-semibold text-neutral-800" />
+                  <span className="text-sm text-neutral-500">of {count}</span>
+                  <button type="button" className={small} disabled={page >= count} onClick={() => go(page + 1)} aria-label="Next page">›</button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button type="button" className={small} disabled={zoom <= 1} onClick={() => setZoom((z) => Math.max(1, +(z - 0.5).toFixed(2)))} aria-label="Zoom out">−</button>
+                  <button type="button" className={small} disabled={zoom >= 3} onClick={() => setZoom((z) => Math.min(3, +(z + 0.5).toFixed(2)))} aria-label="Zoom in">+</button>
+                </div>
+              </div>
+              <div ref={wrapRef} className="relative overflow-auto rounded-md border border-neutral-200 bg-neutral-100"
+                style={{ maxHeight: "calc(100dvh - 15rem)" }}
+                onContextMenu={(e) => e.preventDefault()}>
+                <canvas ref={canvasRef} className="block select-none bg-white"
+                  style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", opacity: busy ? 0.6 : 1, transition: "opacity .15s" }}
+                  draggable={false} onDragStart={(e) => e.preventDefault()} />
+              </div>
+              <p className="mt-2 text-center text-[11px] leading-snug text-neutral-500">
+                Swipe or use the arrows to turn pages. Read-only: for Supernova Financial advisors, not for sharing.
+              </p>
+            </div>
+          )}
+        </Section>
+      );
+    };
 
     const YesNoGrid = ({ items, form, setForm }) => {
       const cols = 2;
@@ -3303,6 +3499,8 @@
               </Section>
             );
           })()}
+
+          {tab==="playbook" && <PlaybookReader settings={settings} />}
 
           <FloatingTabBar tab={tab} setTab={goToTab} calendarBadge={pastDueMeetings.length} />
           
