@@ -178,6 +178,13 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const path = (req.query.path || "").toString();
 
+      // The Logger checks a Name and Sync Key pair before it lets a submit
+      // through. Reaching this line means the pair passed the check above.
+      if (path === "verify") {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).json({ ok: true, advisor: canonical });
+      }
+
       if (path === "bigboard") {
         const BB_URL = process.env.BIGBOARD_API_URL;
         const BB_KEY = process.env.LOGGER_API_KEY;

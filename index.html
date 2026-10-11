@@ -1451,6 +1451,34 @@
         [prospecting.date]
       );
 
+      // A submit needs a Name and Sync Key pair the server accepts. The pair is
+      // checked with the proxy on every submit; a pair that passed before is
+      // remembered, so logging still works while offline.
+      const ensureKey = async () => {
+        const name = (settings.advisorName || "").trim();
+        const key = (settings.syncKey || "").trim();
+        if (!name || !key) {
+          setToast({ t: "Set your Name and Sync Key in Settings first.", type: "warn" }); setOpenSettings(true); return false;
+        }
+        const pair = `${name.toLowerCase()}|${key}`;
+        try {
+          const res = await fetch(`${SYNC_URL}?path=verify&advisor=${encodeURIComponent(name)}`, {
+            headers: { Authorization: `Bearer ${key}` }, cache: "no-store",
+          });
+          if (res.ok) { try { localStorage.setItem("sn.keyok", pair); } catch {} return true; }
+          if (res.status === 401) {
+            try { localStorage.removeItem("sn.keyok"); } catch {}
+            setToast({ t: "Your Name and Sync Key don\u2019t match. Check Settings.", type: "warn" }); setOpenSettings(true); return false;
+          }
+          setToast({ t: `Couldn\u2019t check your Sync Key (${res.status}). Try again.`, type: "warn" }); return false;
+        } catch {
+          let known = false;
+          try { known = localStorage.getItem("sn.keyok") === pair; } catch {}
+          if (known) return true;
+          setToast({ t: "Go online once so your Sync Key can be checked.", type: "warn" }); return false;
+        }
+      };
+
       // Prospecting submit (POSTS to /api/sync?path=prospecting)
       const handleProspectingSubmit = async () => {
         if (prospectSubmitting) return;       // guard against double-submit
@@ -1465,6 +1493,11 @@
           return;
         }
       
+        setProspectSubmitting(true);
+        const keyOk = await ensureKey();
+        setProspectSubmitting(false);
+        if (!keyOk) return;
+
         const record = {
           // Editing an existing week → reuse its id so the backend upserts
           // (overwrites) that row instead of appending a new one.
@@ -2007,6 +2040,7 @@
         if(!form.prospectName){ setToast({t:"Prospect name is required.",type:"warn"}); return; }
 
         setIsSending(true);
+        if(!(await ensureKey())){ setIsSending(false); return; }
         const id = editingId || (crypto.randomUUID?.() || String(Date.now()));
         const record = { id, ...payload };
         setHistory(h => editingId ? h.map(x => x.id===editingId ? record : x) : [record, ...h].slice(0,200));
@@ -2040,6 +2074,7 @@
       // Persist a status change (used for "Missed"). Meetings upsert by id.
       const markMeetingStatus = async (rec, status) => {
         if (!rec || !rec.id) return;
+        if (!(await ensureKey())) return;
         const updated = { ...rec, status, timestamp: new Date().toISOString() };
         setHistory(h => h.map(x => x.id === rec.id ? updated : x));
         const ok = await sendToEndpoint(DEFAULT_ENDPOINT, updated);
