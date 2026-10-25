@@ -1,6 +1,6 @@
 # Monday Reports and Gameplans: setup
 
-Every Monday at 9:00 AM, the Spartan ACE Dashboard locks each Spartan's Advisor Report for last week and this week's worksheet. Each advisor reads theirs in the Logger's **Reports** tab and fills the worksheet in on the phone. Leaders read every gameplan in the Dashboard's **Gameplans** view (leader login), and can **Resend** to everyone or one advisor at any time.
+Every Monday at 9:00 AM, the Spartan ACE Dashboard locks each Spartan's Advisor Report for last week and this week's worksheet. Each advisor reads theirs in the Logger's **Reports** tab and fills the worksheet in on the phone. Leaders read every gameplan in the Dashboard's **Gameplans** view (the Dashboard's password is held by leaders only), and can **Resend** to everyone or one advisor at any time.
 
 Everything is stored in this Google Sheet, in two tabs the script creates on first use: **Gameplans** and **Settings** (the team benchmarks).
 
@@ -43,7 +43,6 @@ if (path === 'gpsettings') return gp_json_(gpSettingsPost_(data));
 |---|---|
 | `GAS_URL` | The Apps Script /exec URL (the same as this project's `APPS_SCRIPT_URL`) |
 | `GAMEPLAN_SECRET` | The same value as the script property |
-| `LEADER_PASSWORD` | The password that opens the leader views (Gameplans) |
 | `CRON_SECRET` | Any long random value. Vercel sends it with the Monday 9:00 AM lock |
 
 Redeploy both projects after adding the values.
