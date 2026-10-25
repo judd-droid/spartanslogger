@@ -244,6 +244,20 @@ module.exports = async (req, res) => {
         }
       }
 
+      // Reports tab: this advisor's Monday reports and gameplans (newest first),
+      // read from the Gameplans tab through the Apps Script with the shared
+      // secret, which stays on the server.
+      if (path === "gameplans") {
+        const secret = process.env.GAMEPLAN_SECRET;
+        if (!secret) return res.status(500).json({ ok:false, error:"Missing GAMEPLAN_SECRET" });
+        const url = `${GAS_URL}?path=gameplans&advisor=${encodeURIComponent(canonical)}&secret=${encodeURIComponent(secret)}`;
+        const r = await fetch(url, { method: "GET" });
+        const text = await r.text();
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(r.ok ? 200 : r.status || 502).send(text);
+      }
+
       // Recruit page: list BOP events, or this advisor's BOP guests.
       if (path === "bops" || path === "bopguests" || path === "prospectinghistory") {
         const url = `${GAS_URL}?path=${encodeURIComponent(path)}&advisor=${encodeURIComponent(canonical)}`;
@@ -267,6 +281,26 @@ module.exports = async (req, res) => {
     if (req.method === "POST") {
       // forward pushes (meetings or prospecting)
       const path = (req.query.path || "").toString(); // e.g. "prospecting"
+
+      // Reports tab: save this advisor's gameplan answers for one week. Only the
+      // verified advisor's own row can be written, and the secret is added here.
+      if (path === "gameplananswers") {
+        const secret = process.env.GAMEPLAN_SECRET;
+        if (!secret) return res.status(500).json({ ok:false, error:"Missing GAMEPLAN_SECRET" });
+        const r = await fetch(`${GAS_URL}?path=gameplananswers`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ advisor: canonical, week: String(body.week || ""), answers: body.answers || {}, secret }),
+        });
+        const text = await r.text();
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(r.ok ? 200 : r.status || 502).send(text);
+      }
+      // The other Gameplans writes come only from the Spartan ACE Dashboard.
+      if (path === "gameplanlock" || path === "gpsettings") {
+        return res.status(403).json({ ok:false, error:"Not allowed" });
+      }
       // Don’t pass the key through to GAS
       const target = path
         ? `${GAS_URL}?path=${encodeURIComponent(path)}`

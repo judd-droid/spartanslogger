@@ -880,6 +880,15 @@
           <path d="M12 6.5V20" />
         </NavIcon>
       ),
+      // Reports — a clipboard with lines
+      reports: (
+        <NavIcon>
+          <rect x="5" y="4" width="14" height="17" rx="2" />
+          <path d="M9 4h6v3H9z" />
+          <path d="M8.5 11.5h7" />
+          <path d="M8.5 15h4.5" />
+        </NavIcon>
+      ),
       // Recruit — add a person
       recruit: (
         <NavIcon>
@@ -918,20 +927,296 @@
       );
     };
 
-    const FloatingTabBar = ({ tab, setTab, calendarBadge = 0 }) => (
-      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[38rem]">
-        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-7 gap-1 shadow-lg">
+    const FloatingTabBar = ({ tab, setTab, calendarBadge = 0, reportsBadge = 0 }) => (
+      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[42rem]">
+        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-8 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
           <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
           <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      icon={ICONS.recruit} />
           <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" badge={calendarBadge} />
+          <TabButton id="reports"     tab={tab} setTab={setTab} label="Reports"      icon={ICONS.reports} ariaLabel="Monday Report and Gameplan" badge={reportsBadge} />
           <TabButton id="playbook"    tab={tab} setTab={setTab} label="Playbook"     icon={ICONS.playbook} ariaLabel="Spartan MDRT Playbook" />
         </div>
       </div>
     );
 
+
+    // ---- Monday Reports ------------------------------------------------------
+    // Each Monday at 9:00 AM (when ACE starts) the Spartan ACE Dashboard locks the
+    // advisor's report for last week and this week's worksheet. They are read here,
+    // through the proxy with the advisor's name and sync key, and the worksheet is
+    // filled in on the phone: answers save as they are typed. Leaders, the unit
+    // manager and the breakout group see the same gameplan.
+    const RPT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const RPT_PARTS = ["Morning", "Afternoon", "Evening"];
+    const rptInput = "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-brand-400 focus:outline-none";
+    const rptWeekLabel = (ymd) => {
+      const [y, m, d] = String(ymd).split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    };
+    const rptHasText = (v) => typeof v === "string" ? v.trim() !== ""
+      : Array.isArray(v) ? v.some(rptHasText) : (v && typeof v === "object") ? Object.values(v).some(rptHasText) : false;
+    const rptThisMonday = () => {
+      const m = new Date(Date.now() + 8 * 3600000);
+      const dow = (m.getUTCDay() + 6) % 7;
+      return new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), m.getUTCDate() - dow)).toISOString().slice(0, 10);
+    };
+
+    const RptBlock = ({ block, value, onChange, readOnly }) => {
+      if (block.kind === "lines") {
+        const vals = Array.isArray(value) ? value : [];
+        return (
+          <div className="mt-3">
+            {block.hint && <div className="mb-1 text-xs font-medium text-neutral-500">{block.hint}</div>}
+            <div className="grid gap-1.5">
+              {Array.from({ length: block.count }, (_, i) => (
+                <input key={i} className={rptInput} value={vals[i] || ""} readOnly={readOnly}
+                  onChange={(e) => { const next = vals.slice(); next[i] = e.target.value; onChange(next); }} />
+              ))}
+            </div>
+          </div>
+        );
+      }
+      if (block.kind === "template") {
+        return (
+          <div className="mt-3">
+            {block.hint && <div className="mb-1 text-xs font-medium text-neutral-500">{block.hint}</div>}
+            <textarea className={cls(rptInput, "min-h-[4.5rem]")} readOnly={readOnly}
+              value={typeof value === "string" ? value : block.text}
+              onChange={(e) => onChange(e.target.value)} />
+            <div className="mt-1 text-[11px] text-neutral-400">Fill in the blanks, then say it out loud once.</div>
+          </div>
+        );
+      }
+      if (block.kind === "timeblocks") {
+        const vals = Array.isArray(value) ? value : [];
+        const set = (i, k, v) => { const next = vals.slice(); next[i] = { ...(next[i] || {}), [k]: v }; onChange(next); };
+        return (
+          <div className="mt-3 grid gap-1.5">
+            <div className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-1.5 text-xs font-medium text-neutral-500">
+              <span>Day</span><span>Time block</span><span># of calls</span>
+            </div>
+            {Array.from({ length: block.rows }, (_, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-1.5">
+                <input className={rptInput} placeholder="Tue" readOnly={readOnly} value={(vals[i] && vals[i].day) || ""} onChange={(e) => set(i, "day", e.target.value)} />
+                <input className={rptInput} placeholder="8–9 PM" readOnly={readOnly} value={(vals[i] && vals[i].time) || ""} onChange={(e) => set(i, "time", e.target.value)} />
+                <input className={rptInput} inputMode="numeric" readOnly={readOnly} value={(vals[i] && vals[i].calls) || ""} onChange={(e) => set(i, "calls", e.target.value)} />
+              </div>
+            ))}
+          </div>
+        );
+      }
+      // names: name + why call now
+      const vals = Array.isArray(value) ? value : [];
+      const set = (i, k, v) => { const next = vals.slice(); next[i] = { ...(next[i] || {}), [k]: v }; onChange(next); };
+      return (
+        <div className="mt-3">
+          <div className="mb-1.5 text-xs text-neutral-500">Pick from either: <b>{block.category}</b>, or <b>{block.category2}</b></div>
+          <div className="grid gap-1.5">
+            {Array.from({ length: block.count }, (_, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1.3fr] gap-1.5">
+                <input className={rptInput} placeholder={`Name ${i + 1}`} readOnly={readOnly} value={(vals[i] && vals[i].name) || ""} onChange={(e) => set(i, "name", e.target.value)} />
+                <input className={rptInput} placeholder="Why call now" readOnly={readOnly} value={(vals[i] && vals[i].why) || ""} onChange={(e) => set(i, "why", e.target.value)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const ReportsTab = ({ settings, onBlank }) => {
+      const ready = !!(settings.advisorName && settings.syncKey);
+      const [status, setStatus] = React.useState("idle");      // idle | loading | ready | denied | error
+      const [items, setItems] = React.useState([]);
+      const [idx, setIdx] = React.useState(0);
+      const [answers, setAnswers] = React.useState({});
+      const [save, setSave] = React.useState("");               // "" | saving | saved | failed
+      const timer = React.useRef(null);
+
+      const load = React.useCallback(async () => {
+        if (!ready) return;
+        setStatus("loading");
+        try {
+          const res = await fetch(`${SYNC_URL}?path=gameplans&advisor=${encodeURIComponent(settings.advisorName)}`, {
+            headers: { Authorization: `Bearer ${settings.syncKey}` }, cache: "no-store",
+          });
+          if (res.status === 401) { setStatus("denied"); return; }
+          const d = await res.json();
+          if (!d.ok) throw new Error(d.error || "unavailable");
+          const first = d.items && d.items[0];
+          setItems(d.items || []); setIdx(0); setAnswers((first && first.answers) || {});
+          setStatus("ready");
+          if (onBlank) onBlank(!!first && first.week === rptThisMonday() && !rptHasText(first.answers));
+        } catch { setStatus("error"); }
+      }, [ready, settings.advisorName, settings.syncKey]);
+      React.useEffect(() => { load(); }, [load]);
+
+      const it = items[idx];
+      const editable = idx === 0 && it && it.week === rptThisMonday();
+
+      const persist = (next) => {
+        setAnswers(next);
+        if (!editable) return;
+        if (onBlank) onBlank(!rptHasText(next));
+        setSave("saving");
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(async () => {
+          try {
+            const res = await fetch(`${SYNC_URL}?path=gameplananswers`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${settings.syncKey}` },
+              body: JSON.stringify({ advisor: settings.advisorName, week: it.week, answers: next }),
+            });
+            const d = await res.json().catch(() => ({}));
+            setSave(res.ok && d.ok ? "saved" : "failed");
+          } catch { setSave("failed"); }
+        }, 900);
+      };
+      const setSection = (key, patch) => persist({ ...answers, [key]: { ...(answers[key] || {}), ...patch } });
+
+      if (!ready) return <Section title="Monday Report"><p className="text-sm text-neutral-600">Add your name and sync key in Settings to see your reports.</p></Section>;
+      if (status === "loading" || status === "idle") return <Section title="Monday Report"><p className="text-sm text-neutral-500">Loading your report…</p></Section>;
+      if (status === "denied") return <Section title="Monday Report"><p className="text-sm text-neutral-600">Your name or sync key was not recognized. Check them in Settings.</p></Section>;
+      if (status === "error") return (
+        <Section title="Monday Report">
+          <p className="text-sm text-neutral-600">Your report couldn't be loaded.</p>
+          <button type="button" onClick={load} className={cls(btnSecondary, "mt-3")}>Try again</button>
+        </Section>
+      );
+      if (!it) return <Section title="Monday Report"><p className="text-sm text-neutral-600">Your Monday report arrives at 9:00 AM on Monday, when ACE starts.</p></Section>;
+
+      const rep = it.report || {};
+      const mom = rep.momentum || { weeks: [], callouts: [] };
+      const week = answers.week || {};
+      const plan = answers.plan || {};
+      return (
+        <>
+          <Section title={`Monday Report · ACE ${rptWeekLabel(it.week)}`}
+            right={items.length > 1 && (
+              <select className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs" value={idx}
+                onChange={(e) => { const i = Number(e.target.value); setIdx(i); setAnswers(items[i].answers || {}); setSave(""); }}>
+                {items.map((x, i) => <option key={x.week} value={i}>ACE {rptWeekLabel(x.week)}</option>)}
+              </select>
+            )}>
+            <p className="text-xs text-neutral-500">Last week: {rep.range}</p>
+            {(rep.wins || []).length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {rep.wins.map((w, i) => (
+                  <span key={i} className={cls("rounded-full px-2 py-0.5 text-[11px] font-semibold", w.type === "new" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700")}>{w.text}</span>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-neutral-500">Your one-week records: {rep.oneWeekRecords}</p>
+            <div className="mt-3 grid grid-cols-3 gap-1.5">
+              {(rep.snap || []).map((c) => (
+                <div key={c.label} className="rounded-md border border-neutral-200 p-2">
+                  <div className="text-[10px] text-neutral-500">{c.label}</div>
+                  <div className="text-sm font-semibold text-neutral-900">{c.value}</div>
+                  {c.sub && <div className="text-[10px] text-neutral-400">{c.sub}</div>}
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          {mom.weeks.length > 0 && (
+            <Section title="Momentum: last 4 weeks">
+              {mom.callouts.map((c, i) => <p key={i} className="mb-1 text-sm text-neutral-700">{c.emoji} {c.text}</p>)}
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="text-neutral-500"><th className="py-1 text-left font-medium">Metric</th>{mom.weeks.map((w, i) => <th key={i} className="py-1 text-right font-medium">{w.label}</th>)}</tr></thead>
+                  <tbody>
+                    {[["Meetings", "meetings"], ["Submissions", "sub"], ["Paid", "paid"], ["Referrals", "ref"]].map(([label, k]) => (
+                      <tr key={k} className="border-t border-neutral-100"><td className="py-1">{label}</td>{mom.weeks.map((w, i) => <td key={i} className="py-1 text-right">{w[k]}</td>)}</tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
+
+          {(rep.focus || []).length > 0 && (
+            <Section title="How to get better results this week">
+              <div className="grid gap-3">
+                {rep.focus.map((f) => (
+                  <div key={f.key}>
+                    <div className="text-sm font-semibold text-neutral-900">{f.title}</div>
+                    <div className="text-xs text-neutral-500">{f.goal}; addresses your <b>{f.gapName}</b> for the week.</div>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-neutral-700">{f.steps.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          <Section title="Your worksheet" right={editable && save && (
+            <span className={cls("text-xs", save === "failed" ? "text-rose-600" : "text-neutral-400")}>
+              {save === "saving" ? "Saving…" : save === "saved" ? "Saved" : "Not saved. Check your connection."}
+            </span>
+          )}>
+            <p className="text-xs text-neutral-500">{editable ? "Fill these in for the huddle: one block per focus area, and commit to a number. It saves as you type." : "This week has passed, so this gameplan is read-only."}</p>
+            {(it.worksheet || []).map((s) => {
+              const a = answers[s.gapKey] || {};
+              const b = Array.isArray(a.b) ? a.b : [];
+              return (
+                <div key={s.gapKey} className="mt-4 border-t border-neutral-100 pt-3">
+                  <div className="text-sm font-semibold text-neutral-900">{s.title}</div>
+                  <div className="text-xs text-neutral-500">{s.prompt}</div>
+                  {s.blocks.map((blk, i) => (
+                    <RptBlock key={i} block={blk} value={b[i]} readOnly={!editable}
+                      onChange={(v) => { const next = b.slice(); next[i] = v; setSection(s.gapKey, { b: next }); }} />
+                  ))}
+                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-brand-700">
+                    <span>My commitment this week:</span>
+                    <input className={cls(rptInput, "w-20 py-1")} inputMode="numeric" readOnly={!editable} value={a.commit || ""}
+                      onChange={(e) => setSection(s.gapKey, { commit: e.target.value })} />
+                    <span className="font-normal text-neutral-600">{s.commitment}</span>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="mt-4 rounded-lg border border-brand-200 p-3">
+              <div className="text-sm font-semibold text-brand-700">My plan this week, in my own words</div>
+              <div className="mt-2 mb-1 text-xs font-medium text-neutral-500">My #1 focus this week</div>
+              <input className={rptInput} readOnly={!editable} value={plan.focus || ""} onChange={(e) => persist({ ...answers, plan: { ...plan, focus: e.target.value } })} />
+              <div className="mt-2 mb-1 text-xs font-medium text-neutral-500">One thing I'll do differently from last week</div>
+              <input className={rptInput} readOnly={!editable} value={plan.different || ""} onChange={(e) => persist({ ...answers, plan: { ...plan, different: e.target.value } })} />
+            </div>
+          </Section>
+
+          <Section title="Plan your week ahead">
+            <p className="text-xs text-neutral-500">Pencil in your meetings for the week.</p>
+            <div className="mt-2 grid gap-2">
+              {RPT_DAYS.map((d) => (
+                <div key={d} className="grid grid-cols-[2.5rem_1fr] items-start gap-2">
+                  <div className="pt-2 text-xs font-semibold text-neutral-600">{d}</div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {RPT_PARTS.map((p) => (
+                      <input key={p} className={cls(rptInput, "px-2 text-xs")} placeholder={p} readOnly={!editable}
+                        value={week[`${d}|${p}`] || ""} onChange={(e) => persist({ ...answers, week: { ...week, [`${d}|${p}`]: e.target.value } })} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section title={`Your meetings last week (${(rep.log || []).length})`}>
+            {(rep.log || []).length === 0 ? <p className="text-sm text-neutral-500">No meetings logged last week.</p> : (
+              <div className="grid gap-1.5">
+                {rep.log.map((m, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 border-b border-neutral-100 pb-1.5 text-xs">
+                    <div className="min-w-0"><div className="truncate font-medium text-neutral-900">{m.client}</div><div className="text-neutral-500">{m.date} · {m.product}</div></div>
+                    <div className="shrink-0 text-right text-neutral-600">{[m.kyc === "Yes" && "KYC", m.sub === "Yes" && "Sub", m.paid === "Yes" && "Paid"].filter(Boolean).join(" · ") || "Meeting"}<div>{m.fyp !== "—" ? m.fyp : ""}</div></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+        </>
+      );
+    };
 
     // ---- Playbook reader -----------------------------------------------------
     // A read-only view of the Spartan MDRT Playbook. The PDF is fetched through
@@ -1732,6 +2017,20 @@
       }
 
       // Jump to a tab, but first cancel any edit and close Settings.
+      // Reports: a red dot while this week's gameplan is still blank.
+      const [reportBlank, setReportBlank] = React.useState(false);
+      React.useEffect(() => {
+        if (!settings.advisorName || !settings.syncKey) return;
+        let alive = true;
+        fetch(`${SYNC_URL}?path=gameplans&advisor=${encodeURIComponent(settings.advisorName)}`, {
+          headers: { Authorization: `Bearer ${settings.syncKey}` }, cache: "no-store",
+        }).then((r) => r.json()).then((d) => {
+          const first = d && d.ok && d.items && d.items[0];
+          if (alive) setReportBlank(!!first && first.week === rptThisMonday() && !rptHasText(first.answers));
+        }).catch(() => {});
+        return () => { alive = false; };
+      }, [settings.advisorName, settings.syncKey]);
+
       const goToTab = (dest) => {
         // Morning Meeting Tracker is an external MS Form — open it in the
         // user's default browser (new tab/window) instead of an in-app view.
@@ -3921,8 +4220,9 @@
           })()}
 
           {tab==="playbook" && <PlaybookReader settings={settings} />}
+          {tab==="reports" && <ReportsTab settings={settings} onBlank={setReportBlank} />}
 
-          <FloatingTabBar tab={tab} setTab={goToTab} calendarBadge={pastDueMeetings.length} />
+          <FloatingTabBar tab={tab} setTab={goToTab} calendarBadge={pastDueMeetings.length} reportsBadge={reportBlank ? 1 : 0} />
           
           {toast && <Toast text={toast.t} quote={toast.quote} type={toast.type||"ok"} onClose={()=>setToast(null)}/>}
         </Page>
