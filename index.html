@@ -23,7 +23,7 @@
       --ink:#171A2B;
       --interactive:#6366f1; --interactive-hover:#4f46e5; --interactive-text:#ffffff;
       --strong-bg:#171A2B;
-      --nav-bg:#e0e7ff; --nav-border:#c7d2fe; --nav-text:#525252;
+      --nav-bg:#171A2B; --nav-border:#2c3150; --nav-text:#c9cde3;
       --nav-active:#DD467D; --nav-active-text:#ffffff;
       --timer-bg:#eef2ff; --timer-border:#a5b4fc; --timer-text:#4338ca;
       --success-soft:#ecfdf5; --success-text:#047857;
@@ -130,7 +130,8 @@
     .theme-choice[aria-checked="true"]{border-color:var(--sn-red)!important;box-shadow:0 0 0 3px var(--sn-red-light);transform:translateY(-1px)}
     .brand-wordmark{object-fit:contain;object-position:left center}
     .theme-interactive{background-color:var(--interactive)!important;color:var(--interactive-text)!important}
-    .theme-nav{background-color:var(--nav-bg)!important;border-color:var(--nav-border)!important}
+    .theme-nav{background-color:var(--nav-bg)!important;border-color:var(--nav-border)!important;border-width:2px!important;box-shadow:0 12px 32px -8px rgba(0,0,0,.45),0 4px 10px rgba(0,0,0,.18)!important}
+    @media (hover:hover){.theme-tab-inactive:hover{background-color:color-mix(in srgb,var(--nav-text) 14%,transparent)!important}}
     .theme-tab-active{background-color:var(--nav-active)!important;color:var(--nav-active-text)!important}
     .theme-tab-inactive{color:var(--nav-text)!important}
     .theme-timer-digit{background-color:var(--timer-bg)!important;border-color:var(--timer-border)!important;color:var(--timer-text)!important}
@@ -929,7 +930,7 @@
         className={cls(
           mini ? "relative h-10 rounded-lg transition flex items-center justify-center"
                : "relative h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
-          active ? "theme-tab-active bg-brand-600 text-white" : "theme-tab-inactive text-neutral-600 [@media(hover:hover)]:hover:bg-white/70"
+          active ? "theme-tab-active bg-brand-600 text-white" : "theme-tab-inactive text-neutral-600"
         )}
         aria-pressed={active}
         aria-label={badge > 0 ? `${ariaLabel || label} (${badge} need updating)` : (ariaLabel || label)}
