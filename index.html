@@ -555,7 +555,7 @@
 
     const Page = ({children}) => (
       <div className="min-h-[100dvh] w-full bg-transparent text-slate-900">
-        <div className="mx-auto w-full max-w-md px-4 pb-36">{children}</div>
+        <div className="mx-auto w-full max-w-md px-4 pb-44">{children}</div>
       </div>
     );
 
@@ -946,8 +946,8 @@
     };
 
     const FloatingTabBar = ({ tab, setTab, calendarBadge = 0, reportsBadge = 0 }) => (
-      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[42rem]">
-        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-8 gap-1 shadow-lg">
+      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-[28rem]">
+        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-4 gap-1 shadow-lg">
           <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
           <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
           <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
@@ -1791,7 +1791,7 @@
       const dark = "h-10 min-w-10 px-3 rounded-md bg-white/10 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-30";
       const pageCanvas = (
         <div ref={wrapRef} className={full ? "relative min-h-0 flex-1 overflow-auto bg-neutral-800" : "relative overflow-auto rounded-md border border-neutral-200 bg-neutral-100"}
-          style={full ? { touchAction: "pan-x pan-y" } : { maxHeight: "calc(100dvh - 15rem)", touchAction: "pan-x pan-y" }}
+          style={full ? { touchAction: "pan-x pan-y" } : { maxHeight: "calc(100dvh - 19rem)", touchAction: "pan-x pan-y" }}
           onContextMenu={(e) => e.preventDefault()}>
           <div className={full ? "flex min-h-full min-w-full w-max items-center justify-center p-2" : ""} style={full ? { minWidth: "100%" } : undefined}>
             <canvas ref={canvasRef} className="block select-none bg-white"
