@@ -237,9 +237,27 @@
     const pillGreen = "rounded-md border border-emerald-300 bg-emerald-50 text-emerald-700";
     
     const cls = (...xs) => xs.filter(Boolean).join(" ");
-    const todayISODate = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; };
-    const nowHM = () => { const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
-    const dayName = (iso) => new Date(iso).toLocaleDateString(undefined,{weekday:"long"});
+    // The Logger keeps Manila time (UTC+8, no daylight saving) whatever timezone the phone
+    // is set to: "today", "now", and every meeting's date and time are read as Manila's.
+    const MNL_MS = 8 * 3600000;
+    const mnlNow = () => { const d = new Date(Date.now() + MNL_MS);   // Manila's wall clock, read through UTC getters
+      return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate(), h: d.getUTCHours(), min: d.getUTCMinutes() }; };
+    // Today in Manila as a plain calendar date, for day arithmetic (add days, find Monday).
+    const mnlToday = () => { const n = mnlNow(); return new Date(n.y, n.m, n.d); };
+    // A meeting's date ("2026-10-26") and time ("14:30" or "2:30 PM") in Manila, as an instant
+    // in ms for comparing with Date.now(). NaN when either can't be read.
+    const mnlTime = (iso, hm) => {
+      const dm = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
+      const tm = /^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?$/.exec(String(hm || "").trim());
+      if (!dm || !tm) return NaN;
+      let h = +tm[1];
+      if (tm[3]) h = (h % 12) + (/p/i.test(tm[3]) ? 12 : 0);
+      return Date.UTC(+dm[1], +dm[2] - 1, +dm[3], h, +tm[2]) - MNL_MS;
+    };
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const todayISODate = () => { const n = mnlNow(); return `${n.y}-${pad2(n.m + 1)}-${pad2(n.d)}`; };
+    const nowHM = () => { const n = mnlNow(); return `${pad2(n.h)}:${pad2(n.min)}`; };
+    const dayName = (iso) => new Date(String(iso).slice(0, 10) + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" });
 
     // --- History identity / de-duplication ---
     // A stable content signature so the same appointment is recognised across
@@ -291,8 +309,8 @@
     const meetingStatusOf = (r) => {
       const s = String(r && r.status || "").toLowerCase();
       if (s === "completed" || s === "scheduled" || s === "missed") return s;
-      const dt = new Date(`${(r && r.date) || ""}T${(r && r.appointmentTime) || "23:59"}`);
-      return (!isNaN(dt) && dt.getTime() > Date.now()) ? "scheduled" : "completed";
+      const at = mnlTime(r && r.date, (r && r.appointmentTime) || "23:59");
+      return (!isNaN(at) && at > Date.now()) ? "scheduled" : "completed";
     };
     const calType = (t) => (String(t||"").trim().toLowerCase().startsWith("aia") ? "aia" : "agency");
     const LS_SYNC = { last: "sn.meet.lastsync.v1" };
@@ -2641,7 +2659,7 @@
       };
       useEffect(() => { fetchBbStats(); }, [settings.advisorName, settings.syncKey]);
       const monthYearLabel = useMemo(() => {
-        const d = new Date();
+        const d = mnlToday();
         return `${d.toLocaleString("en-US",{month:"long"})} ${d.getFullYear()} Numbers`;
       }, []);
 
@@ -2751,8 +2769,8 @@
 
       // Is the meeting the form currently describes in the future?
       const meetingIsFuture = useMemo(() => {
-        const dt = new Date(`${form.date}T${form.time || "00:00"}`);
-        return !isNaN(dt) && dt.getTime() > Date.now();
+        const at = mnlTime(form.date, form.time || "00:00");
+        return !isNaN(at) && at > Date.now();
       }, [form.date, form.time]);
 
       // "Scheduling" = tracking upcoming appointments is on, the meeting is in
@@ -2809,8 +2827,8 @@
         return (history || [])
           .filter(r => r && r.kind !== "prospecting" && meetingStatusOf(r) === "scheduled")
           .filter(r => {
-            const when = new Date(`${r.date}T${r.appointmentTime || "23:59"}`);
-            return !isNaN(when) && (when.getTime() + RECONCILE_GRACE_MS) < nowMs;
+            const when = mnlTime(r.date, r.appointmentTime || "23:59");
+            return !isNaN(when) && (when + RECONCILE_GRACE_MS) < nowMs;
           })
           .slice()
           .sort((a, b) => `${a.date} ${a.appointmentTime || ""}`.localeCompare(`${b.date} ${b.appointmentTime || ""}`));
@@ -2837,8 +2855,7 @@
       };
 
       const weeklyGoalSlots = useMemo(() => {
-        const today = new Date();
-        const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const monday = mnlToday();
         const daysSinceMonday = (monday.getDay() + 6) % 7;
         monday.setDate(monday.getDate() - daysSinceMonday);
 
@@ -2921,12 +2938,12 @@
       }, [tab]);
       const welcomeData = useMemo(() => {
         const GOAL = 15;
-        const now = new Date();
-        const hour = now.getHours();
+        const nowMs = Date.now();
+        const hour = mnlNow().h;
         const firstName = (settings.advisorName || "").trim().split(/\s+/)[0] || "";
 
         // Mon–Sun week (identical to weeklyGoalSlots).
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const today = mnlToday();
         const daysSinceMonday = (today.getDay() + 6) % 7;
         const monday = new Date(today); monday.setDate(today.getDate() - daysSinceMonday);
         const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
@@ -2955,8 +2972,8 @@
         // Past-due scheduled meetings that still need logging.
         const overdue = meetings.filter(r => {
           if (meetingStatusOf(r) !== "scheduled") return false;
-          const when = new Date(`${r.date}T${r.appointmentTime || "23:59"}`);
-          return !isNaN(when) && when.getTime() < now.getTime();
+          const when = mnlTime(r.date, r.appointmentTime || "23:59");
+          return !isNaN(when) && when < nowMs;
         }).length;
 
         // Agency sessions (ACE / FCM / GRID and friends) in the next 7 days.
@@ -4069,8 +4086,8 @@
                 if (st === "missed") return null;
                 let type = "meeting";                 // completed
                 if (st === "scheduled") {
-                  const when = new Date(`${start}T${r.appointmentTime || "23:59"}`);
-                  const overdue = !isNaN(when) && when.getTime() < nowMs;
+                  const when = mnlTime(start, r.appointmentTime || "23:59");
+                  const overdue = !isNaN(when) && when < nowMs;
                   // Any future, not-yet-logged meeting is "upcoming" (orange),
                   // regardless of week; past-due ones are "overdue" (To Log).
                   type = overdue ? "overdue" : "upcoming";
