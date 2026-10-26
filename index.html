@@ -1247,11 +1247,16 @@
                     <RptBlock key={i} block={blk} value={b[i]} readOnly={!editable}
                       onChange={(v) => { const next = b.slice(); next[i] = v; setSection(s.gapKey, { b: next }); }} />
                   ))}
-                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-brand-700">
-                    <span>My commitment this week:</span>
-                    <input className={cls(rptInput, "w-20 py-1")} inputMode="numeric" readOnly={!editable} value={a.commit || ""}
-                      onChange={(e) => setSection(s.gapKey, { commit: e.target.value })} />
-                    <span className="font-normal text-neutral-600">{s.commitment}</span>
+                  {/* The takeaway of each block: a tinted panel (in the theme's brand color) with a large number. */}
+                  <div className="mt-4 rounded-lg border-2 p-3"
+                    style={{ borderColor: "color-mix(in srgb, var(--brand) 45%, transparent)", background: "color-mix(in srgb, var(--brand) 7%, transparent)" }}>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-brand-700">My commitment this week</div>
+                    <div className="mt-2 flex items-center gap-3">
+                      <input className="w-24 shrink-0 rounded-md border border-neutral-200 bg-white px-2 py-2 text-center text-3xl font-bold text-neutral-900 focus:border-brand-400 focus:outline-none" inputMode="numeric" placeholder="0"
+                        aria-label={`My commitment: ${s.commitment}`} readOnly={!editable} value={a.commit || ""}
+                        onChange={(e) => setSection(s.gapKey, { commit: e.target.value })} />
+                      <span className="text-base font-semibold leading-snug text-neutral-800">{s.commitment}</span>
+                    </div>
                   </div>
                 </div>
               );
