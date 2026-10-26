@@ -253,9 +253,18 @@ module.exports = async (req, res) => {
         const url = `${GAS_URL}?path=gameplans&advisor=${encodeURIComponent(canonical)}&secret=${encodeURIComponent(secret)}`;
         const r = await fetch(url, { method: "GET" });
         const text = await r.text();
-        res.setHeader("Content-Type", "application/json");
         res.setHeader("Cache-Control", "no-store");
-        return res.status(r.ok ? 200 : r.status || 502).send(text);
+        // Name the setup step that is missing rather than failing silently: a reply
+        // that isn't a list of items means the Apps Script didn't route path=gameplans.
+        let d = null;
+        try { d = JSON.parse(text); } catch { /* not JSON */ }
+        if (d && d.ok === false && d.error === "forbidden") {
+          return res.status(502).json({ ok:false, error:"Apps Script rejected GAMEPLAN_SECRET: the Logger's value doesn't match the script property" });
+        }
+        if (!d || d.ok !== true || !Array.isArray(d.items)) {
+          return res.status(502).json({ ok:false, error: (d && d.error) || "Apps Script doGet has no path=gameplans route, or its new version isn't deployed" });
+        }
+        return res.status(200).json(d);
       }
 
       // Recruit page: list BOP events, or this advisor's BOP guests.

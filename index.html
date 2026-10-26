@@ -1029,6 +1029,7 @@
     const ReportsTab = ({ settings, onBlank }) => {
       const ready = !!(settings.advisorName && settings.syncKey);
       const [status, setStatus] = React.useState("idle");      // idle | loading | ready | denied | error
+      const [why, setWhy] = React.useState("");
       const [items, setItems] = React.useState([]);
       const [idx, setIdx] = React.useState(0);
       const [answers, setAnswers] = React.useState({});
@@ -1037,14 +1038,14 @@
 
       const load = React.useCallback(async () => {
         if (!ready) return;
-        setStatus("loading");
+        setStatus("loading"); setWhy("");
         try {
           const res = await fetch(`${SYNC_URL}?path=gameplans&advisor=${encodeURIComponent(settings.advisorName)}`, {
             headers: { Authorization: `Bearer ${settings.syncKey}` }, cache: "no-store",
           });
           if (res.status === 401) { setStatus("denied"); return; }
           const d = await res.json();
-          if (!d.ok) throw new Error(d.error || "unavailable");
+          if (!d.ok) { setWhy(d.error || ""); throw new Error(d.error || "unavailable"); }
           const first = d.items && d.items[0];
           setItems(d.items || []); setIdx(0); setAnswers((first && first.answers) || {});
           setStatus("ready");
@@ -1082,6 +1083,7 @@
       if (status === "error") return (
         <Section title="Monday Report">
           <p className="text-sm text-neutral-600">Your report couldn't be loaded.</p>
+          {why && <p className="mt-1 text-xs text-neutral-500">{why}</p>}
           <button type="button" onClick={load} className={cls(btnSecondary, "mt-3")}>Try again</button>
         </Section>
       );
