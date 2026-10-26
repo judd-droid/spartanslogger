@@ -920,45 +920,67 @@
 
     // A single nav button. `icon` is a React node (see ICONS). `badge` is an
     // optional count shown as a red dot with a number (e.g. items needing action).
-    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel, badge = 0 }) => {
+    const TabButton = ({ id, tab, setTab, label, icon, ariaLabel, badge = 0, mini = false }) => {
       const active = tab === id;
       return (
       <button
         onClick={() => setTab(id)}
+        title={mini ? (ariaLabel || (typeof label === "string" ? label : undefined)) : undefined}
         className={cls(
-          "relative h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
+          mini ? "relative h-10 rounded-lg transition flex items-center justify-center"
+               : "relative h-14 rounded-lg font-medium transition flex items-center justify-center px-0.5",
           active ? "theme-tab-active bg-brand-600 text-white" : "theme-tab-inactive text-neutral-600 [@media(hover:hover)]:hover:bg-white/70"
         )}
         aria-pressed={active}
         aria-label={badge > 0 ? `${ariaLabel || label} (${badge} need updating)` : (ariaLabel || label)}
       >
         {badge > 0 && (
-          <span className="absolute right-1.5 top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-brand-50">
+          <span className={cls("absolute z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-brand-50",
+            mini ? "-right-0.5 -top-0.5" : "right-1.5 top-1")}>
             {badge > 9 ? "9+" : badge}
           </span>
         )}
-        <div className="flex flex-col items-center leading-[1.05] pt-1 pb-1">
-          {icon}
-          <span className="flex h-[1.9em] items-center justify-center text-center text-[9px] sm:text-[10px] leading-[1.05]">{label}</span>
-        </div>
+        {mini ? icon : (
+          <div className="flex flex-col items-center leading-[1.05] pt-1 pb-1">
+            {icon}
+            <span className="flex h-[1.9em] items-center justify-center text-center text-[9px] sm:text-[10px] leading-[1.05]">{label}</span>
+          </div>
+        )}
       </button>
       );
     };
 
-    const FloatingTabBar = ({ tab, setTab, calendarBadge = 0, reportsBadge = 0 }) => (
-      <div className="fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-1/2 -translate-x-1/2 w-[18rem] max-w-[calc(100vw-1rem)]">
-        <div className="theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid grid-cols-4 gap-1 shadow-lg">
-          <TabButton id="log"         tab={tab} setTab={setTab} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
-          <TabButton id="history"     tab={tab} setTab={setTab} label="History"      icon={ICONS.history} />
-          <TabButton id="prospecting" tab={tab} setTab={setTab} label="Telethon"     icon={ICONS.telethon} />
-          <TabButton id="morning"     tab={tab} setTab={setTab} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
-          <TabButton id="recruit"     tab={tab} setTab={setTab} label="Recruit"      icon={ICONS.recruit} />
-          <TabButton id="calendar"    tab={tab} setTab={setTab} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" badge={calendarBadge} />
-          <TabButton id="reports"     tab={tab} setTab={setTab} label="Reports"      icon={ICONS.reports} ariaLabel="Monday Report and Gameplan" badge={reportsBadge} />
-          <TabButton id="playbook"    tab={tab} setTab={setTab} label="Playbook"     icon={ICONS.playbook} ariaLabel="Spartan MDRT Playbook" />
+    // Two rows of four with labels, or a mini mode: one row of icons only. The small round
+    // button on the panel's corner switches between them; the choice is kept on this phone.
+    const FloatingTabBar = ({ tab, setTab, calendarBadge = 0, reportsBadge = 0 }) => {
+      const [mini, setMini] = React.useState(() => { try { return localStorage.getItem("sn.nav.mini") === "1"; } catch { return false; } });
+      const toggle = () => setMini((m) => { const next = !m; try { localStorage.setItem("sn.nav.mini", next ? "1" : "0"); } catch {} return next; });
+      const b = { tab, setTab, mini };
+      return (
+      <div className={cls("fixed z-50 pointer-events-none bottom-[calc(env(safe-area-inset-bottom)+12px)] left-1/2 -translate-x-1/2 max-w-[calc(100vw-1rem)]",
+        mini ? "w-[20rem]" : "w-[18rem]")}>
+        <button type="button" onClick={toggle}
+          aria-label={mini ? "Show the full menu with labels" : "Switch to the mini menu: icons only"}
+          title={mini ? "Show labels" : "Icons only"}
+          className="pointer-events-auto absolute -top-3 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-indigo-200 bg-white text-neutral-600 shadow-sm">
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            {mini ? <path d="M6 15l6-6 6 6" /> : <path d="M6 9l6 6 6-6" />}
+          </svg>
+        </button>
+        <div className={cls("theme-nav pointer-events-auto rounded-xl border border-indigo-200 bg-indigo-100 p-1.5 grid gap-1 shadow-lg",
+          mini ? "grid-cols-8" : "grid-cols-4")}>
+          <TabButton id="log"         {...b} label={<>New<br/>Meeting</>}     icon={ICONS.log}      ariaLabel="Log New Meeting" />
+          <TabButton id="history"     {...b} label="History"      icon={ICONS.history} />
+          <TabButton id="prospecting" {...b} label="Telethon"     icon={ICONS.telethon} />
+          <TabButton id="morning"     {...b} label={<>Morning<br/>Meeting</>} icon={ICONS.morning}  ariaLabel="Morning Meeting Tracker" />
+          <TabButton id="recruit"     {...b} label="Recruit"      icon={ICONS.recruit} />
+          <TabButton id="calendar"    {...b} label="Calendar"     icon={ICONS.calendar} ariaLabel="Agency Calendar" badge={calendarBadge} />
+          <TabButton id="reports"     {...b} label="Reports"      icon={ICONS.reports} ariaLabel="Monday Report and Gameplan" badge={reportsBadge} />
+          <TabButton id="playbook"    {...b} label="Playbook"     icon={ICONS.playbook} ariaLabel="Spartan MDRT Playbook" />
         </div>
       </div>
-    );
+      );
+    };
 
 
     // ---- Monday Reports ------------------------------------------------------
