@@ -1033,8 +1033,38 @@
       const [items, setItems] = React.useState([]);
       const [idx, setIdx] = React.useState(0);
       const [answers, setAnswers] = React.useState({});
-      const [save, setSave] = React.useState("");               // "" | saving | saved | failed
+      const [save, setSave] = React.useState("");               // "" | saving | saved | offline
+      const [offline, setOffline] = React.useState(false);      // showing the copy kept on this phone
+      const [doneMsg, setDoneMsg] = React.useState("");
       const timer = React.useRef(null);
+
+      // Answers are written to this phone on every change and then sent to the sheet, so a
+      // dropped connection never loses them: a draft stays "pending" until the sheet confirms
+      // it, and is sent again when the phone is back online. The last report is kept too, so
+      // the tab still opens offline.
+      const who = String(settings.advisorName || "").trim().toLowerCase();
+      const LS_ITEMS = `sn.reports.items.v1.${who}`, LS_DRAFT = `sn.reports.draft.v1.${who}`;
+      const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
+      const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+      const send = React.useCallback(async (opts) => {
+        const dr = lsGet(LS_DRAFT);
+        if (!dr || !dr.pending) return true;
+        setSave("saving");
+        try {
+          const res = await fetch(`${SYNC_URL}?path=gameplananswers`, {
+            method: "POST", keepalive: !!(opts && opts.keepalive),
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${settings.syncKey}` },
+            body: JSON.stringify({ advisor: settings.advisorName, week: dr.week, answers: dr.answers }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!(res.ok && d.ok)) throw new Error(d.error || "not saved");
+          const now = lsGet(LS_DRAFT);   // only clear "pending" if nothing was typed while sending
+          if (now && now.at === dr.at) lsSet(LS_DRAFT, { ...now, pending: false });
+          setSave("saved"); setOffline(false);
+          return true;
+        } catch { setSave("offline"); return false; }
+      }, [LS_DRAFT, settings.advisorName, settings.syncKey]);
 
       const load = React.useCallback(async () => {
         if (!ready) return;
@@ -1046,13 +1076,40 @@
           if (res.status === 401) { setStatus("denied"); return; }
           const d = await res.json();
           if (!d.ok) { setWhy(d.error || ""); throw new Error(d.error || "unavailable"); }
-          const first = d.items && d.items[0];
-          setItems(d.items || []); setIdx(0); setAnswers((first && first.answers) || {});
-          setStatus("ready");
-          if (onBlank) onBlank(!!first && first.week === rptThisMonday() && !rptHasText(first.answers));
-        } catch { setStatus("error"); }
+          lsSet(LS_ITEMS, d.items || []);
+          show(d.items || [], false);
+          send();
+        } catch {
+          const kept = lsGet(LS_ITEMS);
+          if (Array.isArray(kept) && kept.length) show(kept, true);
+          else setStatus("error");
+        }
       }, [ready, settings.advisorName, settings.syncKey]);
+      // Show a list of reports, with this phone's unsent answers in place of the sheet's.
+      const show = (list, isOffline) => {
+        const dr = lsGet(LS_DRAFT);
+        const first = list[0];
+        const ans = first && dr && dr.pending && dr.week === first.week ? dr.answers : (first && first.answers) || {};
+        setItems(list); setIdx(0); setAnswers(ans); setOffline(isOffline);
+        if (isOffline && dr && dr.pending) setSave("offline");
+        setStatus("ready");
+        if (onBlank) onBlank(!!first && first.week === rptThisMonday() && !rptHasText(ans));
+      };
       React.useEffect(() => { load(); }, [load]);
+      // Back online, or back in the app: send anything still waiting. Leaving the app: try once more.
+      React.useEffect(() => {
+        const retry = () => { if (navigator.onLine !== false) send(); };
+        const onVis = () => { if (document.visibilityState === "hidden") send({ keepalive: true }); else retry(); };
+        const onHide = () => send({ keepalive: true });
+        window.addEventListener("online", retry);
+        document.addEventListener("visibilitychange", onVis);
+        window.addEventListener("pagehide", onHide);
+        return () => {
+          window.removeEventListener("online", retry);
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("pagehide", onHide);
+        };
+      }, [send]);
 
       const it = items[idx];
       const editable = idx === 0 && it && it.week === rptThisMonday();
@@ -1061,20 +1118,20 @@
         setAnswers(next);
         if (!editable) return;
         if (onBlank) onBlank(!rptHasText(next));
-        setSave("saving");
+        lsSet(LS_DRAFT, { week: it.week, answers: next, pending: true, at: Date.now() });
+        setSave("saving"); setDoneMsg("");
         if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(async () => {
-          try {
-            const res = await fetch(`${SYNC_URL}?path=gameplananswers`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${settings.syncKey}` },
-              body: JSON.stringify({ advisor: settings.advisorName, week: it.week, answers: next }),
-            });
-            const d = await res.json().catch(() => ({}));
-            setSave(res.ok && d.ok ? "saved" : "failed");
-          } catch { setSave("failed"); }
-        }, 900);
+        timer.current = setTimeout(() => send(), 900);
       };
+      const done = async () => {
+        if (timer.current) clearTimeout(timer.current);
+        setDoneMsg("Saving…");
+        const ok = await send();
+        setDoneMsg(ok ? "Saved. Your leader can see your gameplan."
+          : "Saved on this phone. It will send by itself when you're back online.");
+      };
+      const saveLabel = save === "saving" ? "Saving…" : save === "saved" ? "Saved"
+        : save === "offline" ? "Saved on this phone. Sends when back online." : "";
       const setSection = (key, patch) => persist({ ...answers, [key]: { ...(answers[key] || {}), ...patch } });
 
       if (!ready) return <Section title="Monday Report"><p className="text-sm text-neutral-600">Add your name and sync key in Settings to see your reports.</p></Section>;
@@ -1098,11 +1155,12 @@
           <Section title={`Monday Report · ACE ${rptWeekLabel(it.week)}`}
             right={items.length > 1 && (
               <select className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs" value={idx}
-                onChange={(e) => { const i = Number(e.target.value); setIdx(i); setAnswers(items[i].answers || {}); setSave(""); }}>
+                onChange={(e) => { const i = Number(e.target.value); setIdx(i); setAnswers(items[i].answers || {}); setSave(""); setDoneMsg(""); }}>
                 {items.map((x, i) => <option key={x.week} value={i}>ACE {rptWeekLabel(x.week)}</option>)}
               </select>
             )}>
             <p className="text-xs text-neutral-500">Last week: {rep.range}</p>
+            {offline && <p className="mt-1 text-xs text-amber-600">No connection. This is the copy kept on this phone; your answers still save here.</p>}
             {(rep.wins || []).length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {rep.wins.map((w, i) => (
@@ -1153,11 +1211,9 @@
           )}
 
           <Section title="Your worksheet" right={editable && save && (
-            <span className={cls("text-xs", save === "failed" ? "text-rose-600" : "text-neutral-400")}>
-              {save === "saving" ? "Saving…" : save === "saved" ? "Saved" : "Not saved. Check your connection."}
-            </span>
+            <span className={cls("text-xs", save === "offline" ? "text-amber-600" : "text-neutral-400")}>{saveLabel}</span>
           )}>
-            <p className="text-xs text-neutral-500">{editable ? "Fill these in for the huddle: one block per focus area, and commit to a number. It saves as you type." : "This week has passed, so this gameplan is read-only."}</p>
+            <p className="text-xs text-neutral-500">{editable ? "Fill these in for the huddle: one block per focus area, and commit to a number. It saves as you type, on this phone first, so a dropped connection won't lose it." : "This week has passed, so this gameplan is read-only."}</p>
             {(it.worksheet || []).map((s) => {
               const a = answers[s.gapKey] || {};
               const b = Array.isArray(a.b) ? a.b : [];
@@ -1202,6 +1258,12 @@
                 </div>
               ))}
             </div>
+            {editable && (
+              <div className="mt-4">
+                <button type="button" onClick={done} className={cls(btnPrimary, "w-full")}>Done</button>
+                {doneMsg && <p className={cls("mt-2 text-center text-xs", /phone/.test(doneMsg) ? "text-amber-600" : "text-neutral-500")}>{doneMsg}</p>}
+              </div>
+            )}
           </Section>
 
           <Section title={`Your meetings last week (${(rep.log || []).length})`}>
