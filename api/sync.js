@@ -123,6 +123,30 @@ async function getCalendarEvents() {
   );
   return out;
 }
+// BOP sessions: the calendars carry the schedule, the 'BOPs' tab keeps the
+// sessions already held. Any calendar event with one of these words in its
+// title is a BOP. A tab row wins for its day, since guests were logged against
+// its name.
+const BOP_TITLE = /\b(bop|bfby|odr)\b/i;
+const isBopEvent = (ev) => BOP_TITLE.test(ev.eventName);
+
+function mergeCalendarBops(tabEvents, calEvents) {
+  const day = (s) => String(s || "").slice(0, 10).replace(/\//g, "-");
+  const tabDays = new Set(tabEvents.map((ev) => day(ev.eventDate)));
+  const fromCalendar = calEvents
+    .filter((ev) => isBopEvent(ev) && !tabDays.has(ev.startDate))
+    .map((ev) => ({
+      eventName: ev.eventName,
+      eventDate: ev.startDate,
+      location: ev.location,
+      startTime: ev.startTime,
+      endTime: ev.endTime,
+      registered: 0,
+      showUp: 0,
+      remarks: ev.details,
+    }));
+  return tabEvents.concat(fromCalendar);
+}
 // ---------------------------------------------------------------------------
 
 module.exports = async (req, res) => {
@@ -237,7 +261,8 @@ module.exports = async (req, res) => {
         res.setHeader("Content-Type", "application/json");
         res.setHeader("Cache-Control", "no-store");
         try {
-          const events = await getCalendarEvents();
+          // BOPs reach the app through path=bops, so they aren't listed twice.
+          const events = (await getCalendarEvents()).filter((ev) => !isBopEvent(ev));
           return res.status(200).json({ ok: true, events });
         } catch (e) {
           return res.status(502).json({ ok: false, error: String(e && e.message || e) });
@@ -268,7 +293,21 @@ module.exports = async (req, res) => {
       }
 
       // Recruit page: list BOP events, or this advisor's BOP guests.
-      if (path === "bops" || path === "bopguests" || path === "prospectinghistory") {
+      if (path === "bops") {
+        const r = await fetch(`${GAS_URL}?path=bops&advisor=${encodeURIComponent(canonical)}`, { method: "GET" });
+        const tab = await r.json().catch(() => null);
+        const tabEvents = tab && tab.ok && Array.isArray(tab.events) ? tab.events : [];
+        let calEvents = [];
+        try { calEvents = await getCalendarEvents(); } catch { /* the tab still answers */ }
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        if (!tabEvents.length && !calEvents.length) {
+          return res.status(502).json({ ok: false, error: (tab && tab.error) || "Couldn't load BOPs" });
+        }
+        return res.status(200).json({ ok: true, events: mergeCalendarBops(tabEvents, calEvents) });
+      }
+
+      if (path === "bopguests" || path === "prospectinghistory") {
         const url = `${GAS_URL}?path=${encodeURIComponent(path)}&advisor=${encodeURIComponent(canonical)}`;
         const r = await fetch(url, { method: "GET" });
         const text = await r.text();
