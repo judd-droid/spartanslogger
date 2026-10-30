@@ -12,6 +12,10 @@ const CAL_DEFAULT_SOURCES = [
     id: "0289f7036999854c823877496fe767abae0b1c9d02a787ed8356fb8b3fc22627@group.calendar.google.com",
     type: "Agency", // Supernova 3.1 - Spartans (internal agency events -> purple)
   },
+  {
+    id: "3c9096b83e6f817cdc139951dbf76918f7e7c6178ef5e209c6671ba23ae187d5@group.calendar.google.com",
+    type: "AIA", // Supernova 3.1 - AIA (AIA events, BOPs included; shared by both Loggers)
+  },
 ];
 const CAL_TZ = "Asia/Manila";     // render dates/times in Philippine time
 const CAL_BACK_DAYS = 31;         // rolling window: ~1 month of history
@@ -90,7 +94,9 @@ async function getCalendarEvents() {
   const timeMax = new Date(now + CAL_FWD_DAYS * 864e5).toISOString();
 
   const out = [];
+  const failures = [];
   for (const src of calSources()) {
+    try {
     let pageToken = "";
     do {
       const qs = new URLSearchParams({
@@ -114,7 +120,11 @@ async function getCalendarEvents() {
       }
       pageToken = data.nextPageToken || "";
     } while (pageToken);
+    } catch (e) {
+      failures.push(e); // one unreadable calendar must not hide the others
+    }
   }
+  if (failures.length && !out.length) throw failures[0];
 
   out.sort((a, b) =>
     a.startDate !== b.startDate
